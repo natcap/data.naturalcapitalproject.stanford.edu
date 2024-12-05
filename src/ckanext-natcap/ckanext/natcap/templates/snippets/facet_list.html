@@ -18,7 +18,14 @@
                         <a href="{{ href }}" aria-label="{{ _('Search datasets by {name}: {label}').format(name=name, label=label_truncated) }}" {% if label != label_truncated %} data-bs-title="{{ label }}" data-bs-toggle="tooltip" {% endif %}>
                           <input type="checkbox" {% if item.active %}checked{% endif %} />
                           <span class="item-label">
-                            <span class="item-label-name">{{ label_truncated }}</span>
+                            <span class="item-label-name">
+                              {% if show_label %}
+                                {{ label_truncated }}
+                              {% endif %}
+                              {% if show_badge %}
+                                {% snippet 'package/snippets/source_type_badge.html', ext=item.name %}
+                              {% endif %}
+                            </span>
                             <span class="item-count">{{ count }}</span></span>
                           </span>
                         </a>

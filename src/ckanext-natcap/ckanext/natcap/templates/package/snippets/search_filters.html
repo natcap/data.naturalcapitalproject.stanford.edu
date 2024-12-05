@@ -36,8 +36,7 @@
         </div>
       </div>
       <div class="search-filters-section-content">
-        {# TODO show icons #}
-        {% snippet 'snippets/facet_list.html', title='File type', name='extras_sources_res_formats', search_facets=search_facets, label_function=h.natcap_get_resource_type_facet_label %}
+        {% snippet 'snippets/facet_list.html', title='File type', name='extras_sources_res_formats', search_facets=search_facets, show_badge=true, show_label=false %}
       </div>
     </div>
 

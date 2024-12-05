@@ -63,7 +63,7 @@
                 {% for placename in placenames %}
                   <li class="additional-info-tag">
                     <a href="{% url_for 'dataset.search', extras_placenames=placename|lower %}" aria-label="{{ _('Search datasets with the place: {name}').format(name=placename) }}">
-                      <img src="/img/filters-tag.png" />
+                      <img src="/img/filters-place.png" />
                       {{ placename }}
                     </a>
                   </li>
