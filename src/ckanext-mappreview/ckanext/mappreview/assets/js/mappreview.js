@@ -7,6 +7,15 @@ ckan.module("mappreview", function ($, _) {
       debug: false,
     },
 
+    /**
+     * Linear scale pixel values to [0, 255] range
+     */
+    _getColorMapValue: function (min, max, value) {
+      if (value <= min) return 0;
+      if (value >= max) return 255;
+      return Math.round(((value - min) / (max - min)) * 255);
+    },
+
     _getGlobalConfig: function () {
       return JSON.parse(this.options.globalConfig.replace(/'/g, '"'));
     },
@@ -21,27 +30,34 @@ ckan.module("mappreview", function ($, _) {
       const endpoint = '/cog/WebMercatorQuad/tilejson.json';
 
       const colors = [
-        [109, 179, 30, 50],
-        [0, 143, 95, 255],
-        [0, 100, 110, 255],
-        [28, 58, 109, 255],
-        [39, 0, 59, 255],
+        [75, 171, 57, 50], // #4BAB39
+        [0, 143, 95, 255], // #008F5F
+        [0, 100, 110, 255], // #00646E
+        [28, 58, 109, 255], // #1C3A6D
+        [32, 40, 93, 255], // #20285D
+        [39, 0, 59, 255], // #27003B
       ];
+
+      const colormap = {};
+
+      const percentiles = [2, 20, 40, 60, 80, 98];
+      percentiles.forEach((percentile, i) => {
+        let colorIndex = this._getColorMapValue(layer.pixel_min_value, layer.pixel_max_value, layer[`pixel_percentile_${percentile}`]);
+
+        // Color map must start with 0 and end with 255
+        if (i === 0) colorIndex = 0;
+        if (i === percentiles.length - 1) colorIndex = 255;
+
+        colormap[colorIndex] = colors[i];
+      });
 
       const params = {
         tile_scale: 2,
         url: layer.url,
         bidx: 1,
         format: 'webp',
-        // rescale: `${layer.pixel_min_value},${layer.pixel_max_value}`,
         rescale: `${layer.pixel_percentile_2},${layer.pixel_percentile_98}`,
-        colormap: JSON.stringify({
-          0: colors[0],
-          75: colors[1],
-          125: colors[2],
-          175: colors[3],
-          255: colors[4],
-        }),
+        colormap: JSON.stringify(colormap),
         colormap_type: 'linear',
       };
 
@@ -68,11 +84,6 @@ ckan.module("mappreview", function ($, _) {
         id: layer.name,
         type: 'fill',
         source: layer.name,
-        /*
-        paint: {
-          'raster-opacity': ['interpolate', ['linear'], ['zoom'], 0, 0.75, 12, 1],
-        },
-        */
       };
     },
 
