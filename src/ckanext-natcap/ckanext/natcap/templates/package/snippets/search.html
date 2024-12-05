@@ -1,0 +1,15 @@
+{% set placeholder = _('Search by dataset title, keyword, location, and more…') %}
+{% set dataset_type = h.default_package_type() %}
+
+<div class="module-search">
+  <form class="module-content search-form package-snippets-search" method="get" action="{% url_for dataset_type ~ '.search' %}">
+    <div class="input-group search-input-group form-group">
+      <input aria-label="{% block header_site_search_label %}{{ h.humanize_entity_type('package', dataset_type, 'search placeholder') or _('Search datasets') }}{% endblock %}" id="field-main-search" type="text" class="form-control" name="q" value="" autocomplete="off" placeholder="{% block search_placeholder %}{{ placeholder }}{% endblock %}" />
+      <span class="input-group-btn">
+        <button class="btn btn-default btn-lg" type="submit" aria-labelledby="search-label">
+          Search
+        </button>
+      </span>
+    </div>
+  </form>
+</div>

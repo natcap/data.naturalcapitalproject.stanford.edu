@@ -34,7 +34,7 @@
           <div class="search-right">
               {% block search_title %}
                 <div>
-                {% if not error %}
+                {% if type and not error %}
                   {% snippet 'snippets/search_result_text.html', query=query, count=count, type=type %}
                 {% else %}
                   Error

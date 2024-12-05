@@ -12,6 +12,20 @@
   {% endif %}
 {% endblock %}
 
+{% block breadcrumb %}
+  <div class="row">
+    <div class="col-md-6">
+      {% snippet 'package/snippets/search.html' %}
+    </div>
+    <div class="col-md-3 offset-md-3 breadcrumb-right">
+      <a href="{% url_for dataset_type ~ '.search' %}" class="btn btn-link breadcrumb-back">
+        <img src="/img/icon-arrow-back.png" />
+        <span>{{ _('Back to all datasets') }}</span>
+      </a>
+    </div>
+  </div>
+{% endblock %}
+
 {% block primary_content_inner %}
   {% if h.mappreview_should_show(pkg) %}
     {% snippet "package/snippets/mappreview.html", pkg=pkg %}

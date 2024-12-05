@@ -13,6 +13,7 @@
     --color-purple: #734675;
     --color-dark-plum: #350D36;
     --color-black: #2E2D29;
+    --color-white: #FFF;
 }
 
 body {
@@ -69,6 +70,11 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+}
+
+.toolbar {
+    margin: 0;
+    padding: 0;
 }
 
 /* Main body*/
@@ -810,6 +816,36 @@ body {
     flex-direction: row;
     align-items: center;
     gap: 0.5rem;
+}
+
+.package-snippets-search {
+    padding: 0;
+    margin-bottom: 0;
+}
+
+.package-snippets-search .btn {
+    top: unset;
+}
+
+.breadcrumb-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.breadcrumb-back,
+.breadcrumb-back:hover {
+    color: var(--color-black);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: normal;
+    text-decoration: none;
+}
+
+.breadcrumb-back:hover {
+    background: var(--color-gray-hover);
 }
 
 .filter-list {
