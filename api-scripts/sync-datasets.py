@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import urllib.request
 import json
 import os
 import requests
@@ -177,30 +178,47 @@ def get_raster_layers_metadata(raster_resources):
 
 
 def get_vector_layer_metadata(vector_resource):
+    vector_type = None
+    feature_count = None
+    bounds = [-180, -90, 180, 90]
+
+    # Confirm data exists at url, get some information about it
     url = vector_resource['url']
-
-    # Does this GeoJSON exist?
-    head_request = requests.head(url)
-    if head_request.status_code != 200:
-        print('Failed to access', url)
-        print('Status code:', head_request.status_code)
-        return None
-
-    # If it exists, get all the info about it
     try:
-        # TODO get bounds
-        bounds = [-180, -90, 180, 90]
+        with urllib.request.urlopen(url) as req:
+            data = json.load(req)
 
-        return {
-            'name': vector_resource['name'],
-            'type': 'vector',
-            'url': url,
-            'bounds': bounds,
-        }
+            features = data['features']
+            feature_count = len(features)
+            vector_type = features[0]['geometry']['type']
     except Exception as e:
-        print('Failed to access', url)
-        print('Status code:', head_request.status_code)
+        print('Failed to access vector dataset', url)
         return None
+
+    # Get bounds from metadata
+    metadata_url = vector_resource['metadata_url']
+    try:
+        with urllib.request.urlopen(metadata_url) as req:
+            yaml_data = yaml.safe_load(req.read())
+            bounding_box = yaml_data['spatial']['bounding_box']
+            bounds = [
+                bounding_box['xmin'],
+                bounding_box['ymin'],
+                bounding_box['xmax'],
+                bounding_box['ymax'],
+            ]
+    except Exception as e:
+        print('Failed to access vector metadata', metadata_url)
+        return None
+
+    return {
+        'name': vector_resource['name'],
+        'type': 'vector',
+        'url': url,
+        'bounds': bounds,
+        'vector_type': vector_type,
+        'feature_count': feature_count,
+    }
 
 
 def get_vector_layers_metadata(vector_resources):
@@ -220,15 +238,20 @@ def get_mappreview_metadata(dataset, zip_sources):
         for shp_source in shp_sources:
             path = shp_source.replace('\\', '/')
             path_start = path.split('/')[0]
-            path_end = '/'.join(path.split('/')[1:]).replace('.shp', '.geojson')
+            path_end = '/'.join(path.split('/')[1:])
 
             base = '/'.join(zip_resource['url'].split('/')[0:-1])
             base = base.replace('https://storage.cloud.google.com/', 'https://storage.googleapis.com/')
-            url = f'{base}/{path_start}/geojsons/{path_end}'
+            geojson_path_end = path_end.replace('.shp', '.geojson')
+            url = f'{base}/{path_start}/geojsons/{geojson_path_end}'
             name = path.split('/')[-1]
+
+            metadata_path_end = path_end.replace('.shp', '.shp.yml')
+            metadata_url = f'{base}/{path_start}/{metadata_path_end}'
 
             vector_resources.append({
                 'name': name,
+                'metadata_url': metadata_url,
                 'url': url,
             })
 

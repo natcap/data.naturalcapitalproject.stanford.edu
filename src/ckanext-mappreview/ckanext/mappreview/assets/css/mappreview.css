@@ -6,25 +6,77 @@
 .mappreview .mappreview-mapboxgl-popup .mapboxgl-popup-content {
   max-height: 200px;
   overflow-y: auto;
+  border-radius: 6px;
+  box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.10);
 }
 
 .mappreview .mapboxgl-popup-close-button {
   font-size: 2em;
+  color: var(--color-dark-gray);
+  top: 0.25rem;
+  right: 0.25rem;
 }
 
 .mappreview .mappreview-mapboxgl-popup h3 {
   font-size: 1.25em;
-  color: var(--color-purple);
+  color: var(--color-dark-plum);
   margin-right: 2rem;
 }
 
-.mappreview .popup-row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 1.5rem;
+.mappreview .popup-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 0.25rem;
 }
 
 .mappreview .popup-key {
   font-weight: bold;
+}
+
+.mappreview .mapboxgl-legend-list {
+  font-family: var(--bs-font-sans-serif);
+  border-radius: 6px;
+  padding: 0.5rem;
+  padding-right: 2rem;
+}
+
+.mappreview .mapboxgl-ctrl-group .mapboxgl-legend-list button {
+  font-size: 0;
+  color: transparent;
+}
+
+.mappreview .mapboxgl-legend-close-button:after {
+  content: '×';
+  color: var(--color-dark-gray);
+  font-size: 1.25rem;
+  line-height: 1.25rem;
+}
+
+.mappreview .mapboxgl-legend-list br {
+  display: none;
+}
+
+.mappreview .mapboxgl-legend-list label {
+  font-weight: 600;
+}
+
+.mappreview .mapboxgl-legend-list label:after {
+  content: '';
+}
+
+.mappreview .mapboxgl-legend-list input[type="checkbox"] {
+  vertical-align: middle;
+}
+
+.mappreview .mapboxgl-legend-title-label {
+  display: none;
+}
+
+.mappreview .mapboxgl-legend-list {
+  overflow-y: auto;
+}
+
+.mappreview .mapboxgl-legend-onlyRendered-checkbox,
+.mappreview .mapboxgl-legend-onlyRendered-label {
+  display: none;
 }
