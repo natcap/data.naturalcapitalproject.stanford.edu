@@ -15,4 +15,4 @@ deploy-staging:
 		--command="sudo sh -c 'cd $(GIT_DIR) && git pull && docker compose build && docker compose down && docker compose up --detach --remove-orphans'"
 
 sync-on-prod:
-	SYNC_SRC_URL=$(CKAN_PROD_URL) SYNC_DST_URL=$(CKAN_PROD_URL) python api-scripts/sync_datasets.py
+	SYNC_SRC_URL=$(CKAN_PROD_URL) SYNC_DST_URL=$(CKAN_PROD_URL) python api-scripts/sync-datasets.py
