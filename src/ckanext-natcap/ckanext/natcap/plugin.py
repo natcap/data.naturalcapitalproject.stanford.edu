@@ -16,6 +16,8 @@ from ckan.lib.helpers import helper_functions as h
 from ckan.lib.helpers import url_for
 from ckan.types import Schema
 
+from .update_dataset import update_dataset
+
 LOGGER = logging.getLogger(__name__)
 
 invest_keywords = []
@@ -258,3 +260,8 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
                 pass
 
         return search_params
+
+
+    def after_dataset_update(self, context, package):
+        resources = [res.as_dict(core_columns_only=False) for res in context['package'].resources]
+        toolkit.enqueue_job(update_dataset, [context['user'], package, resources])
