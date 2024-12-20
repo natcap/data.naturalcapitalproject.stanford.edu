@@ -34,7 +34,7 @@ def parse_sources(sources):
 
 
 def sources_for_resource(sources, resource):
-    if not resource['name'].endswith('.zip'):
+    if not resource['name'].endswith('.zip') or not sources:
         return None
     zip_name = resource['name'].split('.')[0]
     for s in sources:
