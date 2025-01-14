@@ -263,5 +263,6 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
 
 
     def after_dataset_update(self, context, package):
-        resources = [res.as_dict(core_columns_only=False) for res in context['package'].resources]
+        resource_show = toolkit.get_action('resource_show')
+        resources = [resource_show(context, { 'id': r.id }) for r in context['package'].resources]
         toolkit.enqueue_job(update_dataset, [context['user'], package, resources])
