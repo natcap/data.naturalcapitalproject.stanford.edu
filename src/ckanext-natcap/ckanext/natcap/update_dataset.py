@@ -1,11 +1,13 @@
-from datetime import datetime, timedelta, timezone
 import json
 import logging
 import os
 import urllib.request
-import yaml
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
 
 import ckan.plugins.toolkit as toolkit
+import yaml
 
 LOGGER = logging.getLogger(__name__)
 TITILER_URL = os.environ.get('TITILER_URL',
@@ -350,6 +352,8 @@ def save_dataset(user, dataset, extras):
 
 def update_dataset(user, dataset, resources):
     LOGGER.info(f"Updating dataset {dataset['id']}")
+    LOGGER.debug(
+        f"Updating dataset {dataset['id']} with resources {resources}")
 
     extras = dataset['extras']
 
