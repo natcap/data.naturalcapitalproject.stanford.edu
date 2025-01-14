@@ -14,7 +14,7 @@ TITILER_URL = os.environ.get('TITILER_URL',
                              'https://titiler-897938321824.us-west1.run.app')
 
 
-def get_dataset_metadata(resources: list[dict]) -> dict:
+def get_dataset_metadata(user: str, resources: list[dict]) -> dict:
     """
     Load the dataset metadata from the dataset's resources.
     """
@@ -23,6 +23,10 @@ def get_dataset_metadata(resources: list[dict]) -> dict:
 
     for resource in resources:
         if resource['description'] == 'Geometamaker YML':
+            # get the resource from the API to make sure the resource download
+            # URL is fully-qualified.
+            resource = toolkit.get_action('resource_show')(
+                {'user': user}, {'id': resource['id']})
             with urllib.request.urlopen(resource['url']) as response:
                 text = response.read()
                 return yaml.safe_load(text)
@@ -361,7 +365,7 @@ def update_dataset(user, dataset, resources):
         LOGGER.info(f"Skipping update of dataset {dataset['id']}, was updated recently")
         return
 
-    metadata = get_dataset_metadata(resources)
+    metadata = get_dataset_metadata(user, resources)
 
     if not metadata:
         LOGGER.info(f"Skipping update of dataset {dataset['id']}, no metadata found")
