@@ -1,0 +1,7 @@
+google-cloud-storage
+flask
+pygeoprocessing
+humanize
+flask_cors
+pyyaml
+uvicorn
