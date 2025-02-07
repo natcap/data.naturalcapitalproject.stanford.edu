@@ -161,41 +161,33 @@ def _create_resource_dict_from_url(url, description):
 
 
 def _find_license(license_string, license_url, known_licenses):
-
-    # CKAN license IDs use:
+    # CKAN license IDs generally use:
     #   - dashes instead of spaces
     #   - all caps
     sanitized_license_string = license_string.strip().replace(
         ' ', '-').upper()
 
-    # CKAN license URLs are expected to have a trailing backslash
-    if not license_url.endswith('/'):
-        license_url = f'{license_url}/'
-
-    string_to_licenseid = {}
-    url_to_licenseid = {}
     for license_data in known_licenses:
         license_id = license_data['id']
-        url_to_licenseid[license_data['url']] = license_id
-        string_to_licenseid[license_data['title']] = license_id
-        if 'legacy_ids' in license_data:
-            for legacy_id in license_data['legacy_ids']:
-                string_to_licenseid[legacy_id] = license_id
+        for possible_key in ('id', 'title'):
+            if license_string == license_data[possible_key]:
+                return license_id
+            if sanitized_license_string == license_data[possible_key].upper():
+                return license_id
 
-    # TODO do a difflib comparison for similar strings if no match found
+        for legacy_id in license_data.get('legacy_ids', []):
+            if license_string.lower() == legacy_id.lower():
+                return license_id
 
     if license_url:
-        try:
-            return url_to_licenseid[license_url]
-        except KeyError:
-            raise ValueError(f"License URL {license_url} not recognized")
-    else:
-        try:
-            return string_to_licenseid[sanitized_license_string]
-        except KeyError:
-            raise ValueError(
-                f"License {license_string} / {sanitized_license_string} not "
-                "recognized")
+        if (license_url == license_data['url'] or
+                f'{license_url}/' == license_data['url']):
+            return license_id
+
+    # TODO do a difflib comparison for similar strings if no match found
+    raise ValueError(
+        'Could not recognize the license identified by either '
+        f'the license string "{license_string}" or the url "{license_url}"')
 
 
 def get_from_config(config, dot_keys):
