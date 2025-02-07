@@ -392,7 +392,8 @@ def main(gmm_yaml_path, private=False, group=None):
 
             # Should we interpret source_path as a URL adjacent to the linked
             # dataset? If yes, figure out the URL to use.
-            if gmm_yaml[path_key].startswith('http'):
+            if (gmm_yaml[path_key].startswith('http') and not
+                    source_path.startswith('http')):
                 filename, *parent_dirs = reversed(source_path.split('/'))
                 dataset_dirname = os.path.dirname(gmm_yaml[path_key])
                 for directory_component in parent_dirs:
@@ -409,6 +410,9 @@ def main(gmm_yaml_path, private=False, group=None):
                         UserWarning)
                     continue
 
+                resources.append(_create_resource_dict_from_url(
+                    source_path, label))
+            elif source_path.startswith('http'):
                 resources.append(_create_resource_dict_from_url(
                     source_path, label))
             else:
