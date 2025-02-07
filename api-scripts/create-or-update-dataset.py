@@ -108,8 +108,12 @@ def _create_resource_dict_from_file(
 def _create_resource_dict_from_url(url, description):
     now = datetime.datetime.now().isoformat()
 
-    if (url.startswith('https://storage.cloud.google.com') or
-            url.startswith('https://storage.googleapis.com')):
+    # gdal _definitely_ can't handle the storage.cloud.google.com URL, so do a
+    # little URL mangling.
+    url = re.sub('^https://storage.cloud.google.com',
+                 'https://storage.googleapis.com', url)
+
+    if url.startswith('https://storage.googleapis.com'):
         domain, bucket_name, key = url[8:].split('/', maxsplit=2)
 
         storage_client = storage.Client(project="sdss-natcap-gef-ckan")
