@@ -44,7 +44,9 @@ MODIFIED_APIKEY = os.environ['CKAN_APIKEY']
 
 RESOURCES_BY_EXTENSION = {
     '.csv': 'CSV Table',
-    '.aux.xml': 'GDAL Auxiliary XML',
+    '.tif.aux.xml': 'GDAL Auxiliary XML',
+    '.aux.xml': 'ESRI Auxiliary XML',
+    '.aux': 'ESRI Auxiliary XML',
     '.tfw': 'ESRI World File',
     '.gcolors': 'GRASS Color Table',
 }
