@@ -222,9 +222,11 @@ ckan.module("mappreview", function ($, _) {
       // most flexible way to update our coordinates
       map.on('move', () => {
         const center = map.getCenter();
-        $('div.mappreview').attr('center-lat', center.lat);
-        $('div.mappreview').attr('center-lon', center.lon);
-        $('div.mappreview').attr('zoom', map.getZoom());
+        $('div.mappreview').attr({
+          "center-lat": center.lat,
+          "center-lng": center.lng,
+          "zoom": map.getZoom(),
+        });
       });
 
       map.on('click', async (e) => {
