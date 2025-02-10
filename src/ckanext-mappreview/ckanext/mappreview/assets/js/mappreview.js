@@ -224,6 +224,7 @@ ckan.module("mappreview", function ($, _) {
         const center = map.getCenter();
         $('div.mappreview').attr('center-lat', center.lat);
         $('div.mappreview').attr('center-lon', center.lon);
+        $('div.mappreview').attr('zoom', map.getZoom());
       });
 
       map.on('click', async (e) => {
