@@ -224,6 +224,10 @@ body {
     max-width: 100%;
 }
 
+.resources .resource-list .icon-group {
+  display: flex;
+}
+
 .resource-item {
     overflow: hidden;
     text-overflow: ellipsis;
