@@ -220,6 +220,10 @@ ckan.module("mappreview", function ($, _) {
 
       // Move event is triggered for a variety of interactions, so it's the
       // most flexible way to update our coordinates
+      //
+      // CKAN doesn't want us to have multiple plugin assets interacting with
+      // one another, so updating DOM attributes allows us to use the DOM as a
+      // way to pass data between parts of the page.
       map.on('move', () => {
         const center = map.getCenter();
         $('div.mappreview').attr({
