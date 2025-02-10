@@ -1,0 +1,86 @@
+name: Build clipping service
+
+on:
+    workflow_dispatch:
+    push:
+        paths:
+            - 'clipping-service/**/*'
+            - '.github/workflows/build-clipper.yml'
+
+concurrency:
+    # make sure only one run of this workflow for a given PR or a given branch
+    # can happen at one time. previous queued or started runs will be cancelled.
+    # github.workflow is the workflow name
+    # github.ref is the ref that triggered the workflow run
+    # on push, this is refs/heads/<branch name>
+    # on pull request, this is refs/pull/<pull request number>/merge
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+defaults:
+    run:
+        shell: bash -l {0}
+
+env:
+    # Customize this name if needed.
+    # The repo name is a very reasonable default!
+    CONTAINER_NAME: clipping-service
+    SERVICE_ACCOUNT_EMAIL: github-titiler-container-build@sdss-natcap-gef-ckan.iam.gserviceaccount.com
+    REGISTRY_URL: us-west1-docker.pkg.dev/sdss-natcap-gef-ckan/clipping-service/clipping-service
+
+jobs:
+    build:
+        name: Build clipping service
+        runs-on: ubuntu-latest
+        permissions:
+            packages: write
+            id-token: write  # This is required for requesting the JWT for identity federation
+            contents: read
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: 'google-github-actions/auth@v2'
+              id: googleauth
+              with:
+                  project_id: sdss-natcap-gef-ckan
+                  workload_identity_provider: projects/897938321824/locations/global/workloadIdentityPools/github/providers/my-repo
+                  service_account: ${{ env.SERVICE_ACCOUNT_EMAIL }}
+                  token_format: 'access_token'
+
+            - name: Log in to GitHub Container Registry
+              uses: docker/login-action@v3
+              with:
+                  registry: us-west1-docker.pkg.dev
+                  username: 'oauth2accesstoken'
+                  password: ${{ steps.googleauth.outputs.access_token }}
+
+            - name: Build docker
+              run: |
+                  # Replace / (invalid tag character) with .
+                  SANITIZED_REF="$(echo ${{github.ref_name}} | sed 's|/|.|g')"
+                  cd tileserver && docker build \
+                        -t ghcr.io/${{ github.repository_owner }}/${{ env.CONTAINER_NAME }}:latest \
+                        -t ghcr.io/${{ github.repository_owner }}/${{ env.CONTAINER_NAME }}:${{ github.sha }} \
+                        -t ghcr.io/${{ github.repository_owner }}/${{ env.CONTAINER_NAME }}:${SANITIZED_REF} \
+                        -t ${{ env.REGISTRY_URL }}:${{ github.sha }} \
+                        -t ${{ env.REGISTRY_URL }}:latest \
+                        .
+
+            - name: Test that pygeoprocessing imports
+              run: |
+                  docker run --rm ghcr.io/${{ github.repository_owner }}/${{ env.CONTAINER_NAME }}:latest python -c "import pygeoprocessing"
+
+            - name: Push docker
+              if: github.event_name != 'pull_request'
+              run: |-
+                  docker image push ${{ env.REGISTRY_URL }}:${{ github.sha }}
+                  docker image push ${{ env.REGISTRY_URL }}:latest
+
+            - name: Deploy to Cloud Run
+              if : github.event_name == 'push' && github.ref == 'refs/heads/master'
+              uses: google-github-actions/deploy-cloudrun@v2
+              with:
+                  service: clipping-service
+                  image: ${{ env.REGISTRY_URL }}:${{ github.sha }}
+                  region: us-west1
