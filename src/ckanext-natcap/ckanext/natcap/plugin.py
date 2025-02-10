@@ -261,7 +261,6 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
 
         return search_params
 
-
     def after_dataset_update(self, context, package):
         resource_show = toolkit.get_action('resource_show')
         resources = [resource_show(context, { 'id': r.id }) for r in context['package'].resources]

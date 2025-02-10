@@ -13,6 +13,14 @@
     </div>
   </a>
   <div class="icon-group">
+
+    {% Only show the clip button on geotiff files %}
+    {% if res.url.endswith('.tif') %}
+      <div class="icon-button icon-button-clip" title="Clip dataset" onclick="openClippingApp('{{ res.url }}')">
+        <i class="fa-solid fa-scissors"></i>
+      </div>
+    {% endif %}
+
     <div class="icon-button icon-button-clip" title="Clip dataset" onclick="openClippingApp('{{ res.url }}')">
       <i class="fa-solid fa-scissors"></i>
     </div>
