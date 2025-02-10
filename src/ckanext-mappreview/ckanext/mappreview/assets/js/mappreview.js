@@ -223,7 +223,7 @@ ckan.module("mappreview", function ($, _) {
       map.on('move', () => {
         const center = map.getCenter();
         $('div.mappreview').attr('center-lat', center.lat);
-        $('div.mappreview').attr('center-lon', center.lat);
+        $('div.mappreview').attr('center-lon', center.lon);
       });
 
       map.on('click', async (e) => {
