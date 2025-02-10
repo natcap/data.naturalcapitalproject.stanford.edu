@@ -44,7 +44,9 @@ MODIFIED_APIKEY = os.environ['CKAN_APIKEY']
 
 RESOURCES_BY_EXTENSION = {
     '.csv': 'CSV Table',
-    '.aux.xml': 'GDAL Auxiliary XML',
+    '.tif.aux.xml': 'GDAL Auxiliary XML',
+    '.aux.xml': 'ESRI Auxiliary XML',
+    '.aux': 'ESRI Auxiliary XML',
     '.tfw': 'ESRI World File',
     '.gcolors': 'GRASS Color Table',
 }
@@ -106,8 +108,12 @@ def _create_resource_dict_from_file(
 def _create_resource_dict_from_url(url, description):
     now = datetime.datetime.now().isoformat()
 
-    if (url.startswith('https://storage.cloud.google.com') or
-            url.startswith('https://storage.googleapis.com')):
+    # gdal _definitely_ can't handle the storage.cloud.google.com URL, so do a
+    # little URL mangling.
+    url = re.sub('^https://storage.cloud.google.com',
+                 'https://storage.googleapis.com', url)
+
+    if url.startswith('https://storage.googleapis.com'):
         domain, bucket_name, key = url[8:].split('/', maxsplit=2)
 
         storage_client = storage.Client(project="sdss-natcap-gef-ckan")
@@ -159,41 +165,33 @@ def _create_resource_dict_from_url(url, description):
 
 
 def _find_license(license_string, license_url, known_licenses):
-
-    # CKAN license IDs use:
+    # CKAN license IDs generally use:
     #   - dashes instead of spaces
     #   - all caps
     sanitized_license_string = license_string.strip().replace(
         ' ', '-').upper()
 
-    # CKAN license URLs are expected to have a trailing backslash
-    if not license_url.endswith('/'):
-        license_url = f'{license_url}/'
-
-    string_to_licenseid = {}
-    url_to_licenseid = {}
     for license_data in known_licenses:
         license_id = license_data['id']
-        url_to_licenseid[license_data['url']] = license_id
-        string_to_licenseid[license_data['title']] = license_id
-        if 'legacy_ids' in license_data:
-            for legacy_id in license_data['legacy_ids']:
-                string_to_licenseid[legacy_id] = license_id
+        for possible_key in ('id', 'title'):
+            if license_string == license_data[possible_key]:
+                return license_id
+            if sanitized_license_string == license_data[possible_key].upper():
+                return license_id
 
-    # TODO do a difflib comparison for similar strings if no match found
+        for legacy_id in license_data.get('legacy_ids', []):
+            if license_string.lower() == legacy_id.lower():
+                return license_id
 
     if license_url:
-        try:
-            return url_to_licenseid[license_url]
-        except KeyError:
-            raise ValueError(f"License URL {license_url} not recognized")
-    else:
-        try:
-            return string_to_licenseid[sanitized_license_string]
-        except KeyError:
-            raise ValueError(
-                f"License {license_string} / {sanitized_license_string} not "
-                "recognized")
+        if (license_url == license_data['url'] or
+                f'{license_url}/' == license_data['url']):
+            return license_id
+
+    # TODO do a difflib comparison for similar strings if no match found
+    raise ValueError(
+        'Could not recognize the license identified by either '
+        f'the license string "{license_string}" or the url "{license_url}"')
 
 
 def get_from_config(config, dot_keys):
@@ -390,7 +388,8 @@ def main(gmm_yaml_path, private=False, group=None):
 
             # Should we interpret source_path as a URL adjacent to the linked
             # dataset? If yes, figure out the URL to use.
-            if gmm_yaml[path_key].startswith('http'):
+            if (gmm_yaml[path_key].startswith('http') and not
+                    source_path.startswith('http')):
                 filename, *parent_dirs = reversed(source_path.split('/'))
                 dataset_dirname = os.path.dirname(gmm_yaml[path_key])
                 for directory_component in parent_dirs:
@@ -407,6 +406,9 @@ def main(gmm_yaml_path, private=False, group=None):
                         UserWarning)
                     continue
 
+                resources.append(_create_resource_dict_from_url(
+                    source_path, label))
+            elif source_path.startswith('http'):
                 resources.append(_create_resource_dict_from_url(
                     source_path, label))
             else:

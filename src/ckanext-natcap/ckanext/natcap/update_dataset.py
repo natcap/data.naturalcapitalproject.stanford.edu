@@ -351,7 +351,7 @@ def save_dataset(user, dataset, extras):
 
 
 def update_dataset(user, dataset, resources):
-    LOGGER.info(f"Updating dataset {dataset['id']}")
+    LOGGER.info(f"Updating dataset {dataset['id']} ({dataset['name']})")
     LOGGER.debug(
         f"Updating dataset {dataset['id']} with resources {resources}")
 
@@ -376,4 +376,4 @@ def update_dataset(user, dataset, resources):
 
     # Call API to save
     save_dataset(user, dataset, extras)
-    LOGGER.info(f"Done updating dataset {dataset['id']}")
+    LOGGER.info(f"Done updating dataset {dataset['id']} ({dataset['name']})")
