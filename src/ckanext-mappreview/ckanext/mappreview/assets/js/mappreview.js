@@ -211,8 +211,8 @@ ckan.module("mappreview", function ($, _) {
         const targets = Object.fromEntries(config.layers.map(l => [l.name, l.name]));
 
         map.addControl(new MapboxLegendControl(targets, {
-          showDefault: true, 
-          showCheckbox: true, 
+          showDefault: true,
+          showCheckbox: true,
           onlyRendered: false,
           reverseOrder: true
         }), 'top-right');
