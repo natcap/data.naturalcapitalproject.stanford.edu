@@ -218,6 +218,22 @@ ckan.module("mappreview", function ($, _) {
         }), 'top-right');
       });
 
+      map.on('move', () => {
+        const center = map.getCenter();
+        //$('#map-coordinates').text(`Longitude: ${center.lng.toFixed(4)}, Latitude: ${center.lat.toFixed(4)}`);
+        console.log('move event' + center);
+      });
+
+      map.on('drag', () => {
+        const center = map.getCenter();
+        console.log('drag event' + center);
+      });
+
+      map.on('rotate', () => {
+        const center = map.getCenter();
+        console.log('rotate event' + center);
+      });
+
       map.on('click', async (e) => {
         let popupContent;
 
