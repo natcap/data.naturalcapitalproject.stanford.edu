@@ -7,7 +7,8 @@ ckan.module("natcap-copy-url", function ($, _) {
     },
 
     initialize: function () {
-      const copyDiv = $(this.el).find('.resource-copy-url');
+      const copyDiv = $(this.el);  // We expect this to be attached to the div itself.
+      console.log('Copy URL module initialized ' + copyDiv);
 
       copyDiv.click(() => {
         navigator.clipboard.writeText(this.options.url).then(() => {
