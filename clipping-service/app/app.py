@@ -45,6 +45,7 @@ GOOGLE_STORAGE_URL = 'https://storage.googleapis.com'
 TRUSTED_BUCKET = f'{GOOGLE_STORAGE_URL}/natcap-data-cache'
 TARGET_FILE_BUCKET = 'gs://jupyter-app-temp-storage'
 TARGET_BUCKET_URL = f'{GOOGLE_STORAGE_URL}/jupyter-app-temp-storage'
+WORKSPACE_DIR = os.environ.get('WORKSPACE_DIR', os.getcwd())
 pygeoprocessing.geoprocessing._LOGGING_PERIOD = 1.0
 
 
@@ -184,19 +185,25 @@ def clip():
     # align the bounding box to a raster grid
     aligned_target_bbox = _align_bbox(target_bbox, source_raster_info)
 
-    # do the clipping
-    target_raster_path = f'{uuid.uuid4()}.tif'
-    pygeoprocessing.warp_raster(
-        source_raster_path, target_cellsize, target_raster_path, 'near',
-        target_bb=aligned_target_bbox, **warping_kwargs)
-
-    filesize = humanize.naturalsize(os.path.getsize(target_raster_path))
-
-    today = datetime.datetime.now().strftime('%Y-%m-%d')
-    bucket_filename = f"{today}--{os.path.basename(target_raster_path)}"
-    app.logger.info(f"Uploading to bucket: {bucket_filename}")
-    bucketname = re.sub('^gs://', '', TARGET_FILE_BUCKET)
     try:
+        # do the clipping
+        target_raster_path = os.path.join(WORKSPACE_DIR, f'{uuid.uuid4()}.tif')
+        pygeoprocessing.warp_raster(
+            source_raster_path, target_cellsize, target_raster_path, 'near',
+            target_bb=aligned_target_bbox, **warping_kwargs)
+    except Exception:
+        app.logger.exception("Failed to warp raster; aborting")
+        os.remove(target_raster_path)
+        raise
+
+    try:
+        filesize = humanize.naturalsize(os.path.getsize(target_raster_path))
+
+        today = datetime.datetime.now().strftime('%Y-%m-%d')
+        bucket_filename = f"{today}--{os.path.basename(target_raster_path)}"
+
+        app.logger.info(f"Uploading to bucket: {bucket_filename}")
+        bucketname = re.sub('^gs://', '', TARGET_FILE_BUCKET)
         storage_client = storage.Client()
         bucket = storage_client.bucket(bucketname)
         blob = bucket.blob(bucket_filename)
@@ -205,6 +212,9 @@ def clip():
         app.logger.exception("Falling back to cmdline gsutil")
         subprocess.run(["gsutil", "cp", source_raster_path,
                         f'{TARGET_FILE_BUCKET}/{bucket_filename}'])
+    finally:
+        app.logger.info(f"Deleting local file {target_raster_path}")
+        os.remove(target_raster_path)
 
     downloadable_raster_path = f"{TARGET_BUCKET_URL}/{bucket_filename}"
     app.logger.info("Returning URL: %s", downloadable_raster_path)
