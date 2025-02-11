@@ -2,7 +2,7 @@ this.ckan.module('natcap-dataset-clip', function($, _) {
   return {
     options: {
       dataset: "",
-    }
+    },
 
     //_onClick: function () {
     //  // ideally: show the clipper in a modal
