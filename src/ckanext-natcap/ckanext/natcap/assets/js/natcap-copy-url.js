@@ -8,11 +8,19 @@ ckan.module("natcap-copy-url", function ($, _) {
 
     initialize: function () {
       const copyDiv = $(this.el);  // We expect this to be attached to the div itself.
-      console.log('Copy URL module initialized ' + copyDiv);
 
       copyDiv.click(() => {
         navigator.clipboard.writeText(this.options.url).then(() => {
           console.log('Copied! ' + this.options.url);
+
+          const originalBG = copyDiv.css('background-image');
+          copyDiv.append('<i class="fa-solid fa-check"i style="color: #4BAB39"></i>');
+          copyDiv.css('background-image', 'none');
+
+          setTimeout(function () {
+            copyDiv.css('background-image', originalBG);
+            copyDiv.find('i').remove();
+          }, 5000);
         });
       });
     }
