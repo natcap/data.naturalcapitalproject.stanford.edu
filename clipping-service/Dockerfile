@@ -7,4 +7,6 @@ RUN micromamba install -y -n base -c conda-forge python=3.12 && \
     micromamba install -y -n base -c conda-forge --file /tmp/requirements.txt && \
     micromamba clean --all --yes
 
+ENV PORT=8000
+
 ENTRYPOINT ["/usr/local/bin/_entrypoint.sh"]
