@@ -132,6 +132,11 @@ def info():
     })
 
 
+@app.route('/')
+def hello_world():
+    return 'Hello, World!'
+
+
 @app.route("/clip", methods=['POST'])
 def clip():
     #data = flask.request.json
