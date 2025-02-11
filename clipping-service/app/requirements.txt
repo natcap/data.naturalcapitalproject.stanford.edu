@@ -5,3 +5,4 @@ humanize
 flask_cors
 pyyaml
 uvicorn
+gunicorn

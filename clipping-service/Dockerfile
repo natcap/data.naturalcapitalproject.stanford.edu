@@ -9,5 +9,6 @@ RUN micromamba install -y -n base -c conda-forge python=3.12 && \
 
 ENV PORT=8000
 ENV HOST=0.0.0.0
+WORKDIR /opt
 
-ENTRYPOINT ["/usr/local/bin/_entrypoint.sh"]
+ENTRYPOINT ["/opt/conda/bin/python", "-m", "gunicorn", "app:app"]
