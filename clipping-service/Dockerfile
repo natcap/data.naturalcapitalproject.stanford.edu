@@ -8,5 +8,6 @@ RUN micromamba install -y -n base -c conda-forge python=3.12 && \
     micromamba clean --all --yes
 
 ENV PORT=8000
+ENV HOST=0.0.0.0
 
 ENTRYPOINT ["/usr/local/bin/_entrypoint.sh"]
