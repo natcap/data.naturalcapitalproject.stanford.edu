@@ -71,7 +71,7 @@ jobs:
               run: |
                   # Since gunicorn is the main entrypoint, temporarily
                   # overwrite the entrypoint to check package imports.
-                  docker run --rm -ti --entrypoint="/opt/conda/bin/python" ghcr.io/${{ github.repository_owner }}/${{ env.CONTAINER_NAME }}:latest -c "import pygeoprocessing"
+                  docker run --rm --entrypoint="/opt/conda/bin/python" ghcr.io/${{ github.repository_owner }}/${{ env.CONTAINER_NAME }}:latest -c "import pygeoprocessing"
 
             - name: Push docker
               if: github.event_name != 'pull_request'
