@@ -25,7 +25,10 @@
       </div>
     {% endif %}
 
-    <div class="icon-button icon-button-copy resource-copy-url" title="Copy file URL"></div>
+    <div class="icon-button icon-button-copy resource-copy-url"
+         data-module="natcap-copy-url"
+         data-module-url="{{ res.url }}"
+         title="Copy file URL"></div>
     <a href="{{ res.url}}">
       <div class="icon-button icon-button-download" title="Download file"></div>
     </a>
