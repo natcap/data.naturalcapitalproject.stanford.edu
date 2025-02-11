@@ -16,12 +16,16 @@
 
     {# Only show the clip button on geotiff files #}
     {% if res.url.endswith('.tif') %}
-      <div class="icon-button icon-button-clip" title="Clip dataset" onclick="openClippingApp('{{ res.url }}')">
+      <div class="icon-button icon-button-clip"
+           {# link the div to the natcap-dataset-clip js module #}
+           data-module="natcap-dataset-clip"
+           data-module-dataset="{{ res.url }}"
+           title="Clip dataset">
         <i class="fa-solid fa-scissors"></i>
       </div>
     {% endif %}
 
-    <div class="icon-button icon-button-copy" title="Copy file URL"></div>
+    <div class="icon-button icon-button-copy resource-copy-url" title="Copy file URL"></div>
     <a href="{{ res.url}}">
       <div class="icon-button icon-button-download" title="Download file"></div>
     </a>
