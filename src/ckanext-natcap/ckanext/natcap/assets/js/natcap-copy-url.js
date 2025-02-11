@@ -14,7 +14,7 @@ ckan.module("natcap-copy-url", function ($, _) {
           console.log('Copied! ' + this.options.url);
 
           const originalBG = copyDiv.css('background-image');
-          copyDiv.append('<i class="fa-solid fa-check"i style="color: #4BAB39"></i>');
+          copyDiv.append('<i title="Copied!" class="fa-solid fa-check"i style="color: #4BAB39"></i>');
           copyDiv.css('background-image', 'none');
 
           setTimeout(function () {
