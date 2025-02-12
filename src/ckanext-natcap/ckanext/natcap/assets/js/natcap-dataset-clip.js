@@ -24,12 +24,12 @@ this.ckan.module('natcap-dataset-clip', function($, _) {
         url += `&zoom=${zoom}`;
       }
       window.open(url, '_blank').focus();
-    }
+    },
 
     initialize: function () {
       this.clipButton = this.$('.icon-button-clip');
       this.clipButton.on('click', $.proxy(this._onClick, this));
-    }
+    },
   };
 });
 
