@@ -13,17 +13,17 @@ this.ckan.module('natcap-dataset-clip', function($, _) {
 
       var map = document.getElementById('map').parentElement;
 
-      var lat = map.attr('center-lat');
+      var lat = map.getAttribute('center-lat');
       if (lat !== undefined) {
         url += `&lat=${lat}`;
       }
 
-      var lng = map.attr('center-lng');
+      var lng = map.getAttribute('center-lng');
       if (lng !== undefined) {
         url += `&lng=${lng}`;
       }
 
-      var zoom = map.attr('zoom');
+      var zoom = map.getAttribute('zoom');
       if (zoom !== undefined) {
         url += `&zoom=${zoom}`;
       }
