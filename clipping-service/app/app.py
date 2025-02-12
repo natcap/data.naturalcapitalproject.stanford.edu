@@ -23,7 +23,7 @@ from google.cloud import storage
 from osgeo import gdal
 from osgeo import osr
 
-app = flask.Flask(__name__)
+app = flask.Flask(__name__, template_folder='templates')
 CORS(app, resources={
     '/*': {
         'origins': ['http://localhost:*', 'http://127.0.0.1:*', 'null']
@@ -134,9 +134,14 @@ def info():
     })
 
 
-@app.route('/')
+@app.route('/hello')
 def hello_world():
     return 'Hello, World!'
+
+
+@app.route('/clip', methods=['GET'])
+def clip_app():
+    return flask.render_template('clip.html')
 
 
 @app.route("/clip", methods=['POST'])
