@@ -11,7 +11,7 @@ this.ckan.module('natcap-dataset-clip', function($, _) {
       var endpoint = 'https://clipping-service-897938321824.us-west1.run.app';
       var url = `${endpoint}/clip?cog_url=${this.options.dataset}`;
 
-      var map = this.$('div.mappreview')[0];
+      var map = document.getElementById('map').parentElement;
 
       var lat = map.attr('center-lat');
       if (lat !== undefined) {
