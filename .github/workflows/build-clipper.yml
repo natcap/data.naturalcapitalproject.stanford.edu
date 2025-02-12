@@ -4,8 +4,8 @@ on:
     workflow_dispatch:
     push:
         paths:
-            - 'clipping-service/**/*'
-            - '.github/workflows/build-clipper.yml'
+            - clipping-service/**
+            - .github/workflows/build-clipper.yml
 
 concurrency:
     # make sure only one run of this workflow for a given PR or a given branch
