@@ -5,6 +5,7 @@ this.ckan.module('natcap-dataset-clip', function($, _) {
     },
 
     _onClick: function () {
+      console.log('Clicked the clip button');
       // For now, just open a new tab with the correct URLs.
       var endpoint = 'https://clipping-service-897938321824.us-west1.run.app';
       var url = `${endpoint}/clip?cog_url=${this.options.dataset}`;
@@ -23,6 +24,7 @@ this.ckan.module('natcap-dataset-clip', function($, _) {
       if (zoom !== undefined) {
         url += `&zoom=${zoom}`;
       }
+      console.log(`Attempting to open ${url}`);
       window.open(url, '_blank').focus();
     },
 
