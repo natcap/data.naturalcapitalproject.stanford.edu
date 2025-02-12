@@ -30,7 +30,7 @@ this.ckan.module('natcap-dataset-clip', function($, _) {
     },
 
     initialize: function () {
-      this.clipButton = this.$('div.icon-button-clip');
+      this.clipButton = $(this.el);  // We expect this to be attached to the div itself.
       console.log('Initializing natcap-dataset-clip ' + this.clipButton);
       this.clipButton.click(() => {
         this._onClick();
