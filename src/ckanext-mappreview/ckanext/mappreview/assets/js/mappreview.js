@@ -233,6 +233,7 @@ ckan.module("mappreview", function ($, _) {
             "zoom": map.getZoom(),
           });
         });
+      }
 
       map.on('click', async (e) => {
         let popupContent;
