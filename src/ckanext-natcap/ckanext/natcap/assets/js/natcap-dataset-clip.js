@@ -4,15 +4,31 @@ this.ckan.module('natcap-dataset-clip', function($, _) {
       dataset: "",
     },
 
-    //_onClick: function () {
-    //  // ideally: show the clipper in a modal
-    //  // For now, just open a new tab with the correct URLs.
+    _onClick: function () {
+      // For now, just open a new tab with the correct URLs.
+      var endpoint = 'https://clipping-service-897938321824.us-west1.run.app';
+      var url = `${endpoint}/clip?cog_url=${this.options.dataset}`;
 
-    //}
+      var lat = this.$('div.mappreview').attr('center-lat');
+      if (lat !== undefined) {
+        url += `&lat=${lat}`;
+      }
+
+      var lng = this.$('div.mappreview').attr('center-lng');
+      if (lng !== undefined) {
+        url += `&lng=${lng}`;
+      }
+
+      var zoom = this.$('div.mappreview').attr('zoom');
+      if (zoom !== undefined) {
+        url += `&zoom=${zoom}`;
+      }
+      window.open(url, '_blank').focus();
+    }
 
     initialize: function () {
       this.clipButton = this.$('.icon-button-clip');
-      //this.clipButton.on('click', $.proxy(this._onClick, this));
+      this.clipButton.on('click', $.proxy(this._onClick, this));
     }
   };
 });
