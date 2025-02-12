@@ -29,8 +29,9 @@ this.ckan.module('natcap-dataset-clip', function($, _) {
     },
 
     initialize: function () {
-      this.clipButton = this.$('.icon-button-clip');
-      this.clipButton.click(() => {
+      this.clipButton = this.$('div.icon-button-clip');
+      console.log('Initializing natcap-dataset-clip ' + this.clipButton);
+      this.clipButton.click(function() => {
         this._onClick();
       });
     },
