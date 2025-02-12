@@ -1,4 +1,5 @@
 this.ckan.module('natcap-dataset-clip', function($, _) {
+  'use strict';
   return {
     options: {
       dataset: "",
@@ -31,7 +32,7 @@ this.ckan.module('natcap-dataset-clip', function($, _) {
     initialize: function () {
       this.clipButton = this.$('div.icon-button-clip');
       console.log('Initializing natcap-dataset-clip ' + this.clipButton);
-      this.clipButton.click(function() => {
+      this.clipButton.click(() => {
         this._onClick();
       });
     },
