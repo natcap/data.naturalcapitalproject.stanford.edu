@@ -25,11 +25,11 @@ function getURLParameters() {
 // Load the starting lat/lon from the URL parameters
 var queryParams = getURLParameters();
 var start_coords;
-if (queryParams.lat !== undefined && queryParams.lon !== undefined) {
+if (queryParams.lat !== undefined && queryParams.lng !== undefined) {
   start_coords = [parseFloat(queryParams.lat), parseFloat(queryParams.lon)];
   console.log(`Setting starting coords ${start_coords} from query parameter`);
 } else {
-  start_coords = [51.505, -0.09];  // over the UK
+  start_coords = [0, 0];  // default to the center of the map
 }
 
 // Load the starting zoom level from the URL parameters
