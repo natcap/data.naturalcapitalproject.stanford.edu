@@ -7,15 +7,6 @@ ckan.module("mappreview", function ($, _) {
       debug: false,
     },
 
-    updateLocationAttributes: function () {
-      const center = map.getCenter();
-      $('div.mappreview').attr({
-        "center-lat": center.lat,
-        "center-lng": center.lng,
-        "zoom": map.getZoom(),
-      });
-    },
-
     vectorColors: [
       '#E04F39',
       '#F9A44A',
@@ -233,8 +224,15 @@ ckan.module("mappreview", function ($, _) {
       // CKAN doesn't want us to have multiple plugin assets interacting with
       // one another, so updating DOM attributes allows us to use the DOM as a
       // way to pass data between parts of the page.
-      map.on('move', this.updateLocationAttributes);
-      map.on('load', this.updateLocationAttributes);
+      for (const eventname of ['move', 'load']) {
+        map.on(eventname, () => {
+          const center = map.getCenter();
+          $('div.mappreview').attr({
+            "center-lat": center.lat,
+            "center-lng": center.lng,
+            "zoom": map.getZoom(),
+          });
+        });
 
       map.on('click', async (e) => {
         let popupContent;
