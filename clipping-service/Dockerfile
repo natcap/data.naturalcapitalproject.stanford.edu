@@ -15,6 +15,7 @@ ENV HOST=0.0.0.0
 ENV WORKSPACE_DIR=/tmp
 ENV PROJ_LIB=/opt/conda/share/proj
 ENV PROJ_DATA=/opt/conda/share/proj
+ENV GUNICORN_TIMEOUT=300
 WORKDIR /opt
 
 ENTRYPOINT ["/opt/conda/bin/python", "-m", "gunicorn", "app:app"]
