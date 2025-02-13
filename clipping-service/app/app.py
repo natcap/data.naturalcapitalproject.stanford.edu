@@ -183,7 +183,7 @@ def clip():
         warping_kwargs['target_projection_wkt'] = _epsg_to_wkt(
             parameters["target_epsg"])
         aligned_target_bbox = pygeoprocessing.transform_bounding_box(
-            target_bbox, source_raster_info['bounding_box'],
+            target_bbox, source_raster_info['projection_wkt'],
             warping_kwargs['target_projection_wkt'])
     except KeyError:
         # If we're keeping the same project, just align the requested bounding
@@ -196,6 +196,9 @@ def clip():
     except KeyError:
         target_cellsize = source_raster_info['pixel_size']
 
+    # make sure the target cell's height is negative
+    if not target_cellsize[1] < 0:
+        target_cellsize[1] *= -1
 
     try:
         # do the clipping
