@@ -304,6 +304,13 @@ async function clip_cog() {
   progress_bar.style.width = '100%';
   try {
     var bounds = areaSelect.getBounds();
+
+    var epsg_code = document.getElementById('targetEPSG').value;
+    if (epsg_code == '' || epsg_code == undefined) {
+      console.log("EPSG code is empty, defaulting to 4326");
+      epsg_code = 4326;
+    }
+
     const clip_response = await fetch(`${server_url}/clip`, {
       method: "POST",
       body: JSON.stringify({
@@ -311,7 +318,7 @@ async function clip_cog() {
         //target_bbox: [-13.304443, 7.247962, -12.183837999999998, 7.999312000000001],
         //target_bbox: [-33.304443, 7.247962, -12.183837999999998, 27.999312000000001],
         target_bbox: [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()],
-        target_epsg: 4326,
+        target_epsg: epsg_code,
       }),
       headers: {
         "Content-Type": "application/json"
