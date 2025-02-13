@@ -182,7 +182,9 @@ def clip():
     source_raster_path = f'/vsicurl/{parameters["cog_url"]}'
     source_raster_info = cached_raster_info(source_raster_path)
     try:
-        target_cellsize = parameters["target_cellsize"]
+        # Convert string target cellsize to list of floats
+        sanitized_json = parameters["target_cellsize"].replace("'", '"')
+        target_cellsize = list(map(float, json.loads(sanitized_json)))
     except KeyError:
         target_cellsize = source_raster_info['pixel_size']
 
