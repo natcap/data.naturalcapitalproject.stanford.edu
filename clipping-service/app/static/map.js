@@ -43,7 +43,7 @@ if (queryParams.zoom !== undefined) {
   start_zoom = parseInt(queryParams.zoom);
   console.log(`Setting starting zoom level ${start_zoom} from query parameter`);
 } else {
-  start_zoom = 5;
+  start_zoom = 4;  // not too far zoomed in or zoomed out.
 }
 
 if (queryParams.cog_url !== undefined) {
