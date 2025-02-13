@@ -324,6 +324,8 @@ async function clip_cog() {
         //target_bbox: [-33.304443, 7.247962, -12.183837999999998, 27.999312000000001],
         target_bbox: [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()],
         target_epsg: epsg_code,
+        target_cellsize: [document.getElementById('targetResolutionX').value,
+                          document.getElementById('targetResolutionY').value],
       }),
       headers: {
         "Content-Type": "application/json"
