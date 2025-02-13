@@ -22,11 +22,16 @@ function getURLParameters() {
   return params;
 }
 
-// Load the starting lat/lon from the URL parameters
+// Load the starting lat/lng from the URL parameters
 var queryParams = getURLParameters();
 var start_coords;
 if (queryParams.lat !== undefined && queryParams.lng !== undefined) {
-  start_coords = [parseFloat(queryParams.lat), parseFloat(queryParams.lon)];
+  try {
+    start_coords = [parseFloat(queryParams.lat), parseFloat(queryParams.lng)];
+  } catch (error) {
+    console.error(`Error parsing lat/lng from query parameters lat:${queryParams.lat}, lng:${queryParams.lng}`);
+    console.error(error);
+  }
   console.log(`Setting starting coords ${start_coords} from query parameter`);
 } else {
   start_coords = [0, 0];  // default to the center of the map
