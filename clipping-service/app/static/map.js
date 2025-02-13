@@ -109,6 +109,15 @@ function writeURLParameters() {
 }
 
 
+function togglePixelDimensionsLink() {
+  var link = document.getElementById('customPixelDimensionsLink');
+  if (link.innerHTML === "Use custom pixel dimensions") {
+    document.getElementById('customPixelDimensionsLink').innerHTML = "Use original pixel dimensions";
+  } else {
+    document.getElementById('customPixelDimensionsLink').innerHTML = "Use custom pixel dimensions";
+  }
+}
+
 
 function loadTiles() {
   // clear tiles

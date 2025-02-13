@@ -114,6 +114,7 @@
                     </div>
 
                     <a class="btn btn-link float-start"
+                       id="customPixelDimensionsLink"
                        data-bs-toggle="collapse"
                        href="#customPixelDimensions"
                        role="button"
@@ -253,6 +254,7 @@
             document.getElementById('cog-url').addEventListener('change', writeURLParameters)
             document.getElementById('targetResolutionX').addEventListener('change', writeURLParameters)
             document.getElementById('targetResolutionY').addEventListener('change', writeURLParameters)
+            document.getElementById('customPixelDimensionsLink').addEventListener('click', togglePixelDimensionsLink)
         </script>
     </body>
     <footer>
