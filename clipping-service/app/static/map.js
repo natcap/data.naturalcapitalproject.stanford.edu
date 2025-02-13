@@ -52,6 +52,21 @@ if (queryParams.cog_url !== undefined) {
   document.getElementById('cog-url-row').classList.add('invisible');
 }
 
+if (queryParams.epsg !== undefined) {
+  document.getElementById('targetEPSG').value = queryParams.epsg;
+  console.log(`Setting target EPSG from query parameter: ${queryParams.epsg}`);
+}
+
+if (queryParams.pixel_size_x !== undefined) {
+  document.getElementById('targetResolutionX').value = queryParams.pixel_size_x;
+  console.log(`Setting target pixel size x from query parameter: ${queryParams.pixel_size_x}`);
+}
+
+if (queryParams.pixel_size_y !== undefined) {
+  document.getElementById('targetResolutionY').value = queryParams.pixel_size_y;
+  console.log(`Setting target pixel size y from query parameter: ${queryParams.pixel_size_y}`);
+}
+
 var map = L.map('map').setView(start_coords, start_zoom);
 L.control.scale().addTo(map);  // add scale to map
 
@@ -74,6 +89,24 @@ L.control.colorbar = function(opts) {
   return new L.Control.ColorBar(opts);
 }
 var colorbar_control = L.control.colorbar({position: 'topright'}).addTo(map);
+
+
+// When the map is moved, update the URL parameters
+map.on('move', function() {
+  writeURLParameters();
+});
+
+
+function writeURLParameters() {
+  var cog_url = document.getElementById('cog-url').value;
+  var center = map.getCenter();
+  var zoom = map.getZoom();
+  var epsg_code = document.getElementById('targetEPSG').value;
+  var pixel_size_x = document.getElementById('targetResolutionX').value;
+  var pixel_size_y = document.getElementById('targetResolutionY').value;
+  var new_url = `${window.location.origin}${window.location.pathname}?cog_url=${cog_url}&lat=${center.lat}&lng=${center.lng}&zoom=${zoom}&epsg=${epsg_code}&pixel_size_x=${pixel_size_x}&pixel_size_y=${pixel_size_y}`;
+  window.history.replaceState({path: new_url}, document.title, new_url);
+}
 
 
 

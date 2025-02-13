@@ -238,7 +238,11 @@
             document.getElementById('targetBboxNorth').addEventListener('change', updateBounds);
             document.getElementById('targetBboxEast').addEventListener('change', updateBounds);
             document.getElementById('targetEPSG').addEventListener('change', updateSRSUnits);
+            document.getElementById('targetEPSG').addEventListener('change', writeURLParameters);
             document.getElementById('cog-url').addEventListener('change', loadTiles)
+            document.getElementById('cog-url').addEventListener('change', writeURLParameters)
+            document.getElementById('targetResolutionX').addEventListener('change', writeURLParameters)
+            document.getElementById('targetResolutionY').addEventListener('change', writeURLParameters)
         </script>
     </body>
     <footer>
