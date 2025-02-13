@@ -52,7 +52,7 @@ pygeoprocessing.geoprocessing._LOGGING_PERIOD = 1.0
 
 def _epsg_to_wkt(epsg_code):
     srs = osr.SpatialReference()
-    srs.ImportFromEPSG(epsg_code)
+    srs.ImportFromEPSG(int(epsg_code))
     return srs.ExportToWkt()
 
 
