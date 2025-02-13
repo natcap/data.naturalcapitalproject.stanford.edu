@@ -172,25 +172,30 @@ def clip():
                          parameters['cog_url'])
         raise ValueError("Invalid COG provided.")
 
+    target_bbox = parameters["target_bbox"]
+
+    # align the bounding box to a raster grid
+    source_raster_path = f'/vsicurl/{parameters["cog_url"]}'
+    source_raster_info = cached_raster_info(source_raster_path)
+
     warping_kwargs = {}
     try:
         warping_kwargs['target_projection_wkt'] = _epsg_to_wkt(
             parameters["target_epsg"])
+        aligned_target_bbox = pygeoprocessing.transform_bounding_box(
+            target_bbox, source_raster_info['bounding_box'],
+            warping_kwargs['target_projection_wkt'])
     except KeyError:
-        pass  # use the original projection/SRS
+        # If we're keeping the same project, just align the requested bounding
+        # box to the raster's grid.
+        aligned_target_bbox = _align_bbox(target_bbox, source_raster_info)
 
-    source_raster_path = f'/vsicurl/{parameters["cog_url"]}'
-    source_raster_info = cached_raster_info(source_raster_path)
     try:
         # Make sure pixel sizes are floats.
         target_cellsize = list(map(float, parameters["target_cellsize"]))
     except KeyError:
         target_cellsize = source_raster_info['pixel_size']
 
-    target_bbox = parameters["target_bbox"]
-
-    # align the bounding box to a raster grid
-    aligned_target_bbox = _align_bbox(target_bbox, source_raster_info)
 
     try:
         # do the clipping
