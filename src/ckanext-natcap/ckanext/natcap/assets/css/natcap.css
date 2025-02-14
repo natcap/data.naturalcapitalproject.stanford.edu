@@ -1195,6 +1195,15 @@ body {
     white-space: wrap;
 }
 
+.logo {
+    display: flex;
+}
+
+.logo a {
+    color: white;
+    display: flex;
+}
+
 @media (max-width: 576px) {
     .home-container {
         padding: 4rem 1rem;
