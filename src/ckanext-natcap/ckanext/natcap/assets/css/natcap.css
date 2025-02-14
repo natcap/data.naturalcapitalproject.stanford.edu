@@ -1198,6 +1198,7 @@ body {
 img.logo {
     float: left;
     height: 40px;
+    padding-right: 10px;
 }
 
 div.logo a {
