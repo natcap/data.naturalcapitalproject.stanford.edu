@@ -1195,17 +1195,12 @@ body {
     white-space: wrap;
 }
 
-img .logo {
+img.logo {
     float: left;
     height: 40px;
 }
 
-
-.logo {
-    display: flex;
-}
-
-.logo a {
+div.logo a {
     color: white;
     display: flex;
 }

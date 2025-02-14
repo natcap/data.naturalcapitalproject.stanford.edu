@@ -67,7 +67,9 @@
 <header class="masthead">
   <div class="container">
     {# NatCap-customized logo location #}
-    <img class="logo" src="/img/logo-natcap-small.png" alt="The Natural Capital Project logo" />
+    <a href="/">
+      <img class="logo" src="/img/logo-natcap-small.png" alt="The Natural Capital Project logo" />
+    </a>
 
     {% block header_debug %} {% if g.debug and not g.debug_supress_header %}
     <div class="debug">Blueprint : {{ g.blueprint }}<br />View : {{ g.view }}</div>
