@@ -4,9 +4,6 @@
 {% block header_wrapper %} {% block header_account %}
 <div class="account-masthead">
   <div class="container">
-    {# NatCap-customized logo location #}
-    <img class="logo" src="/img/logo-natcap-small.png" alt="The Natural Capital Project logo" />
-
     {% block header_account_container_content %} {% if c.userobj %}
     <div class="account avatar authed" data-module="me" data-me="{{ c.userobj.id }}">
       <ul class="list-unstyled">
@@ -69,6 +66,9 @@
 {% endblock %}
 <header class="masthead">
   <div class="container">
+    {# NatCap-customized logo location #}
+    <img class="logo" src="/img/logo-natcap-small.png" alt="The Natural Capital Project logo" />
+
     {% block header_debug %} {% if g.debug and not g.debug_supress_header %}
     <div class="debug">Blueprint : {{ g.blueprint }}<br />View : {{ g.view }}</div>
     {% endif %} {% endblock %}
@@ -79,7 +79,6 @@
         {% block header_logo %}
             <div class="logo">
                 <a href="/">
-                    <img src="/img/logo-natcap-small.png" alt="The Natural Capital Project logo" />
                     <div>The Natural Capital Project <strong>Data Hub</strong></div>
                 </a>
             </div>
