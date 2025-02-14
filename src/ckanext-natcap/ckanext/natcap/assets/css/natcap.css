@@ -1195,11 +1195,13 @@ body {
     white-space: wrap;
 }
 
-.logo {
-    display: flex;
+img .logo {
+    float: left;
+    height: 40px;
 }
 
-.logo img {
+
+.logo {
     display: flex;
 }
 
