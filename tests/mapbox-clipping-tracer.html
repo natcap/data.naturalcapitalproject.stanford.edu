@@ -161,21 +161,22 @@
                 console.log("bboxmode: Displaying features");
                 console.log(state);
                 console.log(geojson);
-                var geom = squareOffBounds(state, geojson);
-                display({
-                    type: 'Feature',
-                    properties: geojson.properties,
-                    geometry: {
-                        type: 'Polygon',
-                        coordinates: [[
-                            [geom.minx, geom.miny],
-                            [geom.minx, geom.maxy],
-                            [geom.maxx, geom.maxy],
-                            [geom.maxx, geom.miny],
-                            [geom.minx, geom.miny]
-                        ]],
-                    },
-                });
+                display(geojson);
+                //var geom = squareOffBounds(state, geojson);
+                //display({
+                //    type: 'Feature',
+                //    properties: geojson.properties,
+                //    geometry: {
+                //        type: 'Polygon',
+                //        coordinates: [[
+                //            [geom.minx, geom.miny],
+                //            [geom.minx, geom.maxy],
+                //            [geom.maxx, geom.maxy],
+                //            [geom.maxx, geom.miny],
+                //            [geom.minx, geom.miny]
+                //        ]],
+                //    },
+                //});
             }
 
             class ClippingControl{
@@ -353,47 +354,47 @@
 
             map.on('mouseenter', 'gl-draw-polygon-vertex-halos-active-border.hot', () => {
                 console.log('I am now over a vertex');
-                draw.changeMode('simple_select', {featureIds: [draw.getSelected().features[0]]});
+                //draw.changeMode('simple_select', {featureIds: [draw.getSelected().features[0]]});
                 state.in_vertex = true;
             });
             map.on('mouseleave', 'gl-draw-polygon-vertex-halos-active-border.hot', () => {
                 console.log('I am no longer over a vertex');
-                draw.changeMode('bboxmode', {featureIds: [draw.getSelected().features[0]]});
+                //draw.changeMode('bboxmode', {featureIds: [draw.getSelected().features[0]]});
                 state.in_vertex = false;
             });
 
-            map.on('draw.render', function(e) {
-                //console.log('draw.render fired');
-                //console.log(e);
-                //console.log(draw.getSelectedPoints());
-                //return;
+            //map.on('draw.render', function(e) {
+            //    //console.log('draw.render fired');
+            //    //console.log(e);
+            //    //console.log(draw.getSelectedPoints());
+            //    //return;
 
-                var new_geom = draw.getSelected().features[0];
-                var feature_id = draw.getSelected().id;
+            //    var new_geom = draw.getSelected().features[0];
+            //    var feature_id = draw.getSelected().id;
 
-                if (new_geom !== undefined && draw.getSelectedPoints().features.length > 0){
-                    var new_bbox = squareOffBounds(bbox_state, new_geom);
-                    var new_bbox = {
-                        type: 'FeatureCollection',
-                        features: [{
-                            id: feature_id,
-                            type: 'Feature',
-                            geometry: {
-                                type: 'Polygon',
-                                coordinates:[[
-                                    [new_bbox.minx, new_bbox.miny],
-                                    [new_bbox.minx, new_bbox.maxy],
-                                    [new_bbox.maxx, new_bbox.maxy],
-                                    [new_bbox.maxx, new_bbox.miny],
-                                    [new_bbox.minx, new_bbox.miny],
-                                ]],
-                            }
-                        }],
-                    };
-                    draw.set(new_bbox);
-                    //draw.changeMode('simple_select', {featureIds: [feature_id]});
-                }
-            });
+            //    if (new_geom !== undefined && draw.getSelectedPoints().features.length > 0){
+            //        var new_bbox = squareOffBounds(bbox_state, new_geom);
+            //        var new_bbox = {
+            //            type: 'FeatureCollection',
+            //            features: [{
+            //                id: feature_id,
+            //                type: 'Feature',
+            //                geometry: {
+            //                    type: 'Polygon',
+            //                    coordinates:[[
+            //                        [new_bbox.minx, new_bbox.miny],
+            //                        [new_bbox.minx, new_bbox.maxy],
+            //                        [new_bbox.maxx, new_bbox.maxy],
+            //                        [new_bbox.maxx, new_bbox.miny],
+            //                        [new_bbox.minx, new_bbox.miny],
+            //                    ]],
+            //                }
+            //            }],
+            //        };
+            //        draw.set(new_bbox);
+            //        //draw.changeMode('simple_select', {featureIds: [feature_id]});
+            //    }
+            //});
 
 
         </script>
