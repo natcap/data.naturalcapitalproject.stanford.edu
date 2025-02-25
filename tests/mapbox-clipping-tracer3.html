@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Mapbox GL JS map</title>
+        <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+        <link href="https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.css" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+              rel="stylesheet"
+              integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+              crossorigin="anonymous">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+        <link rel='stylesheet' href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.3/mapbox-gl-draw.css' type='text/css' />
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+                integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+                crossorigin="anonymous"></script>
+        <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+                integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+                crossorigin="anonymous"></script>
+        <script src="https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.js"></script>
+        <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.3/mapbox-gl-draw.js'></script>
+
+
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            #map {
+                margin: 20px;
+                position: absolute;
+                width: 90%;
+                height: 90%;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="map"></div>
+        <script>
+            function _createGeometryFromBbox(minx, maxx, miny, maxy) {
+                return {
+                    type: 'Feature',
+                    geometry: {
+                        type: "Polygon",
+                        coordinates: [[
+                            [minx, miny],
+                            [minx, maxy],
+                            [maxx, maxy],
+                            [maxx, miny],
+                            [minx, miny]
+                        ]],
+                    }
+                }
+            }
+
+            function _updateBboxFromLngLat(lnglatlike) {
+                bbox_geojson.features[0] = _createGeometryFromBbox(
+                    lnglatlike.getWest(),
+                    lnglatlike.getEast(),
+                    lnglatlike.getSouth(),
+                    lnglatlike.getNorth()
+                );
+            };
+
+            function _updateBboxFromGT(minx, maxx, miny, maxy) {
+                bbox_geojson.features[0] = _createGeometryFromBbox(minx, maxx, miny, maxy);
+            }
+
+
+            const bbox_geojson = {
+                type: 'FeatureCollection',
+                features: [
+                    _createGeometryFromBbox(0, 0, 0, 0),
+                ],
+            };
+
+            function _eventIsWithinBbox(state, e) {
+                if (state.geometry === undefined) {
+                    return false;
+                }
+                if (e.lngLat.lng > state.minx && e.lngLat.lng < state.maxx &&
+                        e.lngLat.lat > state.miny && e.lngLat.lat < state.maxy) {
+                    return true;
+                }
+                return false;
+            }
+
+            mapboxgl.accessToken = 'pk.eyJ1IjoiamRvdWdsYXNzIiwiYSI6ImNtMzR5dThiZzA1Y3YyanBucDZwc2w2NDYifQ.bghdnrfNMkaI0N-TOvqIAQ'
+
+            const map = new mapboxgl.Map({
+                container: 'map', // container ID
+                center: [-74.5, 40], // starting position [lng, lat]. Note that lat must be set between -90 and 90
+                zoom: 9 // starting zoom
+            });
+
+            var draw = new MapboxDraw({
+                //defaultMode: 'bboxmode',
+                //modes: Object.assign({  // allows us to register our custom mode
+                //    'bboxmode': BoundingBoxMode,
+                //}, MapboxDraw.modes),
+                styles: [
+                    // Polygon fill
+                    {
+                        "id": "gl-draw-polygon-fill",
+                        "type": "fill",
+                        "filter": ["all", ["==", "$type", "Polygon"]],
+                        "paint": {
+                          "fill-color": "#FFFFFF",
+                          "fill-outline-color": "#2E2D29",  // Process Black, from NatCap style guide
+                          "fill-opacity": 0.5,
+                        },
+                    },
+
+                    // Line stroke
+                    {
+                        "id": "gl-draw-polygon-stroke",
+                        "type": "line",
+                        "filter": ["all", ["==", "$type", "Polygon"]],
+                        "layout": {
+                            "line-cap": "round",
+                            "line-join": "round",
+                        },
+                        "paint": {
+                            "line-color": "#2E2D29",
+                            "line-dasharray": [0.2, 2],
+                            "line-width": 2,
+                        },
+                    },
+
+                    //
+                    {
+                        "id": "gl-draw-polygon-vertex-halos-inactive",
+                        "type": "circle",
+                        "filter": ["all",
+                            ["==", "active", "false"],
+                            ["==", "$type", "Polygon"],
+                            ["!=", "mode", "static"],
+                        ],
+                        "paint": {
+                            "circle-radius": 0,
+                            "circle-color": "#2E2D29",
+                        },
+                    },
+                    {
+                        "id": "gl-draw-polygon-vertex-halos-active-border",
+                        "type": "circle",
+                        "filter": ["all",
+                            ["==", "meta", "vertex"],
+                            ["==", "$type", "Point"],
+                            ["!=", "mode", "static"],
+                        ],
+                        "paint": {
+                            "circle-radius": 7,
+                            "circle-color": "#2E2D29",
+                        },
+                    },
+                    {
+                        "id": "gl-draw-polygon-vertex-halos-active",
+                        "type": "circle",
+                        "filter": ["all",
+                            ["==", "active", "true"],
+                            ["==", "$type", "Polygon"],
+                            ["!=", "mode", "static"],
+                        ],
+                        "paint": {
+                            "circle-radius": 5,
+                            "circle-color": "#FFF",
+                        },
+                    },
+                ],
+            });
+            map.addControl(draw, 'top-right');
+
+            // on map startup, set bbox to 1/2 height and width of the viewport, centered at the centerpoint
+            var center = map.getCenter();
+            var viewport = map.getBounds();
+            _updateBboxFromGT(
+                center.lng - (center.lng - viewport.getWest())/2,  // minx
+                center.lng - (center.lng - viewport.getEast())/2,  // maxx
+                center.lat - (center.lat - viewport.getSouth())/2, // miny
+                center.lat - (center.lat - viewport.getNorth())/2  // maxy
+            )
+            draw.add(bbox_geojson);
+
+
+
+            //map.on('mouseenter', 'gl-draw-polygon-fill', (feature) => {
+            //    map.setFeatureState(feature, {highlight: true});
+            //});
+
+            //map.on('mouseenter', 'gl-draw-polygon-vertex-halos-active-border.hot', () => {
+            //    console.log('I am now over a vertex');
+            //    //draw.changeMode('simple_select', {featureIds: [draw.getSelected().features[0]]});
+            //    BoundingBoxModestate.in_vertex = true;
+            //});
+            //map.on('mouseleave', 'gl-draw-polygon-vertex-halos-active-border.hot', () => {
+            //    console.log('I am no longer over a vertex');
+            //    //draw.changeMode('bboxmode', {featureIds: [draw.getSelected().features[0]]});
+            //    //state.in_vertex = false;
+            //});
+
+        </script>
+    </body>
+</html>
+
