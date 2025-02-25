@@ -38,6 +38,14 @@
     <body>
         <div id="map"></div>
         <script>
+
+            const bbox_geojson = {
+                type: 'FeatureCollection',
+                features: [
+                    _createGeometryFromBbox(0, 0, 0, 0),
+                ],
+            };
+
             function _createGeometryFromBbox(minx, maxx, miny, maxy) {
                 return {
                     type: 'Feature',
@@ -68,23 +76,7 @@
             }
 
 
-            const bbox_geojson = {
-                type: 'FeatureCollection',
-                features: [
-                    _createGeometryFromBbox(0, 0, 0, 0),
-                ],
-            };
 
-            function _eventIsWithinBbox(state, e) {
-                if (state.geometry === undefined) {
-                    return false;
-                }
-                if (e.lngLat.lng > state.minx && e.lngLat.lng < state.maxx &&
-                        e.lngLat.lat > state.miny && e.lngLat.lat < state.maxy) {
-                    return true;
-                }
-                return false;
-            }
 
             mapboxgl.accessToken = 'pk.eyJ1IjoiamRvdWdsYXNzIiwiYSI6ImNtMzR5dThiZzA1Y3YyanBucDZwc2w2NDYifQ.bghdnrfNMkaI0N-TOvqIAQ'
 
@@ -172,16 +164,119 @@
             });
             map.addControl(draw, 'top-right');
 
-            // on map startup, set bbox to 1/2 height and width of the viewport, centered at the centerpoint
-            var center = map.getCenter();
-            var viewport = map.getBounds();
-            _updateBboxFromGT(
-                center.lng - (center.lng - viewport.getWest())/2,  // minx
-                center.lng - (center.lng - viewport.getEast())/2,  // maxx
-                center.lat - (center.lat - viewport.getSouth())/2, // miny
-                center.lat - (center.lat - viewport.getNorth())/2  // maxy
-            )
-            draw.add(bbox_geojson);
+            const canvas = map.getCanvasContainer();
+
+            function onMove(e) {
+                console.log('onMove');
+
+                const coords = e.lngLat;
+
+                // set UI indicator for dragging
+                canvas.style.cursor = 'grabbing';
+
+                // update the feature in the geojson object
+                // and call setData to the source layer geometry on it.
+                bbox_geojson.feature[0] = _updateBboxFromLngLat(coords);
+                map.getSource('bounding_box').setData(bbox_geojson);
+            }
+
+            function onUp(e) {
+                console.log('onUp');
+                const coords = e.lngLat;
+                console.log(`released at {coords}`);
+
+                // unbind mouse/touch events
+                map.off('mousemove', onMove);
+                map.off('touchmove', onMove);
+            }
+
+            // the `load` event is fired after the first visually complete
+            // rendering of the map has occurred.
+            map.on('load', () => {
+                console.log('load');
+                // on map startup, set bbox to 1/2 height and width of the viewport, centered at the centerpoint
+                var center = map.getCenter();
+                var viewport = map.getBounds();
+                _updateBboxFromGT(
+                    center.lng - (center.lng - viewport.getWest())/2,  // minx
+                    center.lng - (center.lng - viewport.getEast())/2,  // maxx
+                    center.lat - (center.lat - viewport.getSouth())/2, // miny
+                    center.lat - (center.lat - viewport.getNorth())/2  // maxy
+                )
+                map.addSource('bbox', {type: 'geojson', data: bbox_geojson});
+                map.addLayer({
+                    id: 'bbox-fill',
+                    type: 'fill',
+                    source: 'bbox',
+                    filter: ["all", ["==", "$type", "Polygon"]],
+                    paint: {
+                      "fill-color": "#FFFFFF",
+                      "fill-outline-color": "#2E2D29",  // Process Black, from NatCap style guide
+                      "fill-opacity": 0.5,
+                    },
+                });
+                map.addLayer({
+                    "id": "bbox-border",
+                    "source": 'bbox',
+                    "type": "line",
+                    "filter": ["all", ["==", "$type", "Polygon"]],
+                    "layout": {
+                        "line-cap": "round",
+                        "line-join": "round",
+                    },
+                    "paint": {
+                        "line-color": "#2E2D29",
+                        "line-dasharray": [0.2, 2],
+                        "line-width": 2,
+                    },
+                });
+                map.addLayer({
+                    "id": "bbox-vertex-dot",
+                    "source": "bbox",
+                    "type": "circle",
+                    "filter": ["all",
+                        ["==", "meta", "vertex"],
+                        ["==", "$type", "Point"],
+                        ["!=", "mode", "static"],
+                    ],
+                    "paint": {
+                        "circle-radius": 7,
+                        "circle-color": "#2E2D29",
+                    },
+                });
+                map.addLayer({
+                    "id": "bbox-vertex-border",
+                    "source": "bbox",
+                    "type": "circle",
+                    "filter": ["all",
+                        ["==", "active", "true"],
+                        ["==", "$type", "Polygon"],
+                        ["!=", "mode", "static"],
+                    ],
+                    "paint": {
+                        "circle-radius": 5,
+                        "circle-color": "#FFF",
+                    },
+                });
+
+                console.log('adding more handlers');
+                map.on('mouseenter', 'gl-draw-polygon-fill', () => {
+                    canvas.style.cursor = 'move';
+                });
+
+                map.on('mouseleave', 'gl-draw-polygon-fill', () => {
+                    canvas.style.cursor = '';
+                });
+
+
+                console.log('finished map.on(load)');
+
+            });
+
+
+
+
+
 
 
 
