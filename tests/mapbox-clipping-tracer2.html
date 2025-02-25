@@ -84,6 +84,7 @@
             // Called whenever someone clicks on the map
             BoundingBoxMode.onClick = function(state, e) {
                 if (state.geometry !== undefined) {
+                    console.log('We already have a geometry; skipping');
                     return;
                 }
 
@@ -196,15 +197,19 @@
             });
             map.addControl(draw, 'top-right');
 
+            map.on('mouseenter', 'gl-draw-polygon-fill', (feature) => {
+                map.setFeatureState(feature, {highlight: true});
+            });
+
             map.on('mouseenter', 'gl-draw-polygon-vertex-halos-active-border.hot', () => {
                 console.log('I am now over a vertex');
                 //draw.changeMode('simple_select', {featureIds: [draw.getSelected().features[0]]});
-                state.in_vertex = true;
+                BoundingBoxModestate.in_vertex = true;
             });
             map.on('mouseleave', 'gl-draw-polygon-vertex-halos-active-border.hot', () => {
                 console.log('I am no longer over a vertex');
                 //draw.changeMode('bboxmode', {featureIds: [draw.getSelected().features[0]]});
-                state.in_vertex = false;
+                //state.in_vertex = false;
             });
 
         </script>
