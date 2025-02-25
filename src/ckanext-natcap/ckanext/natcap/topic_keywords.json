@@ -26,7 +26,8 @@
         "LAND COVER",
         "FARMS",
         "EROSIVITY",
-        "SOIL"
+        "SOIL",
+        "NATURE"
       ]
     },
     {
@@ -35,7 +36,8 @@
         "POPULATION",
         "HUMAN POPULATION",
         "BULDINGS",
-        "ADMINISTRATIVE BOUNDARIES"
+        "ADMINISTRATIVE BOUNDARIES",
+        "CITIES"
       ]
     },
     {
@@ -50,7 +52,9 @@
         "NUTRIENT RUNOFF",
         "DRAINAGE",
         "STORMWATER",
-        "RAINFALL"
+        "RAINFALL",
+        "WATER",
+        "STREAMS"
       ]
     },
     {
@@ -58,7 +62,6 @@
       "keywords": [
         "ROOT RESTRICTING LAYER DEPTH",
         "FERTILIZATION",
-        "NUTRIENT RUNOFF",
         "POLLINATION",
         "EROSIVITY",
         "SOIL",
