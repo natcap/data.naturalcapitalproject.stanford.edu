@@ -38,15 +38,6 @@
     <body>
         <div id="map"></div>
         <script>
-            var bbox_state = {
-                in_vertex: false,
-                geometry: undefined,  // geojson geometry of bbox
-                featureId: undefined,
-                minx: undefined,
-                maxx: undefined,
-                miny: undefined,
-                maxy: undefined,
-            }
 
             function _createGeometryFromBbox(minx, maxx, miny, maxy) {
                 return {
@@ -62,6 +53,17 @@
                         ]],
                     }
                 }
+            }
+
+            function _eventIsWithinBbox(state, e) {
+                if (state.geometry === undefined) {
+                    return false;
+                }
+                if (e.lngLat.lng > state.minx && e.lngLat.lng < state.maxx &&
+                        e.lngLat.lat > state.miny && e.lngLat.lat < state.maxy) {
+                    return true;
+                }
+                return false;
             }
 
             var BoundingBoxMode = {};
@@ -97,6 +99,15 @@
             BoundingBoxMode.toDisplayFeatures = function(state, geojson, display) {
                 console.log("bboxmode: displaying features");
                 display(geojson);
+            }
+
+            BoundingBoxMode.onMouseMove = function(state, e) {
+                if (state.geometry === undefined) {
+                    return;
+                }
+                if (_eventIsWithinBbox(state, e)) {
+                    console.log('within bbox');
+                }
             }
 
             mapboxgl.accessToken = 'pk.eyJ1IjoiamRvdWdsYXNzIiwiYSI6ImNtMzR5dThiZzA1Y3YyanBucDZwc2w2NDYifQ.bghdnrfNMkaI0N-TOvqIAQ'
