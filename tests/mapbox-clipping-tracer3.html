@@ -63,6 +63,7 @@
             }
 
             function _updateBboxFromLngLat(lnglatlike) {
+                var lnglatlike = lnglatlike.toBounds();
                 bbox_geojson.features[0] = _createGeometryFromBbox(
                     lnglatlike.getWest(),
                     lnglatlike.getEast(),
@@ -83,12 +84,59 @@
                 return {
                     type: 'FeatureCollection',
                     features: [
-                        {type: 'Feature', geometry: {type: "Point", coordinates: [minx, miny]}},
-                        {type: 'Feature', geometry: {type: "Point", coordinates: [minx, maxy]}},
-                        {type: 'Feature', geometry: {type: "Point", coordinates: [maxx, miny]}},
-                        {type: 'Feature', geometry: {type: "Point", coordinates: [maxx, maxy]}},
+                        {type: 'Feature', properties: {loc: "sw"}, geometry: {type: "Point", coordinates: [minx, miny]}},
+                        {type: 'Feature', properties: {loc: "nw"}, geometry: {type: "Point", coordinates: [minx, maxy]}},
+                        {type: 'Feature', properties: {loc: "se"}, geometry: {type: "Point", coordinates: [maxx, miny]}},
+                        {type: 'Feature', properties: {loc: "ne"}, geometry: {type: "Point", coordinates: [maxx, maxy]}},
                     ],
                 }
+            }
+
+            // Given a new vertex, update the geometry's relevant vertices
+            function _updateVertex(loc, lat, lng) {
+                console.log('UpdateVertex');
+                console.log(loc, lat, lng);
+                var coords = bbox_geojson.features[0].geometry.coordinates[0];
+                if (loc == "sw") {
+                    // this location has 2 points to update, plus neighbors.
+                    coords[0][0] = lng;
+                    coords[0][1] = lat;
+                    coords[4][0] = lng;
+                    coords[4][1] = lat;
+
+                    // update neighbors
+                    coords[1][0] = lng;
+                    coords[3][1] = lat;
+
+                } else if (loc == "nw") {
+                    coords[1][0] = lng;
+                    coords[1][1] = lat;
+
+                    //update neighbors
+                    coords[0][0] = lng;
+                    coords[4][0] = lng;
+                    coords[2][1] = lat;
+
+                } else if (loc == "ne") {
+                    coords[2][0] = lng;
+                    coords[2][1] = lat;
+
+                    // update neighbors
+                    coords[1][1] = lat;
+                    coords[3][0] = lng;
+
+                } else if (loc == "se") {
+                    coords[3][0] = lng;
+                    coords[3][1] = lat;
+
+                    // update neighbors
+                    coords[2][0] = lng;
+                    coords[0][0] = lat;
+                    coords[4][0] = lat;
+                }
+                bbox_geojson.features[0].geometry.coordinates[0] = coords;
+
+
             }
 
 
@@ -182,22 +230,38 @@
 
             function onMove(e) {
                 console.log('onMove');
+                console.log(bbox_geojson);
+                console.log(e);
 
-                const coords = e.lngLat;
+                const coords = e.lngLat.toBounds();
 
                 // set UI indicator for dragging
                 canvas.style.cursor = 'grabbing';
 
                 // update the feature in the geojson object
                 // and call setData to the source layer geometry on it.
-                bbox_geojson.feature[0] = _updateBboxFromLngLat(coords);
-                map.getSource('bounding_box').setData(bbox_geojson);
+                var bbox_coords = bbox_geojson.features[0].geometry.coordinates[0];
+                var bbox_east = bbox_coords[0][0];
+                var bbox_west = bbox_coords[2][0];
+                var bbox_north = bbox_coords[2][1];
+                var bbox_south = bbox_coords[0][1];
+
+                //if (coords.getEast() == bbox_east
+
+                //_updateBboxFromLngLat(coords);
+                map.getSource('bbox').setData(bbox_geojson);
+                map.getSource('vertices').setData(_vertices());
             }
 
             function onUp(e) {
                 console.log('onUp');
                 const coords = e.lngLat;
-                console.log(`released at {coords}`);
+
+                //_updateBboxFromLngLat(coords);
+                //map.getSource('bbox').setData(bbox_geojson);
+                //map.getSource('vertices').setData(_vertices());
+
+                //console.log(bbox_geojson);
 
                 // unbind mouse/touch events
                 map.off('mousemove', onMove);
@@ -219,6 +283,8 @@
                 )
                 map.addSource('bbox', {type: 'geojson', data: bbox_geojson});
                 map.addSource('vertices', {type: 'geojson', data: _vertices()});
+                console.log(bbox_geojson);
+                console.log(_vertices());
                 map.addLayer({
                     id: 'bbox-fill',
                     type: 'fill',
@@ -281,6 +347,14 @@
                 map.on('mousedown', 'vertices-dot', (e) => {
                     // prevent default map behavior
                     e.preventDefault();
+
+                    console.log('mousedown');
+                    console.log(e.features);
+                    console.log(e.lngLat.toBounds());
+                    console.log(bbox_geojson);
+
+                    const bounds = e.lngLat.toBounds();
+                    _updateVertex(e.features[0].properties.loc, bounds.getNorth(), bounds.getEast());
 
                     canvas.style.cursor = 'grab';
 
