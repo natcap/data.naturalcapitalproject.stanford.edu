@@ -45,6 +45,7 @@
                     _createGeometryFromBbox(0, 0, 0, 0),
                 ],
             };
+            var current_vertex = undefined;
 
             function _createGeometryFromBbox(minx, maxx, miny, maxy) {
                 return {
@@ -135,8 +136,6 @@
                     coords[4][0] = lat;
                 }
                 bbox_geojson.features[0].geometry.coordinates[0] = coords;
-
-
             }
 
 
@@ -246,7 +245,8 @@
                 var bbox_north = bbox_coords[2][1];
                 var bbox_south = bbox_coords[0][1];
 
-                //if (coords.getEast() == bbox_east
+                const bounds = e.lngLat.toBounds();
+                _updateVertex(current_vertex, bounds.getNorth(), bounds.getEast());
 
                 //_updateBboxFromLngLat(coords);
                 map.getSource('bbox').setData(bbox_geojson);
@@ -262,6 +262,7 @@
                 //map.getSource('vertices').setData(_vertices());
 
                 //console.log(bbox_geojson);
+                current_vertex = undefined;
 
                 // unbind mouse/touch events
                 map.off('mousemove', onMove);
@@ -353,8 +354,7 @@
                     console.log(e.lngLat.toBounds());
                     console.log(bbox_geojson);
 
-                    const bounds = e.lngLat.toBounds();
-                    _updateVertex(e.features[0].properties.loc, bounds.getNorth(), bounds.getEast());
+                    current_vertex = e.features[0].properties.loc;
 
                     canvas.style.cursor = 'grab';
 
