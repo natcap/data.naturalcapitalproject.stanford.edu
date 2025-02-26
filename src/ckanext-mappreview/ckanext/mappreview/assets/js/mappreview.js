@@ -588,7 +588,7 @@ ckan.module("mappreview", function ($, _) {
                 rasters.push(layer);
               }
             }
-            if (raster.length == 0) {
+            if (rasters.length == 0) {
               this._container.innerHTML = `
                 <button type="button" class="btn btn-outline-secondary" disabled>
                   Clipping is disabled for non-raster layers
