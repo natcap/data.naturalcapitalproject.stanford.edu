@@ -390,15 +390,6 @@ ckan.module("mappreview", function ($, _) {
           }
       }
 
-
-      mapboxgl.accessToken = 'pk.eyJ1IjoiamRvdWdsYXNzIiwiYSI6ImNtMzR5dThiZzA1Y3YyanBucDZwc2w2NDYifQ.bghdnrfNMkaI0N-TOvqIAQ'
-
-      const map = new mapboxgl.Map({
-          container: 'map', // container ID
-          center: [-74.5, 40], // starting position [lng, lat]. Note that lat must be set between -90 and 90
-          zoom: 9 // starting zoom
-      });
-
       const canvas = map.getCanvasContainer();
 
       function onVertexMove(e) {
