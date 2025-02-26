@@ -75,7 +75,21 @@
                 bbox_geojson.features[0] = _createGeometryFromBbox(minx, maxx, miny, maxy);
             }
 
-
+            function _vertices() {
+                var minx = bbox_geojson.features[0].geometry.coordinates[0][0][0];
+                var maxx = bbox_geojson.features[0].geometry.coordinates[0][2][0];
+                var miny = bbox_geojson.features[0].geometry.coordinates[0][0][1];
+                var maxy = bbox_geojson.features[0].geometry.coordinates[0][2][1];
+                return {
+                    type: 'FeatureCollection',
+                    features: [
+                        {type: 'Feature', geometry: {type: "Point", coordinates: [minx, miny]}},
+                        {type: 'Feature', geometry: {type: "Point", coordinates: [minx, maxy]}},
+                        {type: 'Feature', geometry: {type: "Point", coordinates: [maxx, miny]}},
+                        {type: 'Feature', geometry: {type: "Point", coordinates: [maxx, maxy]}},
+                    ],
+                }
+            }
 
 
             mapboxgl.accessToken = 'pk.eyJ1IjoiamRvdWdsYXNzIiwiYSI6ImNtMzR5dThiZzA1Y3YyanBucDZwc2w2NDYifQ.bghdnrfNMkaI0N-TOvqIAQ'
@@ -204,6 +218,7 @@
                     center.lat - (center.lat - viewport.getNorth())/2  // maxy
                 )
                 map.addSource('bbox', {type: 'geojson', data: bbox_geojson});
+                map.addSource('vertices', {type: 'geojson', data: _vertices()});
                 map.addLayer({
                     id: 'bbox-fill',
                     type: 'fill',
@@ -231,13 +246,11 @@
                     },
                 });
                 map.addLayer({
-                    "id": "bbox-vertex-dot",
-                    "source": "bbox",
+                    "id": "vertices-dot",
+                    "source": "vertices",
                     "type": "circle",
                     "filter": ["all",
-                        ["==", "meta", "vertex"],
                         ["==", "$type", "Point"],
-                        ["!=", "mode", "static"],
                     ],
                     "paint": {
                         "circle-radius": 7,
@@ -245,13 +258,11 @@
                     },
                 });
                 map.addLayer({
-                    "id": "bbox-vertex-border",
-                    "source": "bbox",
+                    "id": "vertices-border",
+                    "source": "vertices",
                     "type": "circle",
                     "filter": ["all",
-                        ["==", "active", "true"],
-                        ["==", "$type", "Polygon"],
-                        ["!=", "mode", "static"],
+                        ["==", "$type", "Point"],
                     ],
                     "paint": {
                         "circle-radius": 5,
@@ -259,15 +270,31 @@
                     },
                 });
 
-                console.log('adding more handlers');
-                map.on('mouseenter', 'gl-draw-polygon-fill', () => {
+                map.on('mouseenter', 'vertices-dot', () => {
                     canvas.style.cursor = 'move';
                 });
 
-                map.on('mouseleave', 'gl-draw-polygon-fill', () => {
+                map.on('mouseleave', 'vertices-dot', () => {
                     canvas.style.cursor = '';
                 });
 
+                map.on('mousedown', 'vertices-dot', (e) => {
+                    // prevent default map behavior
+                    e.preventDefault();
+
+                    canvas.style.cursor = 'grab';
+
+                    map.on('mousemove', onMove);
+                    map.once('mouseup', onUp);
+                });
+
+                map.on('touchstart', 'vertices-dot', (e) => {
+                    // prevent default map behavior
+                    e.preventDefault();
+
+                    map.on('touchmove', onMove);
+                    map.once('touchend', onUp);
+                });
 
                 console.log('finished map.on(load)');
 
