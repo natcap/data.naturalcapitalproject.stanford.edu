@@ -208,10 +208,7 @@ ckan.module("mappreview", function ($, _) {
           map.addLayer(layer);
         });
 
-        console.log(config.layers);
-
-        const targets = Object.fromEntries(
-          config.layers.map(l => [l.name, `${l.name} (<a href="" title="Clip this layer">clip</a>)`]));
+        const targets = Object.fromEntries(config.layers.map(l => [l.name, l.name]));
 
         map.addControl(new MapboxLegendControl(targets, {
           showDefault: true,
@@ -574,16 +571,52 @@ ckan.module("mappreview", function ($, _) {
 
       class ClippingControl{
         onAdd(map) {
+
+            // config.layers attributes relevant to us
+            // name - filename (e.g. awc.tif)
+            // type - "raster"
+            // url - the clipping url
+
             this._map = map;
             this._container = document.createElement('div');
             this._container.className = 'mapboxgl-ctrl';
             this._container.textContent = 'Hello, world';
-            this._container.innerHTML = `
-              <button class='btn btn-primary'
-                      data-bs-toggle='collapse'
-                      aria-expanded='false'
-                      href='clipOptions'
-                      id='natCapClipLayer'>Clip this layer (will be a different control later)</button>`;
+
+            var rasters = [];
+            for (const layer of config.layers) {
+              if (layer.type === "raster") {
+                rasters.push(layer);
+              }
+            }
+            if (raster.length == 0) {
+              this._container.innerHTML = `
+                <button type="button" class="btn btn-outline-secondary" disabled>
+                  Clipping is disabled for non-raster layers
+                </button>`;
+            } else {
+              var raster_string = "";
+              for (const raster_layer of rasters) {
+                raster_string += `
+                  <li>
+                    <a class="dropdown-item
+                       href="#"
+                       onclick="natcapClipLayer('${raster_layer.name}');">
+                      ${raster_layer.name}
+                    </a>
+                  </li>\n`
+              }
+              this._container.innerHTML = `
+                <div class="dropup">
+                  <button class='btn btn-secondary dropdown-toggle'
+                          data-bs-toggle='dropdown'
+                          aria-expanded='false'
+                          id='natCapClipLayer'>Clip this layer</button>
+                  <ul class="dropdown-menu">
+                    ${raster_string}
+                  </ul>
+                </div>
+              `;
+            }
             this._container.querySelector('#natCapClipLayer').addEventListener('click', this._toggleClippingOptions);
 
             this._clipping_options = document.createElement('div');
@@ -632,7 +665,7 @@ ckan.module("mappreview", function ($, _) {
             this._map = undefined;
         }
       }
-      map.addControl(new ClippingControl(), 'top-left');
+      map.addControl(new ClippingControl(), 'bottom-right');
 
     },  // end of initialize();
   };
