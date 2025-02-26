@@ -209,6 +209,7 @@ ckan.module("mappreview", function ($, _) {
         });
 
         const targets = Object.fromEntries(config.layers.map(l => [l.name, l.name]));
+        console.log(targets);
 
         map.addControl(new MapboxLegendControl(targets, {
           showDefault: true,
@@ -275,6 +276,16 @@ ckan.module("mappreview", function ($, _) {
             .addTo(map);
         }
       });
+
+
+      /**********************************************************************
+       * Bounding Box Clipping Logic
+       *
+       * The stuff below this provides everything needed to do clipping on the
+       * Mapbox GL JS globe.  We are just using vanilla Mapbox GL JS because it
+       * turned out that we could do this with some pretty basic event handling
+       * on the Mapbox GL JS globe.
+       */
 
       // These three attributes represent the application state needed.
       const bbox_geojson = {
