@@ -10,7 +10,6 @@
               integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
               crossorigin="anonymous">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-        <link rel='stylesheet' href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.3/mapbox-gl-draw.css' type='text/css' />
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
                 integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
@@ -19,8 +18,6 @@
                 integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
                 crossorigin="anonymous"></script>
         <script src="https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.js"></script>
-        <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.3/mapbox-gl-draw.js'></script>
-
 
         <style>
             body {
@@ -39,6 +36,7 @@
         <div id="map"></div>
         <script>
 
+            // These three attributes represent the application state needed.
             const bbox_geojson = {
                 type: 'FeatureCollection',
                 features: [
@@ -142,84 +140,6 @@
                 center: [-74.5, 40], // starting position [lng, lat]. Note that lat must be set between -90 and 90
                 zoom: 9 // starting zoom
             });
-
-            var draw = new MapboxDraw({
-                //defaultMode: 'bboxmode',
-                //modes: Object.assign({  // allows us to register our custom mode
-                //    'bboxmode': BoundingBoxMode,
-                //}, MapboxDraw.modes),
-                styles: [
-                    // Polygon fill
-                    {
-                        "id": "gl-draw-polygon-fill",
-                        "type": "fill",
-                        "filter": ["all", ["==", "$type", "Polygon"]],
-                        "paint": {
-                          "fill-color": "#FFFFFF",
-                          "fill-outline-color": "#2E2D29",  // Process Black, from NatCap style guide
-                          "fill-opacity": 0.5,
-                        },
-                    },
-
-                    // Line stroke
-                    {
-                        "id": "gl-draw-polygon-stroke",
-                        "type": "line",
-                        "filter": ["all", ["==", "$type", "Polygon"]],
-                        "layout": {
-                            "line-cap": "round",
-                            "line-join": "round",
-                        },
-                        "paint": {
-                            "line-color": "#2E2D29",
-                            "line-dasharray": [0.2, 2],
-                            "line-width": 2,
-                        },
-                    },
-
-                    //
-                    {
-                        "id": "gl-draw-polygon-vertex-halos-inactive",
-                        "type": "circle",
-                        "filter": ["all",
-                            ["==", "active", "false"],
-                            ["==", "$type", "Polygon"],
-                            ["!=", "mode", "static"],
-                        ],
-                        "paint": {
-                            "circle-radius": 0,
-                            "circle-color": "#2E2D29",
-                        },
-                    },
-                    {
-                        "id": "gl-draw-polygon-vertex-halos-active-border",
-                        "type": "circle",
-                        "filter": ["all",
-                            ["==", "meta", "vertex"],
-                            ["==", "$type", "Point"],
-                            ["!=", "mode", "static"],
-                        ],
-                        "paint": {
-                            "circle-radius": 7,
-                            "circle-color": "#2E2D29",
-                        },
-                    },
-                    {
-                        "id": "gl-draw-polygon-vertex-halos-active",
-                        "type": "circle",
-                        "filter": ["all",
-                            ["==", "active", "true"],
-                            ["==", "$type", "Polygon"],
-                            ["!=", "mode", "static"],
-                        ],
-                        "paint": {
-                            "circle-radius": 5,
-                            "circle-color": "#FFF",
-                        },
-                    },
-                ],
-            });
-            map.addControl(draw, 'top-right');
 
             const canvas = map.getCanvasContainer();
 
