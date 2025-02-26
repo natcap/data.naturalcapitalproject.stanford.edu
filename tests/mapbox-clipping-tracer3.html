@@ -143,7 +143,7 @@
 
             const canvas = map.getCanvasContainer();
 
-            function onMove(e) {
+            function onVertexMove(e) {
 
                 const coords = e.lngLat.toBounds();
 
@@ -159,14 +159,14 @@
                 map.getSource('vertices').setData(_vertices());
             }
 
-            function onUp(e) {
+            function onVertexMouseUp(e) {
                 const coords = e.lngLat;
 
                 current_vertex = undefined;
 
                 // unbind mouse/touch events
-                map.off('mousemove', onMove);
-                map.off('touchmove', onMove);
+                map.off('mousemove', onVertexMove);
+                map.off('touchmove', onVertexMove);
             }
 
             function onBoxMove(e) {
@@ -184,12 +184,12 @@
                 map.getSource('vertices').setData(_vertices());
             }
 
-            function onBoxUp(e) {
+            function onBoxMouseUp(e) {
                 box_move_origin = undefined;
 
                 // unbind mouse/touch events
-                map.off('mousemove', onMove);
-                map.off('touchmove', onMove);
+                map.off('mousemove', onVertexMove);
+                map.off('touchmove', onVertexMove);
             }
 
             // the `load` event is fired after the first visually complete
@@ -273,8 +273,8 @@
                     current_vertex = e.features[0].properties.loc;
                     canvas.style.cursor = 'grab';
 
-                    map.on('mousemove', onMove);
-                    map.once('mouseup', onUp);
+                    map.on('mousemove', onVertexMove);
+                    map.once('mouseup', onVertexMouseUp);
                 });
 
                 map.on('touchstart', 'vertices-dot', (e) => {
@@ -285,8 +285,8 @@
                     current_vertex = e.features[0].properties.loc;
                     canvas.style.cursor = 'grab';
 
-                    map.on('touchmove', onMove);
-                    map.once('touchend', onUp);
+                    map.on('touchmove', onVertexMove);
+                    map.once('touchend', onVertexMouseUp);
                 });
 
                 map.on('mouseenter', 'bbox-fill', (e) => {
@@ -302,7 +302,7 @@
                     e.preventDefault();
                     box_move_origin = e.lngLat.toBounds();
                     map.on('mousemove', onBoxMove);
-                    map.once('mouseup', onBoxUp);
+                    map.once('mouseup', onBoxMouseUp);
                 });
 
 
