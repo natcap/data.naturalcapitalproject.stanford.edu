@@ -85,8 +85,6 @@
 
             // Given a new vertex, update the geometry's relevant vertices
             function _updateVertex(loc, lat, lng) {
-                console.log('UpdateVertex');
-                console.log(loc, lat, lng);
                 var coords = bbox_geojson.features[0].geometry.coordinates[0];
                 if (loc == "sw") {
                     // this location has 2 points to update, plus neighbors.
@@ -218,9 +216,6 @@
             const canvas = map.getCanvasContainer();
 
             function onMove(e) {
-                console.log('onMove');
-                console.log(bbox_geojson);
-                console.log(e);
 
                 const coords = e.lngLat.toBounds();
 
@@ -237,7 +232,6 @@
             }
 
             function onUp(e) {
-                console.log('onUp');
                 const coords = e.lngLat;
 
                 current_vertex = undefined;
@@ -250,7 +244,6 @@
             // the `load` event is fired after the first visually complete
             // rendering of the map has occurred.
             map.on('load', () => {
-                console.log('load');
                 // on map startup, set bbox to 1/2 height and width of the viewport, centered at the centerpoint
                 var center = map.getCenter();
                 var viewport = map.getBounds();
