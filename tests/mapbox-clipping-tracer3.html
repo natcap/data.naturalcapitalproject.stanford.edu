@@ -198,9 +198,7 @@
                 map.off('touchmove', onVertexMove);
             }
 
-            // the `load` event is fired after the first visually complete
-            // rendering of the map has occurred.
-            map.on('load', () => {
+            function initBoundingBox() {
                 // on map startup, set bbox to 1/2 height and width of the viewport, centered at the centerpoint
                 var center = map.getCenter();
                 var viewport = map.getBounds();
@@ -262,7 +260,23 @@
                         "circle-color": "#FFF",
                     },
                 });
+            }
 
+            function hideBoundingBox() {
+                // Need to remove the layers before we remove the sources.
+                // Otherwise we get an error in the console.
+                for (const layer of ['bbox-fill', 'bbox-border', 'vertices-dot', 'vertices-border']) {
+                    map.removeLayer(layer);
+                }
+
+                for (const source of ['bbox', 'vertices']) {
+                    map.removeSource(source);
+                }
+            }
+
+            // the `load` event is fired after the first visually complete
+            // rendering of the map has occurred.
+            map.on('load', () => {
                 map.on('mouseenter', 'vertices-dot', () => {
                     canvas.style.cursor = 'move';
                 });
@@ -310,9 +324,70 @@
                     map.on('mousemove', onBoxMove);
                     map.once('mouseup', onBoxMouseUp);
                 });
-
-
             });
+
+            class ClippingControl{
+		        onAdd(map) {
+		            this._map = map;
+		            this._container = document.createElement('div');
+		            this._container.className = 'mapboxgl-ctrl';
+		            this._container.textContent = 'Hello, world';
+					this._container.innerHTML = `
+                        <button class='btn btn-primary'
+                                data-bs-toggle='collapse'
+                                aria-expanded='false'
+                                href='clipOptions'
+                                id='natCapClipLayer'>Clip this layer (will be a different control later)</button>`;
+                    this._container.querySelector('#natCapClipLayer').addEventListener('click', this._toggleClippingOptions);
+
+                    this._clipping_options = document.createElement('div');
+                    this._clipping_options.id = 'clipOptions';
+                    this._clipping_options.className = 'collapse card card-body';
+                    this._clipping_options.innerHTML = `
+                        <h3>Clipping Options</h3>
+                        <div class="form-group row">
+                            <label for="targetEPSG" class="col-sm-4 col-form-label">Target coordinate system EPSG</label>
+                            <div class="col-sm-4">
+                                <input type="text"
+                                       class="form-control"
+                                       id="targetEPSG"
+                                       placeholder="4326">
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="targetEPSG"
+                                       id="targetEPSGInfo"
+                                       class="col-form-label"></label>
+                            </div>
+                        </div>
+                        <button class='btn btn-primary'>Clip layer to selected bounding box</button>
+                    `
+
+                    //shape control
+
+                    //Add clipping options here when it's needed
+                    //this._clipping_options.innerHTML = "\n" +
+                    //    "
+
+                    this._container.appendChild(this._clipping_options);
+		            return this._container;
+		        }
+
+                _toggleClippingOptions() {
+                    console.log("Clipping options");
+                    if ($('#clipOptions').hasClass('show')) {
+                        hideBoundingBox();
+                    } else {
+                        initBoundingBox();
+                    }
+                    $('#clipOptions').collapse('toggle');
+                }
+
+		        onRemove() {
+		            this._container.parentNode.removeChild(this._container);
+		            this._map = undefined;
+		        }
+		    }
+            map.addControl(new ClippingControl(), 'top-left');
 
         </script>
     </body>
