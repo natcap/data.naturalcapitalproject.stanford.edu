@@ -208,8 +208,10 @@ ckan.module("mappreview", function ($, _) {
           map.addLayer(layer);
         });
 
-        const targets = Object.fromEntries(config.layers.map(l => [l.name, l.name]));
-        console.log(targets);
+        console.log(config.layers);
+
+        const targets = Object.fromEntries(
+          config.layers.map(l => [l.name, `${l.name} (<a href="" title="Clip this layer">clip</a>)`]));
 
         map.addControl(new MapboxLegendControl(targets, {
           showDefault: true,
@@ -617,7 +619,6 @@ ckan.module("mappreview", function ($, _) {
         }
 
         _toggleClippingOptions() {
-            console.log("Clipping options");
             if ($('#clipOptions').hasClass('show')) {
                 hideBoundingBox();
             } else {
