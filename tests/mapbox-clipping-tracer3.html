@@ -63,16 +63,6 @@
                 }
             }
 
-            function _updateBboxFromLngLat(lnglatlike) {
-                var lnglatlike = lnglatlike.toBounds();
-                bbox_geojson.features[0] = _createGeometryFromBbox(
-                    lnglatlike.getWest(),
-                    lnglatlike.getEast(),
-                    lnglatlike.getSouth(),
-                    lnglatlike.getNorth()
-                );
-            };
-
             function _updateBboxFromGT(minx, maxx, miny, maxy) {
                 bbox_geojson.features[0] = _createGeometryFromBbox(minx, maxx, miny, maxy);
             }
@@ -239,16 +229,9 @@
 
                 // update the feature in the geojson object
                 // and call setData to the source layer geometry on it.
-                var bbox_coords = bbox_geojson.features[0].geometry.coordinates[0];
-                var bbox_east = bbox_coords[0][0];
-                var bbox_west = bbox_coords[2][0];
-                var bbox_north = bbox_coords[2][1];
-                var bbox_south = bbox_coords[0][1];
-
                 const bounds = e.lngLat.toBounds();
                 _updateVertex(current_vertex, bounds.getNorth(), bounds.getEast());
 
-                //_updateBboxFromLngLat(coords);
                 map.getSource('bbox').setData(bbox_geojson);
                 map.getSource('vertices').setData(_vertices());
             }
@@ -257,11 +240,6 @@
                 console.log('onUp');
                 const coords = e.lngLat;
 
-                //_updateBboxFromLngLat(coords);
-                //map.getSource('bbox').setData(bbox_geojson);
-                //map.getSource('vertices').setData(_vertices());
-
-                //console.log(bbox_geojson);
                 current_vertex = undefined;
 
                 // unbind mouse/touch events
@@ -284,8 +262,6 @@
                 )
                 map.addSource('bbox', {type: 'geojson', data: bbox_geojson});
                 map.addSource('vertices', {type: 'geojson', data: _vertices()});
-                console.log(bbox_geojson);
-                console.log(_vertices());
                 map.addLayer({
                     id: 'bbox-fill',
                     type: 'fill',
@@ -349,13 +325,8 @@
                     // prevent default map behavior
                     e.preventDefault();
 
-                    console.log('mousedown');
-                    console.log(e.features);
-                    console.log(e.lngLat.toBounds());
-                    console.log(bbox_geojson);
-
+                    // note which vertex we have clicked on
                     current_vertex = e.features[0].properties.loc;
-
                     canvas.style.cursor = 'grab';
 
                     map.on('mousemove', onMove);
@@ -366,35 +337,14 @@
                     // prevent default map behavior
                     e.preventDefault();
 
+                    // note which vertex we have clicked on
+                    current_vertex = e.features[0].properties.loc;
+                    canvas.style.cursor = 'grab';
+
                     map.on('touchmove', onMove);
                     map.once('touchend', onUp);
                 });
-
-                console.log('finished map.on(load)');
-
             });
-
-
-
-
-
-
-
-
-            //map.on('mouseenter', 'gl-draw-polygon-fill', (feature) => {
-            //    map.setFeatureState(feature, {highlight: true});
-            //});
-
-            //map.on('mouseenter', 'gl-draw-polygon-vertex-halos-active-border.hot', () => {
-            //    console.log('I am now over a vertex');
-            //    //draw.changeMode('simple_select', {featureIds: [draw.getSelected().features[0]]});
-            //    BoundingBoxModestate.in_vertex = true;
-            //});
-            //map.on('mouseleave', 'gl-draw-polygon-vertex-halos-active-border.hot', () => {
-            //    console.log('I am no longer over a vertex');
-            //    //draw.changeMode('bboxmode', {featureIds: [draw.getSelected().features[0]]});
-            //    //state.in_vertex = false;
-            //});
 
         </script>
     </body>
