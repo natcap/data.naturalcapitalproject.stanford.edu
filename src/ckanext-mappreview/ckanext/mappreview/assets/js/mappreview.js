@@ -275,6 +275,362 @@ ckan.module("mappreview", function ($, _) {
             .addTo(map);
         }
       });
-    },
+
+      // These three attributes represent the application state needed.
+      const bbox_geojson = {
+        type: 'FeatureCollection',
+        features: [
+          _createGeometryFromBbox(0, 0, 0, 0),
+        ],
+      };
+      var current_vertex = undefined;
+      var box_move_origin = undefined;
+
+
+      /* Translate the bounding box by some known diff
+       *
+       * lat_diff (float): The amount in the x direction to shift the bbox
+       * lng_diff (float): The amount in the y direction to shift the bbox
+       */
+      function _translateBbox(lat_diff, lng_diff) {
+          var coords = bbox_geojson.features[0].geometry.coordinates[0];
+          for (var i=0; i < 5; i++) {
+              coords[i][0] += lng_diff;
+              coords[i][1] += lat_diff;
+          }
+      }
+
+      function _createGeometryFromBbox(minx, maxx, miny, maxy) {
+          return {
+              type: 'Feature',
+              geometry: {
+                  type: "Polygon",
+                  coordinates: [[
+                      [minx, miny],
+                      [minx, maxy],
+                      [maxx, maxy],
+                      [maxx, miny],
+                      [minx, miny]
+                  ]],
+              }
+          }
+      }
+
+      function _updateBboxFromGT(minx, maxx, miny, maxy) {
+          console.log(minx, maxx, miny, maxy);
+          bbox_geojson.features[0] = _createGeometryFromBbox(minx, maxx, miny, maxy);
+      }
+
+      function _vertices() {
+          var minx = bbox_geojson.features[0].geometry.coordinates[0][0][0];
+          var maxx = bbox_geojson.features[0].geometry.coordinates[0][2][0];
+          var miny = bbox_geojson.features[0].geometry.coordinates[0][0][1];
+          var maxy = bbox_geojson.features[0].geometry.coordinates[0][2][1];
+          return {
+              type: 'FeatureCollection',
+              features: [
+                  {type: 'Feature', properties: {loc: "sw"}, geometry: {type: "Point", coordinates: [minx, miny]}},
+                  {type: 'Feature', properties: {loc: "nw"}, geometry: {type: "Point", coordinates: [minx, maxy]}},
+                  {type: 'Feature', properties: {loc: "se"}, geometry: {type: "Point", coordinates: [maxx, miny]}},
+                  {type: 'Feature', properties: {loc: "ne"}, geometry: {type: "Point", coordinates: [maxx, maxy]}},
+              ],
+          }
+      }
+
+      // Given a new vertex, update the geometry's relevant vertices
+      function _updateVertex(loc, lat, lng) {
+          var coords = bbox_geojson.features[0].geometry.coordinates[0];
+          if (loc == "sw") {
+              // this location has 2 points to update, plus neighbors.
+              coords[0][0] = lng;
+              coords[0][1] = lat;
+              coords[4][0] = lng;
+              coords[4][1] = lat;
+
+              // update neighbors
+              coords[1][0] = lng;
+              coords[3][1] = lat;
+
+          } else if (loc == "nw") {
+              coords[1][0] = lng;
+              coords[1][1] = lat;
+
+              //update neighbors
+              coords[0][0] = lng;
+              coords[4][0] = lng;
+              coords[2][1] = lat;
+
+          } else if (loc == "ne") {
+              coords[2][0] = lng;
+              coords[2][1] = lat;
+
+              // update neighbors
+              coords[1][1] = lat;
+              coords[3][0] = lng;
+
+          } else if (loc == "se") {
+              coords[3][0] = lng;
+              coords[3][1] = lat;
+
+              // update neighbors
+              coords[2][0] = lng;
+              coords[0][1] = lat;
+              coords[4][1] = lat;
+          }
+      }
+
+
+      mapboxgl.accessToken = 'pk.eyJ1IjoiamRvdWdsYXNzIiwiYSI6ImNtMzR5dThiZzA1Y3YyanBucDZwc2w2NDYifQ.bghdnrfNMkaI0N-TOvqIAQ'
+
+      const map = new mapboxgl.Map({
+          container: 'map', // container ID
+          center: [-74.5, 40], // starting position [lng, lat]. Note that lat must be set between -90 and 90
+          zoom: 9 // starting zoom
+      });
+
+      const canvas = map.getCanvasContainer();
+
+      function onVertexMove(e) {
+
+          const coords = e.lngLat.toBounds();
+
+          // set UI indicator for dragging
+          canvas.style.cursor = 'grabbing';
+
+          // update the feature in the geojson object
+          // and call setData to the source layer geometry on it.
+          const bounds = e.lngLat.toBounds();
+          _updateVertex(current_vertex, bounds.getNorth(), bounds.getEast());
+
+          map.getSource('bbox').setData(bbox_geojson);
+          map.getSource('vertices').setData(_vertices());
+      }
+
+      function onVertexMouseUp(e) {
+          const coords = e.lngLat;
+
+          current_vertex = undefined;
+
+          // unbind mouse/touch events
+          map.off('mousemove', onVertexMove);
+          map.off('touchmove', onVertexMove);
+      }
+
+      function onBoxMove(e) {
+          if (box_move_origin === undefined) {
+              return;
+          }
+
+          const coords = e.lngLat.toBounds();
+          var lat_diff = coords.getNorth() - box_move_origin.getNorth();
+          var lng_diff = coords.getWest() - box_move_origin.getWest();
+
+          _translateBbox(lat_diff, lng_diff);
+          box_move_origin = coords;
+          map.getSource('bbox').setData(bbox_geojson);
+          map.getSource('vertices').setData(_vertices());
+      }
+
+      function onBoxMouseUp(e) {
+          box_move_origin = undefined;
+
+          // unbind mouse/touch events
+          map.off('mousemove', onVertexMove);
+          map.off('touchmove', onVertexMove);
+      }
+
+      function initBoundingBox() {
+          // on map startup, set bbox to 1/3 height and width of the viewport, centered at the centerpoint
+          // 1/3 was picked through trial and error.
+          var center = map.getCenter();
+          var viewport = map.getBounds();
+          _updateBboxFromGT(
+              center.lng - (center.lng - viewport.getWest())/3,  // minx
+              center.lng - (center.lng - viewport.getEast())/3,  // maxx
+              center.lat - (center.lat - viewport.getSouth())/3, // miny
+              center.lat - (center.lat - viewport.getNorth())/3  // maxy
+          )
+          map.addSource('bbox', {type: 'geojson', data: bbox_geojson});
+          map.addSource('vertices', {type: 'geojson', data: _vertices()});
+          map.addLayer({
+              id: 'bbox-fill',
+              type: 'fill',
+              source: 'bbox',
+              filter: ["all", ["==", "$type", "Polygon"]],
+              paint: {
+                "fill-color": "#FFFFFF",
+                "fill-outline-color": "#2E2D29",  // Process Black, from NatCap style guide
+                "fill-opacity": 0.5,
+              },
+          });
+          map.addLayer({
+              "id": "bbox-border",
+              "source": 'bbox',
+              "type": "line",
+              "filter": ["all", ["==", "$type", "Polygon"]],
+              "layout": {
+                  "line-cap": "round",
+                  "line-join": "round",
+              },
+              "paint": {
+                  "line-color": "#2E2D29",
+                  "line-dasharray": [0.2, 2],
+                  "line-width": 2,
+              },
+          });
+          map.addLayer({
+              "id": "vertices-dot",
+              "source": "vertices",
+              "type": "circle",
+              "filter": ["all",
+                  ["==", "$type", "Point"],
+              ],
+              "paint": {
+                  "circle-radius": 7,
+                  "circle-color": "#2E2D29",
+              },
+          });
+          map.addLayer({
+              "id": "vertices-border",
+              "source": "vertices",
+              "type": "circle",
+              "filter": ["all",
+                  ["==", "$type", "Point"],
+              ],
+              "paint": {
+                  "circle-radius": 5,
+                  "circle-color": "#FFF",
+              },
+          });
+      }
+
+      function hideBoundingBox() {
+          // Need to remove the layers before we remove the sources.
+          // Otherwise we get an error in the console.
+          for (const layer of ['bbox-fill', 'bbox-border', 'vertices-dot', 'vertices-border']) {
+              map.removeLayer(layer);
+          }
+
+          for (const source of ['bbox', 'vertices']) {
+              map.removeSource(source);
+          }
+      }
+
+      // the `load` event is fired after the first visually complete
+      // rendering of the map has occurred.
+      map.on('load', () => {
+          map.on('mouseenter', 'vertices-dot', () => {
+              canvas.style.cursor = 'move';
+          });
+
+          map.on('mouseleave', 'vertices-dot', () => {
+              canvas.style.cursor = '';
+          });
+
+          map.on('mousedown', 'vertices-dot', (e) => {
+              // prevent default map behavior
+              e.preventDefault();
+
+              // note which vertex we have clicked on
+              current_vertex = e.features[0].properties.loc;
+              canvas.style.cursor = 'grab';
+
+              map.on('mousemove', onVertexMove);
+              map.once('mouseup', onVertexMouseUp);
+          });
+
+          map.on('touchstart', 'vertices-dot', (e) => {
+              // prevent default map behavior
+              e.preventDefault();
+
+              // note which vertex we have clicked on
+              current_vertex = e.features[0].properties.loc;
+              canvas.style.cursor = 'grab';
+
+              map.on('touchmove', onVertexMove);
+              map.once('touchend', onVertexMouseUp);
+          });
+
+          map.on('mouseenter', 'bbox-fill', (e) => {
+              canvas.style.cursor = 'move';
+          });
+
+          map.on('mouseleave', 'bbox-fill', (e) => {
+              canvas.style.cursor = '';
+          });
+
+          map.on('mousedown', 'bbox-fill', (e) => {
+              // prevent default map behavior
+              e.preventDefault();
+              box_move_origin = e.lngLat.toBounds();
+              map.on('mousemove', onBoxMove);
+              map.once('mouseup', onBoxMouseUp);
+          });
+      });
+
+      class ClippingControl{
+        onAdd(map) {
+            this._map = map;
+            this._container = document.createElement('div');
+            this._container.className = 'mapboxgl-ctrl';
+            this._container.textContent = 'Hello, world';
+            this._container.innerHTML = `
+              <button class='btn btn-primary'
+                      data-bs-toggle='collapse'
+                      aria-expanded='false'
+                      href='clipOptions'
+                      id='natCapClipLayer'>Clip this layer (will be a different control later)</button>`;
+            this._container.querySelector('#natCapClipLayer').addEventListener('click', this._toggleClippingOptions);
+
+            this._clipping_options = document.createElement('div');
+            this._clipping_options.id = 'clipOptions';
+            this._clipping_options.className = 'collapse card card-body';
+            this._clipping_options.innerHTML = `
+              <h3>Clipping Options</h3>
+              <div class="form-group row">
+                <label for="targetEPSG" class="col-sm-4 col-form-label">Target coordinate system EPSG</label>
+                <div class="col-sm-4">
+                  <input type="text"
+                         class="form-control"
+                         id="targetEPSG"
+                         placeholder="4326">
+                </div>
+                <div class="col-sm-4">
+                  <label for="targetEPSG"
+                         id="targetEPSGInfo"
+                         class="col-form-label"></label>
+                </div>
+             </div>
+
+             <button class="btn btn-primary float-end"
+                     id="submit"
+                     type="submit"
+                     data-bs-toggle="modal"
+                     data-bs-target="#progress-modal">Clip layer to selected bounding box</button>
+                     <!-- onclick="clip_cog();getData()" -->
+            `
+
+            this._container.appendChild(this._clipping_options);
+            return this._container;
+        }
+
+        _toggleClippingOptions() {
+            console.log("Clipping options");
+            if ($('#clipOptions').hasClass('show')) {
+                hideBoundingBox();
+            } else {
+                initBoundingBox();
+            }
+            $('#clipOptions').collapse('toggle');
+        }
+
+        onRemove() {
+            this._container.parentNode.removeChild(this._container);
+            this._map = undefined;
+        }
+      }
+      map.addControl(new ClippingControl(), 'top-left');
+
+    },  // end of initialize();
   };
 });

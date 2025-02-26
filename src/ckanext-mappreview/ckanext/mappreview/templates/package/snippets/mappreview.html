@@ -1,4 +1,43 @@
 <!-- use helpers to get config -->
 <div class="mappreview" data-module="mappreview" data-module-config="{{ h.mappreview_parse_metadata(pkg) }}" data-module-global-config="{{ h.mappreview_get_config() }}">
   <div id="map" class="map"></div>
+  <div class="modal fade"
+              id="progress-modal"
+              data-bs-backdrop="static"
+              data-bs-keyboard="false"
+              aria-labelledby="progress-modal-label"
+              aria-hidden="true"
+              tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+              <div class="modal-header">
+                  <h1 class="modal-title fs-5"
+                      id="progress-modal-label">Clipping ...</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                  <p>Clipping layer to your selected bounding box</p>
+                  <div class="progress"
+                       role="progressbar"
+                       aria-label="Clipping progress"
+                       aria-valuenow="0"
+                       aria-valuemin="0"
+                       aria-valuemax="100"
+                       id="clipping-progress">
+                      <div class="progress-bar progress-bar-striped" id="clipping-progress-bar"></div>
+                  </div>
+              </div>
+              <div class="modal-footer">
+                  <button type="button"
+                          id="cancel-button"
+                          class="btn btn-warning"
+                          data-bs-dismiss="modal">Cancel</button>
+                  <button type="button"
+                          id="download"
+                          onclick="download()"
+                          class="btn btn-success invisible">Download</button>
+              </div>
+          </div>
+      </div>
+  </div>
 </div>
