@@ -46,6 +46,12 @@
             var current_vertex = undefined;
             var box_move_origin = undefined;
 
+
+            /* Translate the bounding box by some known diff
+             *
+             * lat_diff (float): The amount in the x direction to shift the bbox
+             * lng_diff (float): The amount in the y direction to shift the bbox
+             */
             function _translateBbox(lat_diff, lng_diff) {
                 var coords = bbox_geojson.features[0].geometry.coordinates[0];
                 for (var i=0; i < 5; i++) {
