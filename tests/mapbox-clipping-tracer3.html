@@ -34,6 +34,47 @@
     </head>
     <body>
         <div id="map"></div>
+            <!-- Modal dialog for tracking clipping progress -->
+            <div class="modal fade"
+                        id="progress-modal"
+                        data-bs-backdrop="static"
+                        data-bs-keyboard="false"
+                        aria-labelledby="progress-modal-label"
+                        aria-hidden="true"
+                        tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-5"
+                                id="progress-modal-label">Clipping ...</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Clipping layer to your selected bounding box</p>
+                            <div class="progress"
+                                 role="progressbar"
+                                 aria-label="Clipping progress"
+                                 aria-valuenow="0"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100"
+                                 id="clipping-progress">
+                                <div class="progress-bar progress-bar-striped" id="clipping-progress-bar"></div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button"
+                                    id="cancel-button"
+                                    class="btn btn-warning"
+                                    data-bs-dismiss="modal">Cancel</button>
+                            <button type="button"
+                                    id="download"
+                                    onclick="download()"
+                                    class="btn btn-success invisible">Download</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         <script>
 
             // These three attributes represent the application state needed.
@@ -77,6 +118,7 @@
             }
 
             function _updateBboxFromGT(minx, maxx, miny, maxy) {
+                console.log(minx, maxx, miny, maxy);
                 bbox_geojson.features[0] = _createGeometryFromBbox(minx, maxx, miny, maxy);
             }
 
@@ -199,14 +241,15 @@
             }
 
             function initBoundingBox() {
-                // on map startup, set bbox to 1/2 height and width of the viewport, centered at the centerpoint
+                // on map startup, set bbox to 1/3 height and width of the viewport, centered at the centerpoint
+                // 1/3 was picked through trial and error.
                 var center = map.getCenter();
                 var viewport = map.getBounds();
                 _updateBboxFromGT(
-                    center.lng - (center.lng - viewport.getWest())/2,  // minx
-                    center.lng - (center.lng - viewport.getEast())/2,  // maxx
-                    center.lat - (center.lat - viewport.getSouth())/2, // miny
-                    center.lat - (center.lat - viewport.getNorth())/2  // maxy
+                    center.lng - (center.lng - viewport.getWest())/3,  // minx
+                    center.lng - (center.lng - viewport.getEast())/3,  // maxx
+                    center.lat - (center.lat - viewport.getSouth())/3, // miny
+                    center.lat - (center.lat - viewport.getNorth())/3  // maxy
                 )
                 map.addSource('bbox', {type: 'geojson', data: bbox_geojson});
                 map.addSource('vertices', {type: 'geojson', data: _vertices()});
@@ -359,14 +402,15 @@
                                        class="col-form-label"></label>
                             </div>
                         </div>
-                        <button class='btn btn-primary'>Clip layer to selected bounding box</button>
+
+                        <button class="btn btn-primary float-end"
+                                id="submit"
+                                type="submit"
+                                data-bs-toggle="modal"
+                                data-bs-target="#progress-modal">Clip layer to selected bounding box</button>
+                                <!-- onclick="clip_cog();getData()" -->
                     `
 
-                    //shape control
-
-                    //Add clipping options here when it's needed
-                    //this._clipping_options.innerHTML = "\n" +
-                    //    "
 
                     this._container.appendChild(this._clipping_options);
 		            return this._container;
