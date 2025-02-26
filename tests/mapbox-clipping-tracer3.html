@@ -46,6 +46,15 @@
                 ],
             };
             var current_vertex = undefined;
+            var box_move_origin = undefined;
+
+            function _translateBbox(lat_diff, lng_diff) {
+                var coords = bbox_geojson.features[0].geometry.coordinates[0];
+                for (var i=0; i < 5; i++) {
+                    coords[i][0] += lng_diff;
+                    coords[i][1] += lat_diff;
+                }
+            }
 
             function _createGeometryFromBbox(minx, maxx, miny, maxy) {
                 return {
@@ -123,7 +132,6 @@
                     coords[0][1] = lat;
                     coords[4][1] = lat;
                 }
-                bbox_geojson.features[0].geometry.coordinates[0] = coords;
             }
 
 
@@ -241,6 +249,29 @@
                 map.off('touchmove', onMove);
             }
 
+            function onBoxMove(e) {
+                if (box_move_origin === undefined) {
+                    return;
+                }
+
+                const coords = e.lngLat.toBounds();
+                var lat_diff = coords.getNorth() - box_move_origin.getNorth();
+                var lng_diff = coords.getWest() - box_move_origin.getWest();
+
+                _translateBbox(lat_diff, lng_diff);
+                box_move_origin = coords;
+                map.getSource('bbox').setData(bbox_geojson);
+                map.getSource('vertices').setData(_vertices());
+            }
+
+            function onBoxUp(e) {
+                box_move_origin = undefined;
+
+                // unbind mouse/touch events
+                map.off('mousemove', onMove);
+                map.off('touchmove', onMove);
+            }
+
             // the `load` event is fired after the first visually complete
             // rendering of the map has occurred.
             map.on('load', () => {
@@ -337,6 +368,24 @@
                     map.on('touchmove', onMove);
                     map.once('touchend', onUp);
                 });
+
+                map.on('mouseenter', 'bbox-fill', (e) => {
+                    canvas.style.cursor = 'move';
+                });
+
+                map.on('mouseleave', 'bbox-fill', (e) => {
+                    canvas.style.cursor = '';
+                });
+
+                map.on('mousedown', 'bbox-fill', (e) => {
+                    // prevent default map behavior
+                    e.preventDefault();
+                    box_move_origin = e.lngLat.toBounds();
+                    map.on('mousemove', onBoxMove);
+                    map.once('mouseup', onBoxUp);
+                });
+
+
             });
 
         </script>
