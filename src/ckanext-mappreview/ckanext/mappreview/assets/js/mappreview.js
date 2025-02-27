@@ -728,7 +728,7 @@ ckan.module("mappreview", function ($, _) {
                 btn.addEventListener('click', function() {
                   console.log('cancelling clip mode');
                   natcapClipLayerCancel();
-                }
+                });
               }
             }
 
