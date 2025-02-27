@@ -611,11 +611,13 @@ ckan.module("mappreview", function ($, _) {
                 </button>`;
             } else if (rasters.length == 1) {
               this._container.innerHTML = `
-                <button type="button"
-                        class="btn btn-secondary"
-                        onclick="natcapClipLayer('${rasters[0].name}');">
+                <button type="button" class="btn btn-secondary">
                   Clip this layer
                 </button>`;
+              this._container.get('button').on('click', function(event) {
+                console.log('single-raster button click handler');
+                natcapClipLayer(rasters[0].name);
+              });
             } else {
               var raster_string = "";
               for (const raster_layer of rasters) {
@@ -623,7 +625,7 @@ ckan.module("mappreview", function ($, _) {
                   <li>
                     <a class="dropdown-item
                        href="#"
-                       onclick="natcapClipLayer('${raster_layer.name}');">
+                       layer_name='${raster_layer.name}'>
                       ${raster_layer.name}
                     </a>
                   </li>\n`
@@ -639,6 +641,10 @@ ckan.module("mappreview", function ($, _) {
                   </ul>
                 </div>
               `;
+              this._container.get('a.dropdown-item').on('click', function(event) {
+                console.log(event);
+                console.log('We should call natcapClipLayer here, but where is the data?');
+              });
             }
             //this._container.querySelector('#natCapClipLayer').addEventListener('click', this._toggleClippingOptions);
             //
