@@ -295,9 +295,10 @@ ckan.module("mappreview", function ($, _) {
       };
       var current_vertex = undefined;
       var box_move_origin = undefined;
-      const clip_button_id = 'natcapClipStart';
+      const clip_button_id = 'natcapClipModeStart';
       const legend_former_check_state = {}
       const clipping_control_id = 'natcapClippingControl';
+      const clip_start_progress_modal_id = 'natcapClipStartProgressModal'
 
       /* Translate the bounding box by some known diff
        *
@@ -602,7 +603,7 @@ ckan.module("mappreview", function ($, _) {
         initBoundingBox();
 
         // Add a bootstrap primary button to start the clipping process.
-        var clip_control_div = document.getElementById(clipping_control_id);
+        var clip_control_div = document.getElementById(clip_start_progress_modal_id);
 
 
 
@@ -696,7 +697,7 @@ ckan.module("mappreview", function ($, _) {
               <button class="btn btn-primary d-none"
                       data-bs-toggle="modal"
                       data-bs-target="natcapClipProgressModal"
-                      id="natcapClipStart">
+                      id="${clip_start_progress_modal_id}">
                 Clip to this bounding box
               </button>`
 
