@@ -655,6 +655,7 @@ ckan.module("mappreview", function ($, _) {
                   Clip this layer
                 </button>`;
 
+              console.log(this._container.getElementsByTagName('button'));
               this._container.getElementsByTagName('button')[0].addEventListener('click', function() {
                 console.log('single-raster button click handler');
                 natcapClipLayer(rasters[0].name);
