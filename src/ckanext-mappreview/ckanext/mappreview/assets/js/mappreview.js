@@ -573,8 +573,8 @@ ckan.module("mappreview", function ($, _) {
         console.log(`Calling natcapClipLayer with ${layer_name}`);
         var layer_details = undefined;
         console.log(config.layers);
-        for (var layer in config.layers) {
-          console.log(layer);
+        for (var layer_index in config.layers) {
+          var layer = config.layers[layer_index];
           if (layer.name == layer_name) {
             layer_details = layer;
             break;
