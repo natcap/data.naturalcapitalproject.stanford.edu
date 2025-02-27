@@ -624,7 +624,7 @@ ckan.module("mappreview", function ($, _) {
       function natcapClipLayerCancel() {
         document.getElementById(clip_button_id).classList.remove('d-none');
         document.getElementById(clip_start_progress_modal_id).classList.add('d-none');
-        document.getElementById(clip_cancel).add('d-none');
+        document.getElementById(clip_cancel).classList.add('d-none');
         hideBoundingBox();
       }
 
