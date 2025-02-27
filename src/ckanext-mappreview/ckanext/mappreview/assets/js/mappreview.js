@@ -594,6 +594,7 @@ ckan.module("mappreview", function ($, _) {
             this._container = document.createElement('div');
             this._container.className = 'mapboxgl-ctrl';
             this._container.textContent = 'Hello, world';
+            this._container = $(this._container);
 
             var rasters = [];
             for (const layer of config.layers) {
