@@ -455,8 +455,12 @@ ckan.module("mappreview", function ($, _) {
               center.lat - (center.lat - viewport.getSouth())/3, // miny
               center.lat - (center.lat - viewport.getNorth())/3  // maxy
           )
-          map.addSource('bbox', {type: 'geojson', data: bbox_geojson});
-          map.addSource('vertices', {type: 'geojson', data: _vertices()});
+          if (map.getSource('bbox') === undefined) {
+            map.addSource('bbox', {type: 'geojson', data: bbox_geojson});
+          }
+          if (map.getSource('vertices') === undefined) {
+            map.addSource('vertices', {type: 'geojson', data: _vertices()});
+          }
           map.addLayer({
               id: 'bbox-fill',
               type: 'fill',
