@@ -511,6 +511,13 @@ ckan.module("mappreview", function ($, _) {
                   "circle-color": "#FFF",
               },
           });
+
+          // zoom in to the bounding box
+          const bounds = new mapboxgl.LngLatBounds(map.getCenter());
+          for (const coord of bbox_geojson.features[0].geometry.coordinates[0]) {
+            bounds.extend(coord);
+          }
+          map.fitBounds(bounds, {padding: 50});
       }
 
       function hideBoundingBox() {
