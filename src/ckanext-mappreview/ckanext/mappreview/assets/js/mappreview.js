@@ -573,6 +573,7 @@ ckan.module("mappreview", function ($, _) {
         console.log(`Calling natcapClipLayer with ${layer_name}`);
         var layer_details = undefined;
         for (var layer in config.layers) {
+          console.log(layer);
           if (layer.name == layer_name) {
             layer_details = layer;
             break;
@@ -612,6 +613,7 @@ ckan.module("mappreview", function ($, _) {
             } else if (rasters.length == 1) {
               this._container.innerHTML = `
                 <button type="button" class="btn btn-secondary">
+                  <i class="fa-solid fa-scissors"></i>
                   Clip this layer
                 </button>`;
 
@@ -636,7 +638,10 @@ ckan.module("mappreview", function ($, _) {
                   <button class='btn btn-secondary dropdown-toggle'
                           data-bs-toggle='dropdown'
                           aria-expanded='false'
-                          id='natCapClipLayer'>Clip this layer</button>
+                          id='natCapClipLayer'>
+                    <i class="fa-solid fa-scissors"></i>
+                    Clip this layer
+                  </button>
                   <ul class="dropdown-menu">
                     ${raster_string}
                   </ul>
