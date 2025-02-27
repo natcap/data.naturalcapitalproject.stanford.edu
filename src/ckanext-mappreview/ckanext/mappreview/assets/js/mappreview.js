@@ -295,7 +295,9 @@ ckan.module("mappreview", function ($, _) {
       };
       var current_vertex = undefined;
       var box_move_origin = undefined;
-
+      const clip_button_id = 'natcapClipStart';
+      const legend_former_check_state = {}
+      const clipping_control_id = 'natcapClippingControl';
 
       /* Translate the bounding box by some known diff
        *
@@ -572,7 +574,6 @@ ckan.module("mappreview", function ($, _) {
       function natcapClipLayer(layer_name) {
         console.log(`Calling natcapClipLayer with ${layer_name}`);
         var layer_details = undefined;
-        console.log(config.layers);
         for (var layer_index in config.layers) {
           var layer = config.layers[layer_index];
           if (layer.name == layer_name) {
@@ -581,6 +582,40 @@ ckan.module("mappreview", function ($, _) {
           }
         }
         console.log(layer_details);
+
+        // hide the "Clip This Layer" button
+        document.getElementById(clip_button_id).classList.add('d-none');  // use classList.remove('d-none') to re-enable
+
+        // Uncheck layers that aren't this one.
+        // Track which layers are checked for when we exit clipping mode.
+        var legend_inputs = document.querySelectorAll('div.mapboxgl-legend-list table.legend-table input');
+        for (const legend_input of legend_inputs) {
+          legend_former_check_state[legend_input.name] = legend_input.checked;
+          if (legend_input.name !== layer.name) {
+            legend_input.checked = false;
+          } else {
+            legend_input.checked = true;
+          }
+        }
+
+        // Add the bounding box
+        initBoundingBox();
+
+        // Add a bootstrap primary button to start the clipping process.
+        var clip_control_div = document.getElementById(clipping_control_id);
+
+
+
+        // Next steps
+        // X Hide the "Clip this layer" button
+        // X Uncheck layers that aren't this one
+        // X Add the bounding box
+        // * Add a bootstrap PRIMARY button to start clipping ("Clip to this extent")
+        //   * When clipping is started, we should pop up a modal dialog with config options
+        //   * Modal stays open when clipping
+        // * Add a bootstrap secondary button (or some other way) to cancel clipping ("Cancel clipping")
+        // * When clipping is cancelled, hide the clipping-mode buttons and show the "Clip this layer" button again.
+
         console.log('finished natcapClipLayer');
       }
 
@@ -594,6 +629,7 @@ ckan.module("mappreview", function ($, _) {
 
             this._map = map;
             this._container = document.createElement('div');
+            this._container.id = clipping_control_id;
             this._container.className = 'mapboxgl-ctrl';
             this._container.textContent = 'Hello, world';
 
@@ -613,7 +649,7 @@ ckan.module("mappreview", function ($, _) {
                 </button>`;
             } else if (rasters.length == 1) {
               this._container.innerHTML = `
-                <button type="button" class="btn btn-secondary">
+                <button type="button" class="btn btn-secondary" id='${clip_button_id}'>
                   <i class="fa-solid fa-scissors"></i>
                   Clip this layer
                 </button>`;
@@ -639,7 +675,7 @@ ckan.module("mappreview", function ($, _) {
                   <button class='btn btn-secondary dropdown-toggle'
                           data-bs-toggle='dropdown'
                           aria-expanded='false'
-                          id='natCapClipLayer'>
+                          id='${clip_button_id}'>
                     <i class="fa-solid fa-scissors"></i>
                     Clip this layer
                   </button>
@@ -654,6 +690,17 @@ ckan.module("mappreview", function ($, _) {
                 });
               }
             }
+
+            // append hidden buttons to the innerHTML, to be enabled when clipping mode starts.
+            this._container.innerHTML += `
+              <button class="btn btn-primary d-none"
+                      data-bs-toggle="modal"
+                      data-bs-target="natcapClipProgressModal"
+                      id="natcapClipStart">
+                Clip to this bounding box
+              </button>`
+
+
             //this._container.querySelector('#natCapClipLayer').addEventListener('click', this._toggleClippingOptions);
             //
             //this._clipping_options = document.createElement('div');
