@@ -661,7 +661,7 @@ ckan.module("mappreview", function ($, _) {
                 <button class="btn btn-primary d-none"
                         type="button"
                         data-bs-toggle="modal"
-                        data-bs-target="natcapClipProgressModal"
+                        data-bs-target="#natcapClipProgressModal"
                         id="${clip_start_progress_modal_id}">
                   <i class="fa-solid fa-check"></i>
                   Clip to this bounding box
