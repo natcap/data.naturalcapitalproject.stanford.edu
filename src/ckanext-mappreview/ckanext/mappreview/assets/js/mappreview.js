@@ -593,6 +593,14 @@ ckan.module("mappreview", function ($, _) {
                 <button type="button" class="btn btn-outline-secondary" disabled>
                   Clipping is disabled for non-raster layers
                 </button>`;
+            } else if (rasters.length == 1) {
+              this._container.innerHTML = `
+                <button type="button"
+                        class="btn btn-outline-secondary"
+                        disabled
+                        onclick="natcapClipLayer('${rasters[0].name}');">
+                  Clip this layer
+                </button>`;
             } else {
               var raster_string = "";
               for (const raster_layer of rasters) {
@@ -666,6 +674,19 @@ ckan.module("mappreview", function ($, _) {
         }
       }
       map.addControl(new ClippingControl(), 'bottom-right');
+
+      function natcapClipLayer(layer_name) {
+        console.log(`Calling natcapClipLayer with ${layer_name}`);
+        var layer_details = undefined;
+        for (var layer in config.layers) {
+          if (layer.name == layer_name) {
+            layer_details = layer;
+            break;
+          }
+        }
+        console.log(layer_details);
+        console.log('finished natcapClipLayer');
+      }
 
     },  // end of initialize();
   };
