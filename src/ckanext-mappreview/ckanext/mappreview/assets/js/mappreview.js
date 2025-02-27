@@ -594,7 +594,6 @@ ckan.module("mappreview", function ($, _) {
             this._container = document.createElement('div');
             this._container.className = 'mapboxgl-ctrl';
             this._container.textContent = 'Hello, world';
-            this._container = $(this._container);
 
             var rasters = [];
             for (const layer of config.layers) {
@@ -615,7 +614,8 @@ ckan.module("mappreview", function ($, _) {
                 <button type="button" class="btn btn-secondary">
                   Clip this layer
                 </button>`;
-              this._container.get('button').bind('click', function(event) {
+
+              this._container.getElementsByTagName('button')[0].addEventListener('click', function() {
                 console.log('single-raster button click handler');
                 natcapClipLayer(rasters[0].name);
               });
@@ -642,10 +642,11 @@ ckan.module("mappreview", function ($, _) {
                   </ul>
                 </div>
               `;
-              this._container.get('a.dropdown-item').bind('click', function(event) {
-                console.log(event);
-                console.log('We should call natcapClipLayer here, but where is the data?');
-              });
+              for (const elem of this._container.getElementsByTagName('a')) {
+                elem.addEventListener('click', function() {
+                  console.log('We should call natcapClipLayer here, but where is the data?');
+                });
+              }
             }
             //this._container.querySelector('#natCapClipLayer').addEventListener('click', this._toggleClippingOptions);
             //
@@ -678,7 +679,7 @@ ckan.module("mappreview", function ($, _) {
             //`
             //
             //this._container.appendChild(this._clipping_options);
-            return this._container.get();  // .get() converts back to dom element.
+            return this._container;
         }
 
         _toggleClippingOptions() {
