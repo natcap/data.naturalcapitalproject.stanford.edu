@@ -569,6 +569,19 @@ ckan.module("mappreview", function ($, _) {
           });
       });
 
+      function natcapClipLayer(layer_name) {
+        console.log(`Calling natcapClipLayer with ${layer_name}`);
+        var layer_details = undefined;
+        for (var layer in config.layers) {
+          if (layer.name == layer_name) {
+            layer_details = layer;
+            break;
+          }
+        }
+        console.log(layer_details);
+        console.log('finished natcapClipLayer');
+      }
+
       class ClippingControl{
         onAdd(map) {
 
@@ -596,10 +609,9 @@ ckan.module("mappreview", function ($, _) {
             } else if (rasters.length == 1) {
               this._container.innerHTML = `
                 <button type="button"
-                        class="btn btn-outline-secondary"
-                        disabled
+                        class="btn btn-secondary"
                         onclick="natcapClipLayer('${rasters[0].name}');">
-                  Clip this layer
+                  Clip ${rasters[0].name}
                 </button>`;
             } else {
               var raster_string = "";
@@ -674,19 +686,6 @@ ckan.module("mappreview", function ($, _) {
         }
       }
       map.addControl(new ClippingControl(), 'bottom-right');
-
-      function natcapClipLayer(layer_name) {
-        console.log(`Calling natcapClipLayer with ${layer_name}`);
-        var layer_details = undefined;
-        for (var layer in config.layers) {
-          if (layer.name == layer_name) {
-            layer_details = layer;
-            break;
-          }
-        }
-        console.log(layer_details);
-        console.log('finished natcapClipLayer');
-      }
 
     },  // end of initialize();
   };
