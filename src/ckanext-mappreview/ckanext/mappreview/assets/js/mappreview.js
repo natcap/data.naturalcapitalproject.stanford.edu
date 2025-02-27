@@ -634,6 +634,16 @@ ckan.module("mappreview", function ($, _) {
             this._container.className = 'mapboxgl-ctrl';
             this._container.textContent = 'Hello, world';
 
+            // append hidden buttons to the innerHTML, to be enabled when clipping mode starts.
+            var progress_modal_trigger_button = `
+              <button class="btn btn-primary d-none"
+                      data-bs-toggle="modal"
+                      data-bs-target="natcapClipProgressModal"
+                      id="${clip_start_progress_modal_id}">
+                Clip to this bounding box
+              </button>`
+
+
             var rasters = [];
             for (const layer of config.layers) {
               if (layer.type === "raster") {
@@ -653,10 +663,8 @@ ckan.module("mappreview", function ($, _) {
                 <button type="button" class="btn btn-secondary" id='${clip_button_id}'>
                   <i class="fa-solid fa-scissors"></i>
                   Clip this layer
-                </button>`;
+                </button>${progress_modal_trigger_button}`;
 
-              console.log(this._container);
-              console.log(this._container.innerHTML);
               this._container.getElementsByTagName('button')[0].addEventListener('click', function() {
                 console.log('single-raster button click handler');
                 natcapClipLayer(rasters[0].name);
@@ -686,6 +694,7 @@ ckan.module("mappreview", function ($, _) {
                     ${raster_string}
                   </ul>
                 </div>
+                ${progress_modal_trigger_button}
               `;
               for (const elem of this._container.getElementsByTagName('a')) {
                 elem.addEventListener('click', function() {
@@ -693,15 +702,6 @@ ckan.module("mappreview", function ($, _) {
                 });
               }
             }
-
-            // append hidden buttons to the innerHTML, to be enabled when clipping mode starts.
-            //this._container.innerHTML += `
-            //  <button class="btn btn-primary d-none"
-            //          data-bs-toggle="modal"
-            //          data-bs-target="natcapClipProgressModal"
-            //          id="${clip_start_progress_modal_id}">
-            //    Clip to this bounding box
-            //  </button>`
 
 
             //this._container.querySelector('#natCapClipLayer').addEventListener('click', this._toggleClippingOptions);
