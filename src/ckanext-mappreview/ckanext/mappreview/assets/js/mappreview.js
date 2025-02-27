@@ -678,7 +678,7 @@ ckan.module("mappreview", function ($, _) {
             //`
             //
             //this._container.appendChild(this._clipping_options);
-            return this._container;
+            return this._container.get();  // .get() converts back to dom element.
         }
 
         _toggleClippingOptions() {
