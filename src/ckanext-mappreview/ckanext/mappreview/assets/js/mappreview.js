@@ -625,35 +625,35 @@ ckan.module("mappreview", function ($, _) {
                 </div>
               `;
             }
-            this._container.querySelector('#natCapClipLayer').addEventListener('click', this._toggleClippingOptions);
+            //this._container.querySelector('#natCapClipLayer').addEventListener('click', this._toggleClippingOptions);
 
-            this._clipping_options = document.createElement('div');
-            this._clipping_options.id = 'clipOptions';
-            this._clipping_options.className = 'collapse card card-body';
-            this._clipping_options.innerHTML = `
-              <h3>Clipping Options</h3>
-              <div class="form-group row">
-                <label for="targetEPSG" class="col-sm-4 col-form-label">Target coordinate system EPSG</label>
-                <div class="col-sm-4">
-                  <input type="text"
-                         class="form-control"
-                         id="targetEPSG"
-                         placeholder="4326">
-                </div>
-                <div class="col-sm-4">
-                  <label for="targetEPSG"
-                         id="targetEPSGInfo"
-                         class="col-form-label"></label>
-                </div>
-             </div>
+            //this._clipping_options = document.createElement('div');
+            //this._clipping_options.id = 'clipOptions';
+            //this._clipping_options.className = 'collapse card card-body';
+            //this._clipping_options.innerHTML = `
+            //  <h3>Clipping Options</h3>
+            //  <div class="form-group row">
+            //    <label for="targetEPSG" class="col-sm-4 col-form-label">Target coordinate system EPSG</label>
+            //    <div class="col-sm-4">
+            //      <input type="text"
+            //             class="form-control"
+            //             id="targetEPSG"
+            //             placeholder="4326">
+            //    </div>
+            //    <div class="col-sm-4">
+            //      <label for="targetEPSG"
+            //             id="targetEPSGInfo"
+            //             class="col-form-label"></label>
+            //    </div>
+            // </div>
 
-             <button class="btn btn-primary float-end"
-                     id="submit"
-                     type="submit"
-                     data-bs-toggle="modal"
-                     data-bs-target="#progress-modal">Clip layer to selected bounding box</button>
-                     <!-- onclick="clip_cog();getData()" -->
-            `
+            // <button class="btn btn-primary float-end"
+            //         id="submit"
+            //         type="submit"
+            //         data-bs-toggle="modal"
+            //         data-bs-target="#progress-modal">Clip layer to selected bounding box</button>
+            //         <!-- onclick="clip_cog();getData()" -->
+            //`
 
             this._container.appendChild(this._clipping_options);
             return this._container;
