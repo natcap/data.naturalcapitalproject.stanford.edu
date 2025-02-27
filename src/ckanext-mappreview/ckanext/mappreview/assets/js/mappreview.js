@@ -655,7 +655,9 @@ ckan.module("mappreview", function ($, _) {
                   Clip this layer
                 </button>`;
 
-              this._container.getElementById(clip_button_id).addEventListener('click', function() {
+              console.log(this._container);
+              console.log(this._container.innerHTML);
+              this._container.getElementsByTagName('button')[0].addEventListener('click', function() {
                 console.log('single-raster button click handler');
                 natcapClipLayer(rasters[0].name);
               });
@@ -693,13 +695,13 @@ ckan.module("mappreview", function ($, _) {
             }
 
             // append hidden buttons to the innerHTML, to be enabled when clipping mode starts.
-            this._container.innerHTML += `
-              <button class="btn btn-primary d-none"
-                      data-bs-toggle="modal"
-                      data-bs-target="natcapClipProgressModal"
-                      id="${clip_start_progress_modal_id}">
-                Clip to this bounding box
-              </button>`
+            //this._container.innerHTML += `
+            //  <button class="btn btn-primary d-none"
+            //          data-bs-toggle="modal"
+            //          data-bs-target="natcapClipProgressModal"
+            //          id="${clip_start_progress_modal_id}">
+            //    Clip to this bounding box
+            //  </button>`
 
 
             //this._container.querySelector('#natCapClipLayer').addEventListener('click', this._toggleClippingOptions);
