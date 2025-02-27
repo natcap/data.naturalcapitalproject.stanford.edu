@@ -626,7 +626,7 @@ ckan.module("mappreview", function ($, _) {
               `;
             }
             //this._container.querySelector('#natCapClipLayer').addEventListener('click', this._toggleClippingOptions);
-
+            //
             //this._clipping_options = document.createElement('div');
             //this._clipping_options.id = 'clipOptions';
             //this._clipping_options.className = 'collapse card card-body';
@@ -654,8 +654,8 @@ ckan.module("mappreview", function ($, _) {
             //         data-bs-target="#progress-modal">Clip layer to selected bounding box</button>
             //         <!-- onclick="clip_cog();getData()" -->
             //`
-
-            this._container.appendChild(this._clipping_options);
+            //
+            //this._container.appendChild(this._clipping_options);
             return this._container;
         }
 
