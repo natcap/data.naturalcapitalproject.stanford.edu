@@ -602,9 +602,8 @@ ckan.module("mappreview", function ($, _) {
         // Add the bounding box
         initBoundingBox();
 
-        // Add a bootstrap primary button to start the clipping process.
-        var clip_control_div = document.getElementById(clip_start_progress_modal_id);
-
+        // enable the progress modal trigger button
+        document.getElementById(clip_start_progress_modal_id).classList.remove('d-none');
 
 
         // Next steps
@@ -642,7 +641,6 @@ ckan.module("mappreview", function ($, _) {
                       id="${clip_start_progress_modal_id}">
                 Clip to this bounding box
               </button>`
-
 
             var rasters = [];
             for (const layer of config.layers) {
