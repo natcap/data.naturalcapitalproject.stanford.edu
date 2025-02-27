@@ -298,7 +298,8 @@ ckan.module("mappreview", function ($, _) {
       const clip_button_id = 'natcapClipModeStart';
       const legend_former_check_state = {}
       const clipping_control_id = 'natcapClippingControl';
-      const clip_start_progress_modal_id = 'natcapClipStartProgressModal'
+      const clip_start_progress_modal_id = 'natcapClipStartProgressModal';
+      const clip_cancel = 'natcapClipModeCancel';
 
       /* Translate the bounding box by some known diff
        *
@@ -619,6 +620,13 @@ ckan.module("mappreview", function ($, _) {
         console.log('finished natcapClipLayer');
       }
 
+      function natcapClipLayerCancel() {
+        document.getElementById(clip_button_id).classList.remove('d-none');
+        document.getElementById(clip_start_progress_modal_id).classList.add('d-none');
+        hideBoundingBox();
+      }
+
+
       class ClippingControl{
         onAdd(map) {
 
@@ -635,12 +643,22 @@ ckan.module("mappreview", function ($, _) {
 
             // append hidden buttons to the innerHTML, to be enabled when clipping mode starts.
             var progress_modal_trigger_button = `
-              <button class="btn btn-primary d-none"
-                      data-bs-toggle="modal"
-                      data-bs-target="natcapClipProgressModal"
-                      id="${clip_start_progress_modal_id}">
-                Clip to this bounding box
-              </button>`
+              <div class="btn-group" role="group">
+                <button class="btn btn-primary d-none"
+                        type="button"
+                        data-bs-toggle="modal"
+                        data-bs-target="natcapClipProgressModal"
+                        id="${clip_start_progress_modal_id}">
+                  <i class="fa-solid fa-check"></i>
+                  Clip to this bounding box
+                </button>
+                <button type="button"
+                        id='${clip_cancel}'
+                        class="btn btn-secondary">
+                  Cancel
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>`
 
             var rasters = [];
             for (const layer of config.layers) {
@@ -700,6 +718,20 @@ ckan.module("mappreview", function ($, _) {
                 });
               }
             }
+
+            // add a handler for cancelling clipping mode.
+            // The button _should_ be in a known order, but we can just find
+            // all the possible buttons that might match and then just add the
+            // handler to the right one.
+            for (const btn of this._container.getElementsByTagName('button')) {
+              if (btn.id === clip_cancel) {
+                btn.addEventListener('click', function() {
+                  console.log('cancelling clip mode');
+                  natcapClipLayerCancel();
+                }
+              }
+            }
+
 
 
             //this._container.querySelector('#natCapClipLayer').addEventListener('click', this._toggleClippingOptions);
