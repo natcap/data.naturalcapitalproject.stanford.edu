@@ -615,7 +615,7 @@ ckan.module("mappreview", function ($, _) {
                 <button type="button" class="btn btn-secondary">
                   Clip this layer
                 </button>`;
-              this._container.get('button').on('click', function(event) {
+              this._container.get('button').bind('click', function(event) {
                 console.log('single-raster button click handler');
                 natcapClipLayer(rasters[0].name);
               });
@@ -642,7 +642,7 @@ ckan.module("mappreview", function ($, _) {
                   </ul>
                 </div>
               `;
-              this._container.get('a.dropdown-item').on('click', function(event) {
+              this._container.get('a.dropdown-item').bind('click', function(event) {
                 console.log(event);
                 console.log('We should call natcapClipLayer here, but where is the data?');
               });
