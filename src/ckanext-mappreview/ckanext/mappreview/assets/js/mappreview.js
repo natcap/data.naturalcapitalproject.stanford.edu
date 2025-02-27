@@ -603,15 +603,18 @@ ckan.module("mappreview", function ($, _) {
             }
             if (rasters.length == 0) {
               this._container.innerHTML = `
-                <button type="button" class="btn btn-outline-secondary" disabled>
-                  Clipping is disabled for non-raster layers
+                <button type="button"
+                        class="btn btn-outline-secondary"
+                        disabled
+                        title="At this time, clipping only works with raster layers.">
+                  Clipping is disabled
                 </button>`;
             } else if (rasters.length == 1) {
               this._container.innerHTML = `
                 <button type="button"
                         class="btn btn-secondary"
                         onclick="natcapClipLayer('${rasters[0].name}');">
-                  Clip ${rasters[0].name}
+                  Clip this layer
                 </button>`;
             } else {
               var raster_string = "";
