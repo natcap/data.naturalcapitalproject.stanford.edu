@@ -605,6 +605,7 @@ ckan.module("mappreview", function ($, _) {
 
         // enable the progress modal trigger button
         document.getElementById(clip_start_progress_modal_id).classList.remove('d-none');
+        document.getElementById(clip_cancel).classList.remove('d-none');
 
 
         // Next steps
@@ -623,6 +624,7 @@ ckan.module("mappreview", function ($, _) {
       function natcapClipLayerCancel() {
         document.getElementById(clip_button_id).classList.remove('d-none');
         document.getElementById(clip_start_progress_modal_id).classList.add('d-none');
+        document.getElementById(clip_cancel).add('d-none');
         hideBoundingBox();
       }
 
@@ -654,7 +656,7 @@ ckan.module("mappreview", function ($, _) {
                 </button>
                 <button type="button"
                         id='${clip_cancel}'
-                        class="btn btn-secondary">
+                        class="btn btn-secondary d-none">
                   Cancel
                   <i class="fa-solid fa-xmark"></i>
                 </button>
