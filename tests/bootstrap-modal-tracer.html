@@ -128,6 +128,18 @@
                             <p>When the clipping is finished, you will be able
                             to download your clipped raster from this dialog.</p>
                         </div>
+                        <div id="natcapClipDownloadClippedLayer"
+                             class="d-none d-grid">
+                            <h3>Clipping complete!</h3>
+                            <p>Click the button below to download the selected
+                            layer.</p>
+                            <button type="button"
+                                    class="btn btn-outline-success"
+                                    id="download-layer">
+                                <i class="fa-solid fa-download"></i>
+                                Download layer (<span id="download-size"></span>)
+                            </button>
+                        </div>
                     </div>
                     <!-- End modal body -->
 
@@ -165,6 +177,13 @@
                                         <i class="fa-solid fa-xmark"></i>
                                         Cancel
                                     </button>
+                                    <button type="button"
+                                            id="done-button"
+                                            data-bs-dismiss="modal"
+                                            class="btn btn-success d-none">
+                                        <i class="fa-solid fa-check"></i>
+                                        Done
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -175,6 +194,15 @@
             </div>
         </div>
         <script>
+            function downloadComplete() {
+                document.getElementById('clipping-progress').classList.add('d-none');
+                document.getElementById('cancel-button').classList.add('d-none');
+                document.getElementById('done-button').classList.remove('d-none');
+                document.getElementById('download-size').innerText = '42 MB';
+                document.getElementById('natcapClipDownloadClippedLayer').classList.remove('d-none');
+                document.getElementById('natcapClipInProgress').classList.add('d-none');
+            }
+
             function submitForm() {
                 console.log('form submitted');
                 document.getElementById('clipping-progress').classList.remove('d-none');
@@ -182,6 +210,8 @@
                 document.getElementById('submit-button').classList.add('d-none');
                 document.getElementById('natcapClipInProgress').classList.remove('d-none');
                 document.getElementById('natcapClipInitOptions').classList.add('d-none');
+
+                setTimeout(function() {downloadComplete();}, 2000);
             }
 
             function resetState() {
@@ -190,6 +220,7 @@
                 document.getElementById('submit-button').classList.remove('d-none');
                 document.getElementById('natcapClipInProgress').classList.add('d-none');
                 document.getElementById('natcapClipInitOptions').classList.remove('d-none');
+                document.getElementById('natcapClipDownloadClippedLayer').classList.add('d-none');
             }
 
             window.addEventListener('load', function() {
