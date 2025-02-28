@@ -51,7 +51,7 @@
                         box.</p>
 
                         <div class="row">
-                            <div class="col">
+                            <div class="col p-2">
                                 <input class="form-check-input"
                                        type="checkbox"
                                        value=""
@@ -70,11 +70,21 @@
                             </div>
                         </div>
                         <div class="row">
+                            <div class="col p-2">
+                                <input class="form-check-input"
+                                       type="checkbox"
+                                       value=""
+                                       id="natcapClipSettingOverridePixelSize">
+                                <label for="natcapClipSettingOverridePixelSize">
+                                    Resample to a custom pixel size
+                                </label>
+                            </div>
                             <div class="col">
-                                <input type=
+                                <input type="text"
+                                       id="natcapClipSettingPixelSize"
+                                       class="form-control d-none">
                             </div>
                         </div>
-
                     </div>
                     <!-- End modal body -->
 
@@ -135,22 +145,31 @@
                 new bootstrap.Modal(document.getElementById('natcapClipProgressModal')).show();
             });
 
+            function toggleOverrideField(check_input, text_field_id) {
+                var checked = document.getElementById(check_input).checked;
+                var epsg_field = document.getElementById(text_field_id);
+
+                if (epsg_field.classList.contains('d-none')) {
+                    epsg_field.classList.remove('d-none');
+                }
+
+                if (!checked) {
+                    epsg_field.classList.add('d-none');
+                }
+            }
+
             document.getElementById('submit-button').addEventListener('click', submitForm);
             document.getElementById('modal-close').addEventListener('click', resetState);
             document.getElementById('cancel-button').addEventListener('click', resetState);
 
             document.getElementById('natcapClipSettingOverrideEPSG').addEventListener(
                 'click', function() {
-                    var checked = document.getElementById('natcapClipSettingOverrideEPSG').checked;
-                    var epsg_field = document.getElementById('natcapClipSettingEPSGCode');
+                    toggleOverrideField('natcapClipSettingOverrideEPSG', 'natcapClipSettingEPSGCode');
+            });
 
-                    if (epsg_field.classList.contains('d-none')) {
-                        epsg_field.classList.remove('d-none');
-                    }
-
-                    if (!checked) {
-                        epsg_field.classList.add('d-none');
-                    }
+            document.getElementById('natcapClipSettingOverridePixelSize').addEventListener(
+                'click', function() {
+                    toggleOverrideField('natcapClipSettingOverridePixelSize', 'natcapClipSettingPixelSize');
             });
 
 
