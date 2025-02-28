@@ -21,7 +21,7 @@
                 data-bs-target="#natcapClipProgressModal">
           Launch static backdrop modal
         </button>
-        <div class="modal fade"
+        <div class="modal fade modal-lg"
              id="natcapClipProgressModal"
              data-bs-backdrop="static"
              data-bs-keyboard="false"
@@ -47,7 +47,34 @@
 
                     <!-- Start modal body -->
                     <div class="modal-body">
-                        <p>Clipping layer to your selected bounding box</p>
+                        <p>The layer will be clipped to your selected bounding
+                        box.</p>
+
+                        <div class="row">
+                            <div class="col">
+                                <input class="form-check-input"
+                                       type="checkbox"
+                                       value=""
+                                       id="natcapClipSettingOverrideEPSG">
+                                <label class="form-check-label"
+                                       for="natcapClipSettingOverrideEPSG">
+                                    Warp to a custom EPSG code
+                                </label>
+                            </div>
+                            <div class="col">
+                                <input type="text"
+                                       id="natcapClipSettingEPSGCode"
+                                       class="form-control d-none"
+                                       placeholder="3426"
+                                       aria-label="EPSG Code">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <input type=
+                            </div>
+                        </div>
+
                     </div>
                     <!-- End modal body -->
 
@@ -55,7 +82,7 @@
                     <div class="modal-footer">
                         <div class="container">
                             <div class="row row-cols-2">
-                                <div class="col col-md-9">
+                                <div class="col col-10">
                                     <div class="progress d-none"
                                          role="progressbar"
                                          aria-label="Clipping progress"
@@ -69,11 +96,11 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col col-md-1 float-end">
+                                <div class="col col-1 float-end">
                                     <button type="button"
                                             id="submit-button"
                                             class="btn btn-primary">
-                                        Submit
+                                        Clip!
                                     </button>
                                     <button type="button"
                                             id="cancel-button"
@@ -104,9 +131,27 @@
                 document.getElementById('submit-button').classList.remove('d-none');
             }
 
+            window.addEventListener('load', function() {
+                new bootstrap.Modal(document.getElementById('natcapClipProgressModal')).show();
+            });
+
             document.getElementById('submit-button').addEventListener('click', submitForm);
             document.getElementById('modal-close').addEventListener('click', resetState);
             document.getElementById('cancel-button').addEventListener('click', resetState);
+
+            document.getElementById('natcapClipSettingOverrideEPSG').addEventListener(
+                'click', function() {
+                    var checked = document.getElementById('natcapClipSettingOverrideEPSG').checked;
+                    var epsg_field = document.getElementById('natcapClipSettingEPSGCode');
+
+                    if (epsg_field.classList.contains('d-none')) {
+                        epsg_field.classList.remove('d-none');
+                    }
+
+                    if (!checked) {
+                        epsg_field.classList.add('d-none');
+                    }
+            });
 
 
         </script>
