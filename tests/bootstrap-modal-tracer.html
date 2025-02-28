@@ -47,8 +47,15 @@
 
                     <!-- Start modal body -->
                     <div class="modal-body">
-                        <p>The layer will be clipped to the bounding box you
-                        selected on the globe.</p>
+                        <h3>Warp the clipped raster?</h3>
+                        <p>
+                        The layer will be clipped to the bounding box you
+                        selected on the globe, and will keep its original
+                        spatial reference system and resolution.  If you would
+                        like to warp the output to a different SRS or
+                        resolution, please use the options below to configure
+                        the operation.
+                        </p>
 
                         <div class="row">
                             <div class="col p-2">
@@ -80,7 +87,6 @@
                                     <input type="text"
                                            id="natcapClipSettingEPSGCode"
                                            class="form-control d-none"
-                                           placeholder="3426"
                                            aria-label="EPSG Code">
                                 </div>
                                 <div class="col-sm-4">
@@ -120,7 +126,7 @@
                     <div class="modal-footer">
                         <div class="container">
                             <div class="row row-cols-2">
-                                <div class="col col-10">
+                                <div class="col-sm">
                                     <div class="progress d-none"
                                          role="progressbar"
                                          aria-label="Clipping progress"
@@ -134,7 +140,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col col-1 float-end">
+                                <div class="col-3">
                                     <button type="button"
                                             id="submit-button"
                                             class="btn btn-primary">
@@ -211,6 +217,14 @@
                     toggleOverrideField(
                         'natcapClipEnableOverrides',
                         'natcapClipAdvancedOptions');
+                    warp = document.getElementById('natcapClipEnableOverrides').checked;
+                    var submit_text;
+                    if (warp) {
+                        submit_text = 'Warp this layer!';
+                    } else {
+                        submit_text = "Clip!"
+                    }
+                    document.getElementById('submit-button').innerHTML = submit_text;
             });
 
 
