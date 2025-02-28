@@ -47,42 +47,70 @@
 
                     <!-- Start modal body -->
                     <div class="modal-body">
-                        <p>The layer will be clipped to your selected bounding
-                        box.</p>
+                        <p>The layer will be clipped to the bounding box you
+                        selected on the globe.</p>
 
                         <div class="row">
                             <div class="col p-2">
                                 <input class="form-check-input"
                                        type="checkbox"
                                        value=""
-                                       id="natcapClipSettingOverrideEPSG">
+                                       id="natcapClipEnableOverrides">
                                 <label class="form-check-label"
-                                       for="natcapClipSettingOverrideEPSG">
-                                    Warp to a custom EPSG code
+                                       for="natcapClipEnableOverrides">
+                                    Set a custom spatial reference or resolution for
+                                    the clipped dataset
                                 </label>
-                            </div>
-                            <div class="col">
-                                <input type="text"
-                                       id="natcapClipSettingEPSGCode"
-                                       class="form-control d-none"
-                                       placeholder="3426"
-                                       aria-label="EPSG Code">
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col p-2">
-                                <input class="form-check-input"
-                                       type="checkbox"
-                                       value=""
-                                       id="natcapClipSettingOverridePixelSize">
-                                <label for="natcapClipSettingOverridePixelSize">
-                                    Resample to a custom pixel size
-                                </label>
+                        <div id="natcapClipAdvancedOptions" class="d-none">
+                            <hr/>
+                            <div class="row">
+                                <div class="col-sm p-2">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           value=""
+                                           id="natcapClipSettingOverrideEPSG">
+                                    <label class="form-check-label"
+                                           for="natcapClipSettingOverrideEPSG">
+                                        Set custom coordinate system EPSG
+                                    </label>
+                                </div>
+                                <div class="col-sm-2">
+                                    <input type="text"
+                                           id="natcapClipSettingEPSGCode"
+                                           class="form-control d-none"
+                                           placeholder="3426"
+                                           aria-label="EPSG Code">
+                                </div>
+                                <div class="col-sm-4">
+                                    <label for="natcapClipSettingEPSGCode"
+                                           id="natcapClipSettingEPSGCodeLabel"
+                                           class="col-form-label d-none">placeholder</label>
+                                </div>
                             </div>
-                            <div class="col">
-                                <input type="text"
-                                       id="natcapClipSettingPixelSize"
-                                       class="form-control d-none">
+                            <div class="row">
+                                <div class="col-sm p-2">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           value=""
+                                           id="natcapClipSettingOverridePixelSize">
+                                    <label for="natcapClipSettingOverridePixelSize">
+                                        Set custom pixel width
+                                    </label>
+                                </div>
+                                <div class="col-sm-2">
+                                    <input type="text"
+                                           id="natcapClipSettingPixelSize"
+                                           class="form-control d-none">
+                                </div>
+                                <div class="col-sm-4">
+                                    <label for="natcapClipSettingPixelSize"
+                                           id="natcapClipSettingPixelSizeLabel"
+                                           class="col-form-label d-none">
+                                        Units: unknown
+                                    </label>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -165,11 +193,24 @@
             document.getElementById('natcapClipSettingOverrideEPSG').addEventListener(
                 'click', function() {
                     toggleOverrideField('natcapClipSettingOverrideEPSG', 'natcapClipSettingEPSGCode');
+                    toggleOverrideField(
+                        'natcapClipSettingOverrideEPSG',
+                        'natcapClipSettingEPSGCodeLabel');
             });
 
             document.getElementById('natcapClipSettingOverridePixelSize').addEventListener(
                 'click', function() {
                     toggleOverrideField('natcapClipSettingOverridePixelSize', 'natcapClipSettingPixelSize');
+                    toggleOverrideField(
+                        'natcapClipSettingOverridePixelSize',
+                        'natcapClipSettingPixelSizeLabel');
+            });
+
+            document.getElementById('natcapClipEnableOverrides').addEventListener(
+                'click', function() {
+                    toggleOverrideField(
+                        'natcapClipEnableOverrides',
+                        'natcapClipAdvancedOptions');
             });
 
 
