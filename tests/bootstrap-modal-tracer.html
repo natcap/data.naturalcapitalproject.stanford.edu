@@ -211,12 +211,13 @@
                 document.getElementById('natcapClipInProgress').classList.remove('d-none');
                 document.getElementById('natcapClipInitOptions').classList.add('d-none');
 
-                setTimeout(function() {downloadComplete();}, 2000);
+                setTimeout(function() {downloadComplete();}, 1000);
             }
 
             function resetState() {
                 document.getElementById('clipping-progress').classList.add('d-none');
                 document.getElementById('cancel-button').classList.add('d-none');
+                document.getElementById('done-button').classList.add('d-none');
                 document.getElementById('submit-button').classList.remove('d-none');
                 document.getElementById('natcapClipInProgress').classList.add('d-none');
                 document.getElementById('natcapClipInitOptions').classList.remove('d-none');
@@ -243,6 +244,7 @@
             document.getElementById('submit-button').addEventListener('click', submitForm);
             document.getElementById('modal-close').addEventListener('click', resetState);
             document.getElementById('cancel-button').addEventListener('click', resetState);
+            document.getElementById('done-button').addEventListener('click', resetState);
 
             document.getElementById('natcapClipSettingOverrideEPSG').addEventListener(
                 'click', function() {
