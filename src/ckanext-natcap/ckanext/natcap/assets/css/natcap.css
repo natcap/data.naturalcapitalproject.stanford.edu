@@ -224,18 +224,6 @@ body {
     max-width: 100%;
 }
 
-.resources .resource-list .icon-group {
-  display: flex;
-}
-
-/* Applies to FontAwesome glyphs in the resource list, used for clip, etc. */
-.resources .resource-list .icon-group i {
-  left: -8px;
-  top: -8px;
-  position: relative;
-  color: #909795;
-}
-
 .resource-item {
     overflow: hidden;
     text-overflow: ellipsis;

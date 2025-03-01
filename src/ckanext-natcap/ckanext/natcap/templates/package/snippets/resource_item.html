@@ -11,28 +11,9 @@
         {{ h.natcap_get_filename(res.url) }}
       </div>
     </div>
+    <div class="icon-button icon-button-download">
+    </div>
   </a>
-  <div class="icon-group">
-
-    {# Only show the clip button on geotiff files #}
-    {% if res.url.endswith('.tif') %}
-      <div class="icon-button icon-button-clip"
-           {# link the div to the natcap-dataset-clip js module #}
-           data-module="natcap-dataset-clip"
-           data-module-dataset="{{ res.url }}"
-           title="Clip dataset">
-        <i class="fa-solid fa-scissors"></i>
-      </div>
-    {% endif %}
-
-    <div class="icon-button icon-button-copy resource-copy-url"
-         data-module="natcap-copy-url"
-         data-module-url="{{ res.url }}"
-         title="Copy file URL"></div>
-    <a href="{{ res.url}}">
-      <div class="icon-button icon-button-download" title="Download file"></div>
-    </a>
-  </div>
 
   {% set sources = h.get_pkg_dict_extra(c.pkg_dict, 'sources', '') %}
   {% set parsed_sources = h.zipexpand_parse_sources(sources) %}
