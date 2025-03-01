@@ -93,7 +93,7 @@
                                     <div class="col-sm-4">
                                         <label for="natcapClipSettingEPSGCode"
                                                id="natcapClipSettingEPSGCodeLabel"
-                                               class="col-form-label d-none">placeholder</label>
+                                               class="col-form-label"></label>
                                     </div>
                                 </div>
                                 <div class="row">
@@ -276,6 +276,53 @@
                     }
                     document.getElementById('submit-button').innerHTML = submit_text;
             });
+
+            const clipping_endpoint = 'https://clipping-service-897938321824.us-west1.run.app'
+            const cog = 'https://storage.googleapis.com/natcap-data-cache/natcap-projects/footprint-impact-tool-data/nature_access_service/nature_access_for_people.tif'
+
+            function updateSourceRasterInfo() {
+                console.log('updating source raster info');
+                var epsg_input = document.getElementById('natcapClipSettingEPSGCode');
+
+                cog_stats_url = `${clipping_endpoint}/info?cog_url=${encodeURIComponent(cog)}`
+                fetch(cog_stats_url).then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        console.error(response);
+                    }
+                }).then(info_json => {
+                    console.log(info_json);
+                    epsg_input.value = info_json['info']['stac']['proj:epsg'];
+                    var geotransform = info_json['info']['geoTransform'];
+                    // Until someone says otherwise, let's assume square pixels
+                    // (in SRS units)
+                    document.getElementById('natcapClipSettingPixelSize').value = geotransform[1];
+                });
+            }
+            document.getElementById('natcapClipEnableOverrides').addEventListener(
+                'click', function() {
+                    console.log('clicked enable overrides');
+                    updateSourceRasterInfo();
+                    updateSRSUnits();
+            });
+
+            async function updateSRSUnits() {
+                var epsg_code = document.getElementById('natcapClipSettingEPSGCode').value;
+                console.log(`Updating SRS info for ${epsg_code}`);
+                const epsg_response = await fetch(`${clipping_endpoint}/epsg_info?epsg_code=${epsg_code}`, {
+                    method: "GET",
+                });
+                if (!epsg_response.ok) {
+                    throw new Error(`Response status: ${epsg_response.status}`);
+                }
+                const json = await epsg_response.json();
+                if (json['status'] == 'success') {
+                    console.log(json);
+                    document.getElementById('natcapClipSettingEPSGCodeLabel').textContent = json['epsg_name'];
+                    document.getElementById('natcapClipSettingPixelSizeLabel').textContent = `Units: ${json['srs_units']}`;
+                }
+            }
 
 
         </script>
