@@ -587,6 +587,7 @@ ckan.module("mappreview", function ($, _) {
           });
       });
 
+      // clip the layer
       function natcapClipLayer(layer_name) {
         console.log(`Calling natcapClipLayer with ${layer_name}`);
         var layer_details = undefined;
@@ -643,6 +644,7 @@ ckan.module("mappreview", function ($, _) {
       }
 
 
+      var selected_layer;
       class ClippingControl{
         onAdd(map) {
 
@@ -699,6 +701,7 @@ ckan.module("mappreview", function ($, _) {
 
               this._container.getElementsByTagName('button')[0].addEventListener('click', function() {
                 console.log('single-raster button click handler');
+                selected_layer = rasters[0].name;
                 natcapClipLayer(rasters[0].name);
               });
             } else {
@@ -730,6 +733,7 @@ ckan.module("mappreview", function ($, _) {
               `;
               for (const elem of this._container.getElementsByTagName('a')) {
                 elem.addEventListener('click', function() {
+                  // set selected_layer to the layer we should clip.
                   console.log('We should call natcapClipLayer here, but where is the data?');
                 });
               }
@@ -799,6 +803,139 @@ ckan.module("mappreview", function ($, _) {
         }
       }
       map.addControl(new ClippingControl(), 'bottom-right');
+
+      /**  Modal Controls
+        */
+
+      function downloadComplete() {
+          document.getElementById('clipping-progress').classList.add('d-none');
+          document.getElementById('cancel-button').classList.add('d-none');
+          document.getElementById('done-button').classList.remove('d-none');
+          document.getElementById('download-size').innerText = '42 MB';
+          document.getElementById('natcapClipDownloadClippedLayer').classList.remove('d-none');
+          document.getElementById('natcapClipInProgress').classList.add('d-none');
+      }
+
+      function submitForm() {
+          console.log('form submitted');
+          document.getElementById('clipping-progress').classList.remove('d-none');
+          document.getElementById('cancel-button').classList.remove('d-none');
+          document.getElementById('submit-button').classList.add('d-none');
+          document.getElementById('natcapClipInProgress').classList.remove('d-none');
+          document.getElementById('natcapClipInitOptions').classList.add('d-none');
+
+          setTimeout(function() {downloadComplete();}, 1000);
+      }
+
+      function resetState() {
+          document.getElementById('clipping-progress').classList.add('d-none');
+          document.getElementById('cancel-button').classList.add('d-none');
+          document.getElementById('done-button').classList.add('d-none');
+          document.getElementById('submit-button').classList.remove('d-none');
+          document.getElementById('natcapClipInProgress').classList.add('d-none');
+          document.getElementById('natcapClipInitOptions').classList.remove('d-none');
+          document.getElementById('natcapClipDownloadClippedLayer').classList.add('d-none');
+      }
+
+      window.addEventListener('load', function() {
+          new bootstrap.Modal(document.getElementById('natcapClipProgressModal')).show();
+      });
+
+      function toggleOverrideField(check_input, text_field_id) {
+          var checked = document.getElementById(check_input).checked;
+          var epsg_field = document.getElementById(text_field_id);
+
+          if (epsg_field.classList.contains('d-none')) {
+              epsg_field.classList.remove('d-none');
+          }
+
+          if (!checked) {
+              epsg_field.classList.add('d-none');
+          }
+      }
+
+      document.getElementById('submit-button').addEventListener('click', submitForm);
+      document.getElementById('modal-close').addEventListener('click', resetState);
+      document.getElementById('cancel-button').addEventListener('click', resetState);
+      document.getElementById('done-button').addEventListener('click', resetState);
+
+      document.getElementById('natcapClipSettingOverrideEPSG').addEventListener(
+          'click', function() {
+              toggleOverrideField('natcapClipSettingOverrideEPSG', 'natcapClipSettingEPSGCode');
+              toggleOverrideField(
+                  'natcapClipSettingOverrideEPSG',
+                  'natcapClipSettingEPSGCodeLabel');
+      });
+
+      document.getElementById('natcapClipSettingOverridePixelSize').addEventListener(
+          'click', function() {
+              toggleOverrideField('natcapClipSettingOverridePixelSize', 'natcapClipSettingPixelSize');
+              toggleOverrideField(
+                  'natcapClipSettingOverridePixelSize',
+                  'natcapClipSettingPixelSizeLabel');
+      });
+
+      document.getElementById('natcapClipEnableOverrides').addEventListener(
+          'click', function() {
+              toggleOverrideField(
+                  'natcapClipEnableOverrides',
+                  'natcapClipAdvancedOptions');
+              warp = document.getElementById('natcapClipEnableOverrides').checked;
+              var submit_text;
+              if (warp) {
+                  submit_text = 'Warp this layer!';
+              } else {
+                  submit_text = "Clip!"
+              }
+              document.getElementById('submit-button').innerHTML = submit_text;
+      });
+
+      const clipping_endpoint = 'https://clipping-service-897938321824.us-west1.run.app'
+      const cog = 'https://storage.googleapis.com/natcap-data-cache/natcap-projects/footprint-impact-tool-data/nature_access_service/nature_access_for_people.tif'
+
+      function updateSourceRasterInfo() {
+          console.log('updating source raster info');
+          var epsg_input = document.getElementById('natcapClipSettingEPSGCode');
+
+          cog_stats_url = `${clipping_endpoint}/info?cog_url=${encodeURIComponent(cog)}`
+          fetch(cog_stats_url).then(response => {
+              if (response.ok) {
+                  return response.json();
+              } else {
+                  console.error(response);
+              }
+          }).then(info_json => {
+              console.log(info_json);
+              epsg_input.value = info_json['info']['stac']['proj:epsg'];
+              var geotransform = info_json['info']['geoTransform'];
+              // Until someone says otherwise, let's assume square pixels
+              // (in SRS units)
+              document.getElementById('natcapClipSettingPixelSize').value = geotransform[1];
+          });
+      }
+      document.getElementById('natcapClipEnableOverrides').addEventListener(
+          'click', function() {
+              console.log('clicked enable overrides');
+              updateSourceRasterInfo();
+              updateSRSUnits();
+      });
+
+      async function updateSRSUnits() {
+          var epsg_code = document.getElementById('natcapClipSettingEPSGCode').value;
+          console.log(`Updating SRS info for ${epsg_code}`);
+          const epsg_response = await fetch(`${clipping_endpoint}/epsg_info?epsg_code=${epsg_code}`, {
+              method: "GET",
+          });
+          if (!epsg_response.ok) {
+              throw new Error(`Response status: ${epsg_response.status}`);
+          }
+          const json = await epsg_response.json();
+          if (json['status'] == 'success') {
+              console.log(json);
+              document.getElementById('natcapClipSettingEPSGCodeLabel').textContent = json['epsg_name'];
+              document.getElementById('natcapClipSettingPixelSizeLabel').textContent = `Units: ${json['srs_units']}`;
+          }
+      }
 
     },  // end of initialize();
   };
