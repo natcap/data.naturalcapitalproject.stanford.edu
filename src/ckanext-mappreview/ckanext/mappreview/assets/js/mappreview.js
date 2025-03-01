@@ -744,7 +744,7 @@ ckan.module("mappreview", function ($, _) {
             // all the possible buttons that might match and then just add the
             // handler to the right one.
             for (const btn of this._container.getElementsByTagName('button')) {
-              if (btn.id === clip_cancel) {
+              if (btn.id === clip_mode_cancel) {
                 btn.addEventListener('click', function() {
                   console.log('cancelling clip mode');
                   natcapClipLayerCancel();
