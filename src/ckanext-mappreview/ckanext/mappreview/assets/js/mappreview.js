@@ -707,6 +707,10 @@ ckan.module("mappreview", function ($, _) {
                 // when the 'clip to this bounding box' button is selected, set an attribute of the button
                 document.getElementById(clip_button_id).setAttribute(
                   'layer-name', rasters[0].name);
+                document.getElementById(clip_button_id).setAttribute(
+                  'layer-url', rasters[0].url);
+                document.getElementById(clip_button_id).setAttribute(
+                  'layer-type', rasters[0].type);
                 selected_layer = rasters[0].name;
                 natcapClipLayer(rasters[0].name);
               });
@@ -717,7 +721,8 @@ ckan.module("mappreview", function ($, _) {
                   <li>
                     <a class="dropdown-item
                        href="#"
-                       layer_name='${raster_layer.name}'>
+                       layer-name='${raster_layer.name}'
+                       layer-url=${raster_layer.url}>
                       ${raster_layer.name}
                     </a>
                   </li>\n`
@@ -740,8 +745,12 @@ ckan.module("mappreview", function ($, _) {
               for (const elem of this._container.getElementsByTagName('a')) {
                 elem.addEventListener('click', function() {
                   // When clicked, note the selected layer in the modal.
-                  this._container.getElementById('natcapClipProgressModal').setAttribute(
-                    'layer-name', elem.getAttribute('layer_name'));
+                  document.getElementById(clip_button_id).setAttribute(
+                    'layer-name', elem.getAttribute('layer-name'));
+                  document.getElementById(clip_button_id).setAttribute(
+                    'layer-url', elem.getAttribute('layer-url'));
+                  document.getElementById(clip_button_id).setAttribute(
+                    'layer-type', elem.getAttribute('layer-type'));
                 });
               }
             }
