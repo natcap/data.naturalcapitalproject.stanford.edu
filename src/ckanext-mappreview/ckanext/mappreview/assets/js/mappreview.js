@@ -878,7 +878,7 @@ ckan.module("mappreview", function ($, _) {
 
 
       function updateSourceRasterInfo() {
-          const cog = document.getElementById(clip_button_id).getAttribute('layer-name');
+          const cog = document.getElementById(clip_button_id).getAttribute('layer-url');
           console.log('updating source raster from cog ' + cog);
 
           console.log('updating source raster info');
