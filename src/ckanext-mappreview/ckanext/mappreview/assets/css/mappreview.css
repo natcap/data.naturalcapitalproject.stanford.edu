@@ -91,3 +91,8 @@
 .modal-lg {
   max-width: unset;
 }
+
+/* On the NatCap Clip modal, we don't want a colon after a form checkbox label. */
+#natcapClipProgressModal label:after{
+  content: "";
+}
