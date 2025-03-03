@@ -27,8 +27,9 @@ app = flask.Flask(__name__, template_folder='templates')
 CORS(app, resources={
     '/*': {
         'origins': [
-            'http://localhost:*',
-            'http://127.0.0.1:*',
+            # Only use localhost for local development.
+            # 'http://localhost:*',
+            # 'http://127.0.0.1:*',
             'https://data-staging.naturalcapitalproject.org',
             'https://data.naturalcapitalproject.stanford.edu',
         ]
