@@ -901,43 +901,43 @@ ckan.module("mappreview", function ($, _) {
 
           var cog_stats_url = `${clipping_endpoint}/info?cog_url=${encodeURIComponent(cog)}`;;
           fetch(cog_stats_url).then(response => {
-              if (response.ok) {
-                  return response.json();
-              } else {
-                  console.error(response);
-              }
-          }).then(info_json => {
-              console.log('updating source raster info');
-              console.log(info_json);
-              epsg_input.value = info_json['info']['stac']['proj:epsg'];
-              var geotransform = info_json['info']['geoTransform'];
-              // Until someone says otherwise, let's assume square pixels
-              // (in SRS units)
-              document.getElementById('natcapClipSettingPixelSize').value = geotransform[1];
-          });
-
-          // Update projection information like the friendly EPSG label and the human units.
-          var epsg_code = epsg_input.value;
-          console.log(`Updating SRS info for ${epsg_code}`);
-          fetch(`${clipping_endpoint}/epsg_info?epsg_code=${epsg_code}`, {
-              method: "GET",
-          }).then(epsg_response => {
-            if (epsg_response.ok) {
-              return epsg_response.json();
+            if (response.ok) {
+              return response.json();
             } else {
+              console.error(response);
+            }
+          }).then(info_json => {
+            console.log('updating source raster info');
+            console.log(info_json);
+            epsg_input.value = info_json['info']['stac']['proj:epsg'];
+            var geotransform = info_json['info']['geoTransform'];
+            // Until someone says otherwise, let's assume square pixels
+            // (in SRS units)
+            document.getElementById('natcapClipSettingPixelSize').value = geotransform[1];
+
+            // Update projection information like the friendly EPSG label and the human units.
+            var epsg_code = epsg_input.value;
+            console.log(`Updating SRS info for ${epsg_code}`);
+            fetch(`${clipping_endpoint}/epsg_info?epsg_code=${epsg_code}`, {
+              method: "GET",
+            }).then(epsg_response => {
+              if (epsg_response.ok) {
+                return epsg_response.json();
+              } else {
                 console.error(epsg_response);
                 throw new Error(`Response status: ${epsg_response.status}`);
-            }
-          }).then(epsg_json => {
-            if (epsg_json['status'] == 'success') {
+              }
+            }).then(epsg_json => {
+              if (epsg_json['status'] == 'success') {
                 console.log('updating EPSG-related labels');
                 console.log(epsg_json);
                 document.getElementById('natcapClipSettingEPSGCodeLabel').textContent = epsg_json['epsg_name'];
                 document.getElementById('natcapClipSettingPixelSizeLabel').textContent = `Units: ${epsg_json['srs_units']}`;
-            } else {
-              console.error("Something went wrong getting EPSG info");
-              console.error(epsg_json);
-            }
+              } else {
+                console.error("Something went wrong getting EPSG info");
+                console.error(epsg_json);
+              }
+            });
           });
       }
 
