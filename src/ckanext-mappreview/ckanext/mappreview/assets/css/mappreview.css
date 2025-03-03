@@ -81,6 +81,13 @@
   display: none;
 }
 
+/* CKAN's default modal-dialog is 500px wide. */
 .modal-dialog {
   max-width: 800px;
+}
+
+/* Setting a max-width makes the modal appear all the way left. Unsetting
+ * this re-centers it. */
+.modal-lg {
+  max-width: unset;
 }
