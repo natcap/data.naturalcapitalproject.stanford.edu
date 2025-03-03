@@ -918,13 +918,13 @@ ckan.module("mappreview", function ($, _) {
 
           // Update projection information like the friendly EPSG label and the human units.
           console.log(`Updating SRS info for ${epsg_code}`);
-          const epsg_response = await fetch(`${clipping_endpoint}/epsg_info?epsg_code=${epsg_code}`, {
+          const epsg_response = fetch(`${clipping_endpoint}/epsg_info?epsg_code=${epsg_code}`, {
               method: "GET",
           });
           if (!epsg_response.ok) {
               throw new Error(`Response status: ${epsg_response.status}`);
           }
-          const json = await epsg_response.json();
+          const json = epsg_response.json();
           if (json['status'] == 'success') {
               console.log('updating EPSG-related labels');
               console.log(json);
