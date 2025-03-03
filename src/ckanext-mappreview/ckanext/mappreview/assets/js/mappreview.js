@@ -705,7 +705,7 @@ ckan.module("mappreview", function ($, _) {
                 console.log('single-raster button click handler');
                 console.log(rasters[0]);
                 // when the 'clip to this bounding box' button is selected, set an attribute of the button
-                this_container.getElementsByTagName('button')[0].setAttribute(
+                this._container.getElementsByTagName('button')[0].setAttribute(
                   'layer-name', rasters[0].name);
                 selected_layer = rasters[0].name;
                 natcapClipLayer(rasters[0].name);
@@ -869,6 +869,9 @@ ckan.module("mappreview", function ($, _) {
 
 
       function updateSourceRasterInfo() {
+          const cog = document.getElementById(clip_button_id).getAttribute('layer-name');
+          console.log('updating source raster from cog ' + cog);
+
           console.log('updating source raster info');
           var epsg_input = document.getElementById('natcapClipSettingEPSGCode');
 
