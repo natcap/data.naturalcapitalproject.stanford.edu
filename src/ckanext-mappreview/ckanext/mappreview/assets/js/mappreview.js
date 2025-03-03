@@ -917,6 +917,7 @@ ckan.module("mappreview", function ($, _) {
           });
 
           // Update projection information like the friendly EPSG label and the human units.
+          var epsg_code = epsg_input.value;
           console.log(`Updating SRS info for ${epsg_code}`);
           const epsg_response = fetch(`${clipping_endpoint}/epsg_info?epsg_code=${epsg_code}`, {
               method: "GET",
