@@ -880,7 +880,7 @@ ckan.module("mappreview", function ($, _) {
               toggleOverrideField(
                   'natcapClipEnableOverrides',
                   'natcapClipAdvancedOptions');
-              warp = document.getElementById('natcapClipEnableOverrides').checked;
+              var warp = document.getElementById('natcapClipEnableOverrides').checked;
               var submit_text;
               if (warp) {
                   submit_text = 'Warp this layer!';
@@ -897,7 +897,7 @@ ckan.module("mappreview", function ($, _) {
           console.log('updating source raster info');
           var epsg_input = document.getElementById('natcapClipSettingEPSGCode');
 
-          cog_stats_url = `${clipping_endpoint}/info?cog_url=${encodeURIComponent(cog)}`;
+          var cog_stats_url = `${clipping_endpoint}/info?cog_url=${encodeURIComponent(cog)}`;;
           fetch(cog_stats_url).then(response => {
               if (response.ok) {
                   return response.json();
