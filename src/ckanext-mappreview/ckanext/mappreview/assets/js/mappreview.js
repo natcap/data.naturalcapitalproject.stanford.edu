@@ -705,7 +705,7 @@ ckan.module("mappreview", function ($, _) {
                 console.log('single-raster button click handler');
                 console.log(rasters[0]);
                 // when the 'clip to this bounding box' button is selected, set an attribute of the button
-                this._container.getElementsByTagName('button')[0].setAttribute(
+                document.getElementById(clip_button_id).setAttribute(
                   'layer-name', rasters[0].name);
                 selected_layer = rasters[0].name;
                 natcapClipLayer(rasters[0].name);
