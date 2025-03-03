@@ -26,7 +26,12 @@ from osgeo import osr
 app = flask.Flask(__name__, template_folder='templates')
 CORS(app, resources={
     '/*': {
-        'origins': ['http://localhost:*', 'http://127.0.0.1:*', 'null']
+        'origins': [
+            'http://localhost:*',
+            'http://127.0.0.1:*',
+            'https://data-staging.naturalcapitalproject.org',
+            'https://data.naturalcapitalproject.stanford.edu',
+        ]
     }
 })
 logging.basicConfig(level=logging.DEBUG)
