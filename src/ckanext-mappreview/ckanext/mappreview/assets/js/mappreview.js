@@ -923,6 +923,7 @@ ckan.module("mappreview", function ($, _) {
               method: "GET",
           });
           if (!epsg_response.ok) {
+              console.error(epsg_response);
               throw new Error(`Response status: ${epsg_response.status}`);
           }
           const json = epsg_response.json();
