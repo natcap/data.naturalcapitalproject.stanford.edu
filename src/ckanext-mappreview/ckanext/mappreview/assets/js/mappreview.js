@@ -893,6 +893,8 @@ ckan.module("mappreview", function ($, _) {
       const clipping_endpoint = 'https://clipping-service-897938321824.us-west1.run.app'
       const cog = 'https://storage.googleapis.com/natcap-data-cache/natcap-projects/footprint-impact-tool-data/nature_access_service/nature_access_for_people.tif'
 
+
+
       function updateSourceRasterInfo() {
           console.log('updating source raster info');
           var epsg_input = document.getElementById('natcapClipSettingEPSGCode');
@@ -905,6 +907,7 @@ ckan.module("mappreview", function ($, _) {
                   console.error(response);
               }
           }).then(info_json => {
+              console.log('updating source raster info');
               console.log(info_json);
               epsg_input.value = info_json['info']['stac']['proj:epsg'];
               var geotransform = info_json['info']['geoTransform'];
@@ -912,16 +915,8 @@ ckan.module("mappreview", function ($, _) {
               // (in SRS units)
               document.getElementById('natcapClipSettingPixelSize').value = geotransform[1];
           });
-      }
-      document.getElementById('natcapClipEnableOverrides').addEventListener(
-          'click', function() {
-              console.log('clicked enable overrides');
-              updateSourceRasterInfo();
-              updateSRSUnits();
-      });
 
-      async function updateSRSUnits() {
-          var epsg_code = document.getElementById('natcapClipSettingEPSGCode').value;
+          // Update projection information like the friendly EPSG label and the human units.
           console.log(`Updating SRS info for ${epsg_code}`);
           const epsg_response = await fetch(`${clipping_endpoint}/epsg_info?epsg_code=${epsg_code}`, {
               method: "GET",
@@ -931,12 +926,18 @@ ckan.module("mappreview", function ($, _) {
           }
           const json = await epsg_response.json();
           if (json['status'] == 'success') {
+              console.log('updating EPSG-related labels');
               console.log(json);
               document.getElementById('natcapClipSettingEPSGCodeLabel').textContent = json['epsg_name'];
               document.getElementById('natcapClipSettingPixelSizeLabel').textContent = `Units: ${json['srs_units']}`;
           }
       }
 
+      document.getElementById('natcapClipEnableOverrides').addEventListener(
+          'click', function() {
+              console.log('clicked enable overrides');
+              updateSourceRasterInfo();
+      });
     },  // end of initialize();
   };
 });
