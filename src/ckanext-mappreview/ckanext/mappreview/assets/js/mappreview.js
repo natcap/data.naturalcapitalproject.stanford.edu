@@ -694,13 +694,16 @@ ckan.module("mappreview", function ($, _) {
                 </button>`;
             } else if (rasters.length == 1) {
               this._container.innerHTML = `
-                <button type="button" class="btn btn-secondary" id='${clip_button_id}'>
+                <button type="button"
+                        class="btn btn-secondary"
+                        id='${clip_button_id}'>
                   <i class="fa-solid fa-scissors"></i>
                   Clip this layer
                 </button>${progress_modal_trigger_button}`;
 
               this._container.getElementsByTagName('button')[0].addEventListener('click', function() {
                 console.log('single-raster button click handler');
+                console.log(rasters[0]);
                 selected_layer = rasters[0].name;
                 natcapClipLayer(rasters[0].name);
               });
@@ -733,11 +736,19 @@ ckan.module("mappreview", function ($, _) {
               `;
               for (const elem of this._container.getElementsByTagName('a')) {
                 elem.addEventListener('click', function() {
-                  // set selected_layer to the layer we should clip.
-                  console.log('We should call natcapClipLayer here, but where is the data?');
+                  // When clicked, note the selected layer in the modal.
+                  document.getElementById('natcapClipProgressModal').setAttribute(
+                    'layer-name', elem.getAttribute('layer_name'));
                 });
               }
             }
+
+            // when the 'clip to this bounding box' button is selected, set an attribute of the modal.
+            document.getElementById(clip_start_progress_modal_id).addEventListener(
+              'click', function() {
+                document.getElementById('natcapClipProgressModal').setAttribute(
+                  'layer-name', rasters[0].name);
+              });
 
             // add a handler for cancelling clipping mode.
             // The button _should_ be in a known order, but we can just find
