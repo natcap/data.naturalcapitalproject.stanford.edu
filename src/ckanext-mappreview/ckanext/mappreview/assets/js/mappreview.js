@@ -737,16 +737,16 @@ ckan.module("mappreview", function ($, _) {
               for (const elem of this._container.getElementsByTagName('a')) {
                 elem.addEventListener('click', function() {
                   // When clicked, note the selected layer in the modal.
-                  document.getElementById('natcapClipProgressModal').setAttribute(
+                  this._container.getElementById('natcapClipProgressModal').setAttribute(
                     'layer-name', elem.getAttribute('layer_name'));
                 });
               }
             }
 
             // when the 'clip to this bounding box' button is selected, set an attribute of the modal.
-            document.getElementById(clip_start_progress_modal_id).addEventListener(
+            this._container.getElementById(clip_start_progress_modal_id).addEventListener(
               'click', function() {
-                document.getElementById('natcapClipProgressModal').setAttribute(
+                this._container.getElementById('natcapClipProgressModal').setAttribute(
                   'layer-name', rasters[0].name);
               });
 
