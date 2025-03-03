@@ -80,3 +80,7 @@
 .mappreview .mapboxgl-legend-onlyRendered-label {
   display: none;
 }
+
+.modal-dialog {
+  max-width: 800px;
+}
