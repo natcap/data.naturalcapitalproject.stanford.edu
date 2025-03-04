@@ -354,10 +354,10 @@ ckan.module("mappreview", function ($, _) {
       function _box() {
         var vertices = _vertices();
         return [
-          features[0].geometry.coordinates[0],  // west
-          features[0].geometry.coordinates[1],  // south
-          features[3].geometry.coordinates[0],  // east
-          features[3].geometry.coordinates[1],  // north
+          vertices.features[0].geometry.coordinates[0],  // west
+          vertices.features[0].geometry.coordinates[1],  // south
+          vertices.features[3].geometry.coordinates[0],  // east
+          vertices.features[3].geometry.coordinates[1],  // north
         ];
       }
 
