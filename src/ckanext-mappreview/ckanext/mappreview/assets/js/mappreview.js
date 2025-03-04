@@ -873,17 +873,13 @@ ckan.module("mappreview", function ($, _) {
       });
 
       const clipping_endpoint = 'https://clipping-service-897938321824.us-west1.run.app'
-      const cog = 'https://storage.googleapis.com/natcap-data-cache/natcap-projects/footprint-impact-tool-data/nature_access_service/nature_access_for_people.tif'
-
 
 
       function updateSourceRasterInfo() {
           const cog = document.getElementById(clip_button_id).getAttribute('layer-url');
           console.log('updating source raster from cog ' + cog);
 
-          console.log('updating source raster info');
           var epsg_input = document.getElementById('natcapClipSettingEPSGCode');
-
           var cog_stats_url = `${clipping_endpoint}/info?cog_url=${encodeURIComponent(cog)}`;;
           fetch(cog_stats_url).then(response => {
             if (response.ok) {
@@ -892,8 +888,6 @@ ckan.module("mappreview", function ($, _) {
               console.error(response);
             }
           }).then(info_json => {
-            console.log('updating source raster info');
-            console.log(info_json);
             epsg_input.value = info_json['info']['stac']['proj:epsg'];
             var geotransform = info_json['info']['geoTransform'];
             // Until someone says otherwise, let's assume square pixels
@@ -915,7 +909,6 @@ ckan.module("mappreview", function ($, _) {
             }).then(epsg_json => {
               if (epsg_json['status'] == 'success') {
                 console.log('updating EPSG-related labels');
-                console.log(epsg_json);
                 document.getElementById('natcapClipSettingEPSGCodeLabel').textContent = epsg_json['epsg_name'];
                 document.getElementById('natcapClipSettingPixelSizeLabel').textContent = `Units: ${epsg_json['srs_units']}`;
               } else {
