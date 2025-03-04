@@ -599,7 +599,6 @@ ckan.module("mappreview", function ($, _) {
 
       // clip the layer
       function natcapClipLayer(layer_name) {
-        console.log(`Calling natcapClipLayer with ${layer_name}`);
         var layer_details = undefined;
         for (var layer_index in config.layers) {
           var layer = config.layers[layer_index];
@@ -608,7 +607,6 @@ ckan.module("mappreview", function ($, _) {
             break;
           }
         }
-        console.log(layer_details);
 
         // hide the "Clip This Layer" button
         document.getElementById(clip_button_id).classList.add('d-none');  // use classList.remove('d-none') to re-enable
@@ -631,19 +629,6 @@ ckan.module("mappreview", function ($, _) {
         // enable the progress modal trigger button
         document.getElementById(clip_start_progress_modal_id).classList.remove('d-none');
         document.getElementById(clip_mode_cancel).classList.remove('d-none');
-
-
-        // Next steps
-        // X Hide the "Clip this layer" button
-        // X Uncheck layers that aren't this one
-        // X Add the bounding box
-        // * Add a bootstrap PRIMARY button to start clipping ("Clip to this extent")
-        //   * When clipping is started, we should pop up a modal dialog with config options
-        //   * Modal stays open when clipping
-        // * Add a bootstrap secondary button (or some other way) to cancel clipping ("Cancel clipping")
-        // * When clipping is cancelled, hide the clipping-mode buttons and show the "Clip this layer" button again.
-
-        console.log('finished natcapClipLayer');
       }
 
       function natcapClipLayerCancel() {
@@ -712,8 +697,6 @@ ckan.module("mappreview", function ($, _) {
                 </button>${progress_modal_trigger_button}`;
 
               this._container.getElementsByTagName('button')[0].addEventListener('click', function() {
-                console.log('single-raster button click handler');
-                console.log(rasters[0]);
                 // when the 'clip to this bounding box' button is selected, set an attribute of the button
                 document.getElementById(clip_button_id).setAttribute(
                   'layer-name', rasters[0].name);
@@ -772,7 +755,6 @@ ckan.module("mappreview", function ($, _) {
             for (const btn of this._container.getElementsByTagName('button')) {
               if (btn.id === clip_mode_cancel) {
                 btn.addEventListener('click', function() {
-                  console.log('cancelling clip mode');
                   natcapClipLayerCancel();
                 });
               }
@@ -810,7 +792,6 @@ ckan.module("mappreview", function ($, _) {
       }
 
       function submitForm() {
-          console.log('form submitted');
           document.getElementById('clipping-progress').classList.remove('d-none');
           document.getElementById('natcap-clip-cancel-button').classList.remove('d-none');
           document.getElementById('natcap-clip-submit-button').classList.add('d-none');
@@ -836,8 +817,6 @@ ckan.module("mappreview", function ($, _) {
             var target_pixel_size = document.getElementById('natcapClipSettingPixelSize').value;
             clipping_options['target_cellsize'] = [target_pixel_size, -target_pixel_size];
           }
-
-          console.log(clipping_options);
 
           const clipping_service_url = 'https://clipping-service-897938321824.us-west1.run.app';
           fetch(`${clipping_service_url}/clip`, {
@@ -925,6 +904,7 @@ ckan.module("mappreview", function ($, _) {
 
 
       function _setEPSGItems(epsg_code) {
+        console.log(`Updating SRS info for ${epsg_code}`);
         fetch(`${clipping_endpoint}/epsg_info?epsg_code=${epsg_code}`, {
           method: "GET",
         }).then(epsg_response => {
@@ -936,7 +916,6 @@ ckan.module("mappreview", function ($, _) {
           }
         }).then(epsg_json => {
           if (epsg_json['status'] == 'success') {
-            console.log('updating EPSG-related labels');
             document.getElementById('natcapClipSettingEPSGCodeLabel').textContent = epsg_json['epsg_name'];
             document.getElementById('natcapClipSettingPixelSizeLabel').textContent = `Units: ${epsg_json['srs_units']}`;
           } else {
@@ -978,14 +957,12 @@ ckan.module("mappreview", function ($, _) {
 
             // Update projection information like the friendly EPSG label and the human units.
             var epsg_code = epsg_input.value;
-            console.log(`Updating SRS info for ${epsg_code}`);
             _setEPSGItems(epsg_code);
           });
       }
 
       document.getElementById('natcapClipEnableOverrides').addEventListener(
           'click', function() {
-              console.log('clicked enable overrides');
               updateSourceRasterInfo();
       });
     },  // end of initialize();
