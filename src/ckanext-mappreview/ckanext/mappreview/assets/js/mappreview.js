@@ -791,8 +791,8 @@ ckan.module("mappreview", function ($, _) {
 
       function downloadComplete() {
           document.getElementById('clipping-progress').classList.add('d-none');
-          document.getElementById('cancel-button').classList.add('d-none');
-          document.getElementById('done-button').classList.remove('d-none');
+          document.getElementById('natcap-clip-cancel-button').classList.add('d-none');
+          document.getElementById('natcap-clip-done-button').classList.remove('d-none');
           document.getElementById('download-size').innerText = '42 MB';
           document.getElementById('natcapClipDownloadClippedLayer').classList.remove('d-none');
           document.getElementById('natcapClipInProgress').classList.add('d-none');
@@ -801,8 +801,8 @@ ckan.module("mappreview", function ($, _) {
       function submitForm() {
           console.log('form submitted');
           document.getElementById('clipping-progress').classList.remove('d-none');
-          document.getElementById('cancel-button').classList.remove('d-none');
-          document.getElementById('submit-button').classList.add('d-none');
+          document.getElementById('natcap-clip-cancel-button').classList.remove('d-none');
+          document.getElementById('natcap-clip-submit-button').classList.add('d-none');
           document.getElementById('natcapClipInProgress').classList.remove('d-none');
           document.getElementById('natcapClipInitOptions').classList.add('d-none');
 
@@ -811,9 +811,9 @@ ckan.module("mappreview", function ($, _) {
 
       function resetState() {
           document.getElementById('clipping-progress').classList.add('d-none');
-          document.getElementById('cancel-button').classList.add('d-none');
-          document.getElementById('done-button').classList.add('d-none');
-          document.getElementById('submit-button').classList.remove('d-none');
+          document.getElementById('natcap-clip-cancel-button').classList.add('d-none');
+          document.getElementById('natcap-clip-done-button').classList.add('d-none');
+          document.getElementById('natcap-clip-submit-button').classList.remove('d-none');
           document.getElementById('natcapClipInProgress').classList.add('d-none');
           document.getElementById('natcapClipInitOptions').classList.remove('d-none');
           document.getElementById('natcapClipDownloadClippedLayer').classList.add('d-none');
@@ -836,10 +836,10 @@ ckan.module("mappreview", function ($, _) {
           }
       }
 
-      document.getElementById('submit-button').addEventListener('click', submitForm);
+      document.getElementById('natcap-clip-submit-button').addEventListener('click', submitForm);
       document.getElementById('modal-close').addEventListener('click', resetState);
-      document.getElementById('cancel-button').addEventListener('click', resetState);
-      document.getElementById('done-button').addEventListener('click', resetState);
+      document.getElementById('natcap-clip-cancel-button').addEventListener('click', resetState);
+      document.getElementById('natcap-clip-done-button').addEventListener('click', resetState);
 
       document.getElementById('natcapClipSettingOverrideEPSG').addEventListener(
           'click', function() {
@@ -869,7 +869,7 @@ ckan.module("mappreview", function ($, _) {
               } else {
                   submit_text = "Clip!"
               }
-              document.getElementById('submit-button').innerHTML = submit_text;
+              document.getElementById('natcap-clip-submit-button').innerHTML = submit_text;
       });
 
       const clipping_endpoint = 'https://clipping-service-897938321824.us-west1.run.app'
