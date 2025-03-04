@@ -211,7 +211,7 @@ def clip():
         target_basename = os.path.splitext(
             os.path.basename(parameters["cog_url"]))[0]
         target_raster_path = os.path.join(
-            WORKSPACE_DIR, f'{target_basename}-{uuid.uuid4()}.tif')
+            WORKSPACE_DIR, f'{target_basename}--{uuid.uuid4()}.tif')
         pygeoprocessing.warp_raster(
             source_raster_path, target_cellsize, target_raster_path, 'near',
             target_bb=aligned_target_bbox, **warping_kwargs)
