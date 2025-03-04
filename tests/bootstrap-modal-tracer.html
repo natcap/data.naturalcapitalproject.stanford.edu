@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html>
+    <header>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+              rel="stylesheet"
+              integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+              crossorigin="anonymous">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+                integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+                crossorigin="anonymous"></script>
+        <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+                integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+                crossorigin="anonymous"></script>
+    </header>
+    <body>
+        <button type="button"
+                class="btn btn-primary"
+                data-bs-toggle="modal"
+                data-bs-target="#natcapClipProgressModal">
+          Launch static backdrop modal
+        </button>
+        <div class="modal fade modal-lg"
+             id="natcapClipProgressModal"
+             data-bs-backdrop="static"
+             data-bs-keyboard="false"
+             aria-labelledby="progress-modal-label"
+             aria-hidden="true"
+             tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+
+                    <!-- Start modal header -->
+                    <div class="modal-header">
+                        <h1 class="modal-title" id="progress-modal-label">
+                            Clip layer
+                        </h1>
+                        <button type="button"
+                                id="modal-close"
+                                class="btn-close"
+                                data-bs-dismiss="modal"
+                                aria-label="Close">
+                        </button>
+                    </div>
+                    <!-- End modal header -->
+
+                    <!-- Start modal body -->
+                    <div class="modal-body">
+                        <div id="natcapClipInitOptions">
+                            <h3>Warp the clipped raster?</h3>
+                            <p>
+                            The layer will be clipped to the bounding box you
+                            selected on the globe, and will keep its original
+                            spatial reference system and resolution.  If you would
+                            like to warp the output to a different SRS or
+                            resolution, please use the options below to configure
+                            the operation.
+                            </p>
+
+                            <div class="row">
+                                <div class="col p-2">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           value=""
+                                           id="natcapClipEnableOverrides">
+                                    <label class="form-check-label"
+                                           for="natcapClipEnableOverrides">
+                                        Set a custom spatial reference or resolution for
+                                        the clipped dataset
+                                    </label>
+                                </div>
+                            </div>
+                            <div id="natcapClipAdvancedOptions" class="d-none">
+                                <hr/>
+                                <div class="row">
+                                    <div class="col-sm p-2">
+                                        <input class="form-check-input"
+                                               type="checkbox"
+                                               value=""
+                                               id="natcapClipSettingOverrideEPSG">
+                                        <label class="form-check-label"
+                                               for="natcapClipSettingOverrideEPSG">
+                                            Set custom coordinate system EPSG
+                                        </label>
+                                    </div>
+                                    <div class="col-sm-2">
+                                        <input type="text"
+                                               id="natcapClipSettingEPSGCode"
+                                               class="form-control d-none"
+                                               aria-label="EPSG Code">
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <label for="natcapClipSettingEPSGCode"
+                                               id="natcapClipSettingEPSGCodeLabel"
+                                               class="col-form-label"></label>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm p-2">
+                                        <input class="form-check-input"
+                                               type="checkbox"
+                                               value=""
+                                               id="natcapClipSettingOverridePixelSize">
+                                        <label for="natcapClipSettingOverridePixelSize">
+                                            Set custom pixel width and height
+                                        </label>
+                                    </div>
+                                    <div class="col-sm-2">
+                                        <input type="text"
+                                               id="natcapClipSettingPixelSize"
+                                               class="form-control d-none">
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <label for="natcapClipSettingPixelSize"
+                                               id="natcapClipSettingPixelSizeLabel"
+                                               class="col-form-label d-none">
+                                            Units: unknown
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- hidden in-progress clipping info -->
+                        <div id="natcapClipInProgress" class="d-none">
+                            <h3>Clipping in progress</h3>
+                            <p>When the clipping is finished, you will be able
+                            to download your clipped raster from this dialog.</p>
+                        </div>
+                        <div id="natcapClipDownloadClippedLayer"
+                             class="d-none d-grid">
+                            <h3>Clipping complete!</h3>
+                            <p>Click the button below to download the selected
+                            layer.</p>
+                            <button type="button"
+                                    class="btn btn-outline-success"
+                                    id="download-layer">
+                                <i class="fa-solid fa-download"></i>
+                                Download layer (<span id="download-size"></span>)
+                            </button>
+                        </div>
+                    </div>
+                    <!-- End modal body -->
+
+                    <!-- Start modal footer -->
+                    <div class="modal-footer">
+                        <div class="container">
+                            <div class="row row-cols-2">
+                                <div class="col-sm p-2">
+                                    <div class="progress d-none"
+                                         id="clipping-progress">
+                                        <div class="progress-bar
+                                                 progress-bar-striped
+                                                 progress-bar-animated"
+                                             role="progressbar"
+                                             aria-label="Clipping progress"
+                                             style="width: 100%"
+                                             aria-valuenow="42"
+                                             aria-valuemin="0"
+                                             aria-valuemax="100"
+                                             id="clipping-progress-bar">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-3 d-grid mx-auto">
+                                    <button type="button"
+                                            id="submit-button"
+                                            class="btn btn-primary">
+                                        <i class="fa-solid fa-scissors"></i>
+                                        Clip!
+                                    </button>
+                                    <button type="button"
+                                            id="cancel-button"
+                                            class="btn btn-warning d-none"
+                                            data-bs-dismiss="modal">
+                                        <i class="fa-solid fa-xmark"></i>
+                                        Cancel
+                                    </button>
+                                    <button type="button"
+                                            id="done-button"
+                                            data-bs-dismiss="modal"
+                                            class="btn btn-success d-none">
+                                        <i class="fa-solid fa-check"></i>
+                                        Done
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- End modal footer -->
+
+                </div>
+            </div>
+        </div>
+        <script>
+            function downloadComplete() {
+                document.getElementById('clipping-progress').classList.add('d-none');
+                document.getElementById('cancel-button').classList.add('d-none');
+                document.getElementById('done-button').classList.remove('d-none');
+                document.getElementById('download-size').innerText = '42 MB';
+                document.getElementById('natcapClipDownloadClippedLayer').classList.remove('d-none');
+                document.getElementById('natcapClipInProgress').classList.add('d-none');
+            }
+
+            function submitForm() {
+                console.log('form submitted');
+                document.getElementById('clipping-progress').classList.remove('d-none');
+                document.getElementById('cancel-button').classList.remove('d-none');
+                document.getElementById('submit-button').classList.add('d-none');
+                document.getElementById('natcapClipInProgress').classList.remove('d-none');
+                document.getElementById('natcapClipInitOptions').classList.add('d-none');
+
+                setTimeout(function() {downloadComplete();}, 1000);
+            }
+
+            function resetState() {
+                document.getElementById('clipping-progress').classList.add('d-none');
+                document.getElementById('cancel-button').classList.add('d-none');
+                document.getElementById('done-button').classList.add('d-none');
+                document.getElementById('submit-button').classList.remove('d-none');
+                document.getElementById('natcapClipInProgress').classList.add('d-none');
+                document.getElementById('natcapClipInitOptions').classList.remove('d-none');
+                document.getElementById('natcapClipDownloadClippedLayer').classList.add('d-none');
+            }
+
+            window.addEventListener('load', function() {
+                new bootstrap.Modal(document.getElementById('natcapClipProgressModal')).show();
+            });
+
+            function toggleOverrideField(check_input, text_field_id) {
+                var checked = document.getElementById(check_input).checked;
+                var epsg_field = document.getElementById(text_field_id);
+
+                if (epsg_field.classList.contains('d-none')) {
+                    epsg_field.classList.remove('d-none');
+                }
+
+                if (!checked) {
+                    epsg_field.classList.add('d-none');
+                }
+            }
+
+            document.getElementById('submit-button').addEventListener('click', submitForm);
+            document.getElementById('modal-close').addEventListener('click', resetState);
+            document.getElementById('cancel-button').addEventListener('click', resetState);
+            document.getElementById('done-button').addEventListener('click', resetState);
+
+            document.getElementById('natcapClipSettingOverrideEPSG').addEventListener(
+                'click', function() {
+                    toggleOverrideField('natcapClipSettingOverrideEPSG', 'natcapClipSettingEPSGCode');
+                    toggleOverrideField(
+                        'natcapClipSettingOverrideEPSG',
+                        'natcapClipSettingEPSGCodeLabel');
+            });
+
+            document.getElementById('natcapClipSettingOverridePixelSize').addEventListener(
+                'click', function() {
+                    toggleOverrideField('natcapClipSettingOverridePixelSize', 'natcapClipSettingPixelSize');
+                    toggleOverrideField(
+                        'natcapClipSettingOverridePixelSize',
+                        'natcapClipSettingPixelSizeLabel');
+            });
+
+            document.getElementById('natcapClipEnableOverrides').addEventListener(
+                'click', function() {
+                    toggleOverrideField(
+                        'natcapClipEnableOverrides',
+                        'natcapClipAdvancedOptions');
+                    warp = document.getElementById('natcapClipEnableOverrides').checked;
+                    var submit_text;
+                    if (warp) {
+                        submit_text = 'Warp this layer!';
+                    } else {
+                        submit_text = "Clip!"
+                    }
+                    document.getElementById('submit-button').innerHTML = submit_text;
+            });
+
+            const clipping_endpoint = 'https://clipping-service-897938321824.us-west1.run.app'
+            const cog = 'https://storage.googleapis.com/natcap-data-cache/natcap-projects/footprint-impact-tool-data/nature_access_service/nature_access_for_people.tif'
+
+            function updateSourceRasterInfo() {
+                console.log('updating source raster info');
+                var epsg_input = document.getElementById('natcapClipSettingEPSGCode');
+
+                cog_stats_url = `${clipping_endpoint}/info?cog_url=${encodeURIComponent(cog)}`
+                fetch(cog_stats_url).then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        console.error(response);
+                    }
+                }).then(info_json => {
+                    console.log(info_json);
+                    epsg_input.value = info_json['info']['stac']['proj:epsg'];
+                    var geotransform = info_json['info']['geoTransform'];
+                    // Until someone says otherwise, let's assume square pixels
+                    // (in SRS units)
+                    document.getElementById('natcapClipSettingPixelSize').value = geotransform[1];
+                });
+            }
+            document.getElementById('natcapClipEnableOverrides').addEventListener(
+                'click', function() {
+                    console.log('clicked enable overrides');
+                    updateSourceRasterInfo();
+                    updateSRSUnits();
+            });
+
+            async function updateSRSUnits() {
+                var epsg_code = document.getElementById('natcapClipSettingEPSGCode').value;
+                console.log(`Updating SRS info for ${epsg_code}`);
+                const epsg_response = await fetch(`${clipping_endpoint}/epsg_info?epsg_code=${epsg_code}`, {
+                    method: "GET",
+                });
+                if (!epsg_response.ok) {
+                    throw new Error(`Response status: ${epsg_response.status}`);
+                }
+                const json = await epsg_response.json();
+                if (json['status'] == 'success') {
+                    console.log(json);
+                    document.getElementById('natcapClipSettingEPSGCodeLabel').textContent = json['epsg_name'];
+                    document.getElementById('natcapClipSettingPixelSizeLabel').textContent = `Units: ${json['srs_units']}`;
+                }
+            }
+
+
+        </script>
+    </body>
+</html>
+

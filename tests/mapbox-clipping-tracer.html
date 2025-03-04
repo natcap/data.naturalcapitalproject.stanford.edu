@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Mapbox GL JS map</title>
+        <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+        <link href="https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.css" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+              rel="stylesheet"
+              integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+              crossorigin="anonymous">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+        <link rel='stylesheet' href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.3/mapbox-gl-draw.css' type='text/css' />
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+                integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+                crossorigin="anonymous"></script>
+        <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+                integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+                crossorigin="anonymous"></script>
+        <script src="https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.js"></script>
+        <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.3/mapbox-gl-draw.js'></script>
+
+
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            #map {
+                margin: 20px;
+                position: absolute;
+                width: 90%;
+                height: 90%;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="map"></div>
+        <script>
+            function squareOffBounds(current_state, new_geom) {
+                if (new_geom === undefined) {
+                    return current_state;
+                }
+                var cur_minx = current_state.minx;
+                var cur_maxx = current_state.maxx;
+                var cur_miny = current_state.miny;
+                var cur_maxy = current_state.maxy;
+
+                var new_minx = cur_minx;
+                var new_maxx = cur_maxx;
+                var new_miny = cur_miny;
+                var new_maxy = cur_maxy;
+
+                for (const point of new_geom.geometry.coordinates[0]) {
+                    new_minx = Math.max(new_minx, point[0]);
+                    new_maxx = Math.min(new_maxx, point[0]);
+                    new_miny = Math.max(new_miny, point[1]);
+                    new_maxy = Math.min(new_maxy, point[1]);
+                }
+
+                return {
+                    minx: new_minx,
+                    maxx: new_maxx,
+                    miny: new_miny,
+                    maxy: new_maxy,
+                }
+            }
+
+            var bbox_state = {
+                in_vertex: false,
+                minx: undefined,
+                maxx: undefined,
+                miny: undefined,
+                maxy: undefined,
+            }
+
+            var BoundingBoxMode = {};
+
+            // This is called when the mode starts.
+            // The `opts` argument comes from `draw.changeMode('bboxmode', { ... })`
+            // The value returned should be an object and will be passed to all other lifecycle functions
+            BoundingBoxMode.onSetup = function(opts) {
+                console.log("bboxmode: Setting up");
+                var state = {
+                    bbox: undefined,
+                    minx: undefined,
+                    maxx: undefined,
+                    miny: undefined,
+                    maxy: undefined,
+                };
+                return state;
+            }
+
+
+            // This is called whenever the user clicks on the map
+            BoundingBoxMode.onClick = function(state, e) {
+                // this.newFeature takes geojson and makes a DrawFeature
+                if (e.lngLat.lng < state.minx || e.lngLat.lng > state.maxx ||
+                    e.lngLat.lat < state.miny || e.lngLat.lat > state.maxy) {
+                    console.log("bboxmode: Clicked outside of bbox, clearing state");
+                    state.minx = undefined;
+                    state.maxx = undefined;
+                    state.miny = undefined;
+                    state.maxy = undefined;
+                    return;
+                } else if (state.bbox !== undefined){
+                    console.log("bboxmode: Clicked inside of bbox");
+                    console.log(state);
+                    return;
+                }
+
+                if (state.bbox !== undefined) {
+                    this.deleteFeature(state.bbox.id);
+                }
+                state.minx = e.lngLat.lng-0.10;
+                state.maxx = e.lngLat.lng+0.10;
+                state.miny = e.lngLat.lat-0.10;
+                state.maxy = e.lngLat.lat+0.10;
+                bbox_state = state;  // try to keep this updated as well.
+
+                state.bbox = this.newFeature({
+                    type: 'Feature',
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates:[[
+                            [state.minx, state.miny],
+                            [state.minx, state.maxy],
+                            [state.maxx, state.maxy],
+                            [state.maxx, state.miny],
+                            [state.minx, state.miny],
+                        ]],
+                    }
+                });
+                console.log(state.bbox);
+                this.addFeature(state.bbox);
+                console.log('selecting feature? ' + state.bbox.id);
+                //draw.changeMode('simple_select', {featureIds: [state.bbox.id]});
+            }
+
+            BoundingBoxMode.onDrag = function(state, e) {
+                console.log('bboxmode: dragging something');
+            }
+
+            BoundingBoxMode.onMouseMove = function(state, e) {
+                //console.log('onmousemove');
+                //console.log(state);
+                //console.log(e);
+                //console.log('end on mousemove');
+            }
+
+            //BoundingBoxMode.dragVertex = function(state, e, delta) {
+            //    console.log('bboxmode: Dragging vertex');
+            //}
+
+            // This is the only required function for a mode.
+            // It decides wheich features in Draw's data store will be rendered on the map.
+            // All features passed to `display` will be rendered, so you can pass multiple display features per internal feature.
+            // See styling-draw in API.md for advice on making display features.
+            BoundingBoxMode.toDisplayFeatures = function(state, geojson, display) {
+                console.log("bboxmode: Displaying features");
+                console.log(state);
+                console.log(geojson);
+                display(geojson);
+                //var geom = squareOffBounds(state, geojson);
+                //display({
+                //    type: 'Feature',
+                //    properties: geojson.properties,
+                //    geometry: {
+                //        type: 'Polygon',
+                //        coordinates: [[
+                //            [geom.minx, geom.miny],
+                //            [geom.minx, geom.maxy],
+                //            [geom.maxx, geom.maxy],
+                //            [geom.maxx, geom.miny],
+                //            [geom.minx, geom.miny]
+                //        ]],
+                //    },
+                //});
+            }
+
+            class ClippingControl{
+		        onAdd(map) {
+		            this._map = map;
+		            this._container = document.createElement('div');
+		            this._container.className = 'mapboxgl-ctrl';
+		            this._container.textContent = 'Hello, world';
+					this._container.innerHTML = "<button class='btn btn-primary' data-bs-toggle='collapse' aria-expanded='false' href='clipOptions' id='natCapClipLayer'>Clip this layer</button>";
+                    this._container.querySelector('#natCapClipLayer').addEventListener('click', this._showClippingOptions);
+
+                    this._clipping_options = document.createElement('div');
+                    this._clipping_options.id = 'clipOptions';
+                    this._clipping_options.className = 'collapse card card-body';
+
+                    //shape control
+
+                    //Add clipping options here when it's needed
+                    //this._clipping_options.innerHTML = "\n" +
+                    //    "
+
+                    this._container.appendChild(this._clipping_options);
+		            return this._container;
+		        }
+
+                _showClippingOptions() {
+                    console.log("Clipping options");
+                    $('#clipOptions').collapse('toggle');
+                }
+
+		        onRemove() {
+		            this._container.parentNode.removeChild(this._container);
+		            this._map = undefined;
+		        }
+		    }
+
+            //function ClippingControl() { }
+
+            //ClippingControl.prototype.onAdd = function(map) {
+            //    this._map = map;
+            //    this._container = document.createElement('div');
+            //    this._container.className = 'mapboxgl-ctrl';
+            //    this._container.textContent = 'Hello, world!';
+            //    //this._container.appendChild(this._createButton('Clip', 'clip'));
+            //    return this._container;
+            //}
+
+            //ClippingControl.prototype.onRemove = function() {
+            //    this._container.parentNode.removeChild(this._container);
+            //    this._map = undefined;
+            //}
+
+            // TO MAKE THE MAP APPEAR YOU MUST
+            // ADD YOUR ACCESS TOKEN FROM
+            // https://account.mapbox.com
+            mapboxgl.accessToken = 'pk.eyJ1IjoiamRvdWdsYXNzIiwiYSI6ImNtMzR5dThiZzA1Y3YyanBucDZwc2w2NDYifQ.bghdnrfNMkaI0N-TOvqIAQ'
+            const map = new mapboxgl.Map({
+                container: 'map', // container ID
+                center: [-74.5, 40], // starting position [lng, lat]. Note that lat must be set between -90 and 90
+                zoom: 9 // starting zoom
+            });
+
+            map.addControl(new ClippingControl(), 'top-left');
+
+            var draw = new MapboxDraw({
+                defaultMode: 'bboxmode',
+                modes: Object.assign({  // allows us to register our custom mode
+                    'bboxmode': BoundingBoxMode,
+                }, MapboxDraw.modes),
+                styles: [
+                    // Polygon fill
+                    {
+                        "id": "gl-draw-polygon-fill",
+                        "type": "fill",
+                        "filter": ["all", ["==", "$type", "Polygon"]],
+                        "paint": {
+                          "fill-color": "#FFFFFF",
+                          "fill-outline-color": "#2E2D29",  // Process Black, from NatCap style guide
+                          "fill-opacity": 0.5,
+                        },
+                    },
+
+                    // Line stroke
+                    {
+                        "id": "gl-draw-polygon-stroke",
+                        "type": "line",
+                        "filter": ["all", ["==", "$type", "Polygon"]],
+                        "layout": {
+                            "line-cap": "round",
+                            "line-join": "round",
+                        },
+                        "paint": {
+                            "line-color": "#2E2D29",
+                            "line-dasharray": [0.2, 2],
+                            "line-width": 2,
+                        },
+                    },
+
+                    //
+                    {
+                        "id": "gl-draw-polygon-vertex-halos-inactive",
+                        "type": "circle",
+                        "filter": ["all",
+                            ["==", "active", "false"],
+                            ["==", "$type", "Polygon"],
+                            ["!=", "mode", "static"],
+                        ],
+                        "paint": {
+                            "circle-radius": 0,
+                            "circle-color": "#2E2D29",
+                        },
+                    },
+                    {
+                        "id": "gl-draw-polygon-vertex-halos-active-border",
+                        "type": "circle",
+                        "filter": ["all",
+                            ["==", "meta", "vertex"],
+                            ["==", "$type", "Point"],
+                            ["!=", "mode", "static"],
+                        ],
+                        "paint": {
+                            "circle-radius": 7,
+                            "circle-color": "#2E2D29",
+                        },
+                    },
+                    {
+                        "id": "gl-draw-polygon-vertex-halos-active",
+                        "type": "circle",
+                        "filter": ["all",
+                            ["==", "active", "true"],
+                            ["==", "$type", "Polygon"],
+                            ["!=", "mode", "static"],
+                        ],
+                        "paint": {
+                            "circle-radius": 5,
+                            "circle-color": "#FFF",
+                        },
+                    },
+                ],
+            });
+            map.addControl(draw, 'top-right');
+
+            map.on('draw.create', function(e) {
+                console.log('draw.create fired');
+                console.log(e.features);
+                // make the geometry active
+            });
+
+            //when mousing over the bounding box, select it.
+
+            //map.on('draw.update', function(e) {
+            //    console.log('draw.update fired');
+            //    var new_geom = draw.getSelected().features[0];
+            //    var new_bbox = squareOffBounds(bbox_state, new_geom);
+            //    draw.deleteAll();
+            //    var new_bbox = {
+            //        type: 'FeatureCollection',
+            //        features: [{
+            //            id: draw.getSelected().id,
+            //            type: 'Feature',
+            //            geometry: {
+            //                type: 'Polygon',
+            //                coordinates:[[
+            //                    [new_bbox.minx, new_bbox.miny],
+            //                    [new_bbox.minx, new_bbox.maxy],
+            //                    [new_bbox.maxx, new_bbox.maxy],
+            //                    [new_bbox.maxx, new_bbox.miny],
+            //                    [new_bbox.minx, new_bbox.miny],
+            //                ]],
+            //            }
+            //        }],
+            //    };
+            //    draw.set(new_bbox);
+            //});
+
+            map.on('mouseenter', 'gl-draw-polygon-vertex-halos-active-border.hot', () => {
+                console.log('I am now over a vertex');
+                //draw.changeMode('simple_select', {featureIds: [draw.getSelected().features[0]]});
+                state.in_vertex = true;
+            });
+            map.on('mouseleave', 'gl-draw-polygon-vertex-halos-active-border.hot', () => {
+                console.log('I am no longer over a vertex');
+                //draw.changeMode('bboxmode', {featureIds: [draw.getSelected().features[0]]});
+                state.in_vertex = false;
+            });
+
+            //map.on('draw.render', function(e) {
+            //    //console.log('draw.render fired');
+            //    //console.log(e);
+            //    //console.log(draw.getSelectedPoints());
+            //    //return;
+
+            //    var new_geom = draw.getSelected().features[0];
+            //    var feature_id = draw.getSelected().id;
+
+            //    if (new_geom !== undefined && draw.getSelectedPoints().features.length > 0){
+            //        var new_bbox = squareOffBounds(bbox_state, new_geom);
+            //        var new_bbox = {
+            //            type: 'FeatureCollection',
+            //            features: [{
+            //                id: feature_id,
+            //                type: 'Feature',
+            //                geometry: {
+            //                    type: 'Polygon',
+            //                    coordinates:[[
+            //                        [new_bbox.minx, new_bbox.miny],
+            //                        [new_bbox.minx, new_bbox.maxy],
+            //                        [new_bbox.maxx, new_bbox.maxy],
+            //                        [new_bbox.maxx, new_bbox.miny],
+            //                        [new_bbox.minx, new_bbox.miny],
+            //                    ]],
+            //                }
+            //            }],
+            //        };
+            //        draw.set(new_bbox);
+            //        //draw.changeMode('simple_select', {featureIds: [feature_id]});
+            //    }
+            //});
+
+
+        </script>
+    </body>
+</html>
+

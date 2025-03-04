@@ -218,6 +218,9 @@ body {
 }
 
 .resources .resource-list li a {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
     gap: 1rem;
     justify-content: space-between;
     width: 100%;
@@ -1185,6 +1188,17 @@ body {
 .module-narrow .nav-item.active > a span,
 .module-narrow .nav-aside li.active a span {
     white-space: wrap;
+}
+
+img.logo {
+    float: left;
+    height: 40px;
+    padding-right: 10px;
+}
+
+div.logo a {
+    color: white;
+    display: flex;
 }
 
 @media (max-width: 576px) {

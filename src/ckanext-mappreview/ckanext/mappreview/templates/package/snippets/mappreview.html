@@ -1,4 +1,176 @@
 <!-- use helpers to get config -->
 <div class="mappreview" data-module="mappreview" data-module-config="{{ h.mappreview_parse_metadata(pkg) }}" data-module-global-config="{{ h.mappreview_get_config() }}">
-  <div id="map" class="map"></div>
+    <div id="map" class="map"></div>
+    <div class="modal fade modal-lg"
+         id="natcapClipProgressModal"
+         data-bs-backdrop="static"
+         data-bs-keyboard="false"
+         aria-labelledby="progress-modal-label"
+         aria-hidden="true"
+         tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+
+                <!-- Start modal header -->
+                <div class="modal-header">
+                    <h1 class="modal-title" id="progress-modal-label">
+                        Clip layer
+                    </h1>
+                    <button type="button"
+                            id="modal-close"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close">
+                    </button>
+                </div>
+                <!-- End modal header -->
+
+                <!-- Start modal body -->
+                <div class="modal-body">
+                    <div id="natcapClipInitOptions">
+                        <h3>Warp/reproject the clipped raster?</h3>
+                        <p>
+                        The layer will be clipped to the bounding box you
+                        selected on the globe, and will keep its original
+                        spatial reference system and resolution.  If you would
+                        like to warp/reproject the output to a different SRS or
+                        resolution, please use the options below to configure
+                        the operation.
+                        </p>
+
+                        <div class="row">
+                            <div class="col p-2">
+                                <input class="form-check-input"
+                                       type="checkbox"
+                                       value=""
+                                       id="natcapClipEnableOverrides">
+                                <label class="form-check-label"
+                                       for="natcapClipEnableOverrides">
+                                    Set a custom spatial reference or resolution for
+                                    the clipped dataset
+                                </label>
+                            </div>
+                        </div>
+                        <div id="natcapClipAdvancedOptions" class="d-none">
+                            <hr/>
+                            <div class="row">
+                                <div class="col-sm p-2">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           value=""
+                                           id="natcapClipSettingOverrideEPSG">
+                                    <label class="form-check-label"
+                                           for="natcapClipSettingOverrideEPSG">
+                                        Set custom coordinate system EPSG
+                                    </label>
+                                </div>
+                                <div class="col-sm-2">
+                                    <input type="text"
+                                           id="natcapClipSettingEPSGCode"
+                                           class="form-control d-none"
+                                           aria-label="EPSG Code">
+                                </div>
+                                <div class="col-sm-4">
+                                    <label for="natcapClipSettingEPSGCode"
+                                           id="natcapClipSettingEPSGCodeLabel"
+                                           class="col-form-label"></label>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm p-2">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           value=""
+                                           id="natcapClipSettingOverridePixelSize">
+                                    <label for="natcapClipSettingOverridePixelSize">
+                                        Set custom pixel width and height
+                                    </label>
+                                </div>
+                                <div class="col-sm-2">
+                                    <input type="text"
+                                           id="natcapClipSettingPixelSize"
+                                           class="form-control d-none">
+                                </div>
+                                <div class="col-sm-4">
+                                    <label for="natcapClipSettingPixelSize"
+                                           id="natcapClipSettingPixelSizeLabel"
+                                           class="col-form-label d-none">
+                                        Units: unknown
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- hidden in-progress clipping info -->
+                    <div id="natcapClipInProgress" class="d-none">
+                        <h3>Clipping in progress</h3>
+                        <p>When the clipping is finished, you will be able
+                        to download your clipped raster from this dialog.</p>
+                    </div>
+                    <div id="natcapClipDownloadClippedLayer"
+                         class="d-none d-grid">
+                        <h3>Clipping complete!</h3>
+                        <p>Click the button below to download the selected
+                        layer.</p>
+                        <button type="button"
+                                class="btn btn-outline-success"
+                                id="download-layer">
+                            <i class="fa-solid fa-download"></i>
+                            Download layer (<span id="download-size"></span>)
+                        </button>
+                    </div>
+                </div>
+                <!-- End modal body -->
+
+                <!-- Start modal footer -->
+                <div class="modal-footer">
+                    <div class="container">
+                        <div class="row row-cols-2">
+                            <div class="col-sm p-2">
+                                <div class="progress d-none"
+                                     id="clipping-progress">
+                                    <div class="progress-bar
+                                             progress-bar-striped
+                                             progress-bar-animated"
+                                         role="progressbar"
+                                         aria-label="Clipping progress"
+                                         style="width: 100%"
+                                         aria-valuenow="42"
+                                         aria-valuemin="0"
+                                         aria-valuemax="100"
+                                         id="clipping-progress-bar">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-3 d-grid mx-auto">
+                                <button type="button"
+                                        id="natcap-clip-submit-button"
+                                        class="btn btn-primary">
+                                    <i class="fa-solid fa-scissors"></i>
+                                    Clip!
+                                </button>
+                                <button type="button"
+                                        id="natcap-clip-cancel-button"
+                                        class="btn btn-warning d-none"
+                                        data-bs-dismiss="modal">
+                                    <i class="fa-solid fa-xmark"></i>
+                                    Cancel
+                                </button>
+                                <button type="button"
+                                        id="natcap-clip-done-button"
+                                        data-bs-dismiss="modal"
+                                        class="btn btn-success d-none">
+                                    <i class="fa-solid fa-check"></i>
+                                    Done
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- End modal footer -->
+
+            </div>
+        </div>
+    </div>
 </div>

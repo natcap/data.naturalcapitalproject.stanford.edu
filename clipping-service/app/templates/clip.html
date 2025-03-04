@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<!--TODO: Add help text for inputs-->
+<!--TODO: reconfigure the layout to take x and y resolution inputs -->
+<!--TODO: reconfigure the layout to have inputs on the L, map on the R -->
+
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>NatCap Data Hub Dataset Clipper</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+              rel="stylesheet"
+              integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+              crossorigin="anonymous">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+              integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+              crossorigin=""/>
+        <link rel="stylesheet"
+              href="https://unpkg.com/@jonatanheyman/leaflet-areaselect@1.2.0/src/leaflet-areaselect.css"
+              />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+        <style>
+            * { -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box; }
+
+            html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #map {
+                float:right;
+                width: 60%;
+                height: 100%;
+            }
+
+            div#inputs{
+                float:left;
+                position: absolute;
+                width: 40%;
+                height: 100%;
+                padding: 10px;
+            }
+
+            #bbox-table {
+                margin-left: 10px;
+                font-style: italic;
+            }
+            #bbox-table tr span {
+                margin-left: 10px;
+            }
+
+            div.card {
+                margin-top: 10px;
+            }
+
+            button#submit {
+                margin-top: 10px;
+            }
+
+            #cog-url-row.invisible {
+                display: none;
+            }
+
+            h1 {
+                width: 100%;
+            }
+
+            /*
+               Separate the buttons in the modal dialog footer
+            */
+            #progress-modal .modal-footer {
+                justify-content: space-between;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="inputs">
+            <h1>
+                <span id="title">Clip Layer</span>
+                <i id="activity-spinner" class="fa-solid fa-spinner fa-spin float-end"
+                   style="visibility: hidden"></i>
+            </h1>
+            <p>Clipping <span id="layer-name"></span></p>
+            <form>
+                <div id="cog-url-row" class="form-group row">
+                    <label for="cog-url" class="col-sm-2 col-form-label">COG URL</label>
+                    <div class="col-sm-9">
+                        <input type="text"
+                               class="form-control"
+                               id="cog-url"
+                               value="https://storage.googleapis.com/natcap-data-cache/global/awc-isric-soil/awc.tif"
+                               placeholder="https://storage.googleapis.com/natcap-data-cache/global/awc-isric-soil/awc.tif">
+                        <small class="form-text text-muted">Enter the URL of the COG you want to clip</small>
+                    </div>
+                </div>
+
+                <div class="card card-body">
+                    <h3>Options</h3>
+                    <div class="form-group row">
+                        <label for="targetEPSG" class="col-sm-4 col-form-label">Target coordinate system EPSG</label>
+                        <div class="col-sm-4">
+                            <input type="text"
+                                   class="form-control"
+                                   id="targetEPSG"
+                                   placeholder="4326">
+                        </div>
+                        <div class="col-sm-4">
+                            <label for="targetEPSG"
+                                   id="targetEPSGInfo"
+                                   class="col-form-label"></label>
+                        </div>
+                    </div>
+
+                    <div class="card card-body">
+                        <a class="btn btn-link float-start col-sm-8"
+                           id="customPixelDimensionsLink"
+                           data-bs-toggle="collapse"
+                           href="#customPixelDimensions"
+                           role="button"
+                           aria-expanded="false"
+                           aria-controls="collapseExample">Use custom pixel dimensions</a>
+                        <div class="collapse card card-body" id="customPixelDimensions">
+                            <h4>Customize output resolution</h4>
+                            <div class="form-group row">
+                                <label for="targetResolutionX"
+                                       class="col-sm-4 col-form-label">Target pixel width</label>
+                                <div class="col-sm-4">
+                                    <input type="text"
+                                           class="form-control"
+                                           id="targetResolutionX"
+                                           placeholder="">
+                                </div>
+                                <div class="col-sm-4">
+                                    <label for="targetResolutionX"
+                                           id="targetResolutionXLabel"
+                                           class="col-form-label">
+                                        <p id="targetResolutionXLabel"
+                                           class="text-muted">
+                                        </p>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label for="targetResolutionY"
+                                       class="col-sm-4 col-form-label">Target pixel height</label>
+                                <div class="col-sm-4">
+                                    <input type="text"
+                                           class="form-control"
+                                           id="targetResolutionY"
+                                           placeholder="">
+                                </div>
+                                <div class="col-sm-4">
+                                    <label for="targetResolutionY"
+                                           id="targetResolutionYLabel"
+                                           class="col-form-label"></label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-body-secondary">
+                        Selected Bounding box:
+                        <table id="bbox-table">
+                            <tr>
+                                <td>North</td>
+                                <td><span id="targetBboxNorth"></span>°N</td>
+                            </tr>
+                            <tr>
+                                <td>South</td>
+                                <td><span id="targetBboxSouth"></span>°S</td>
+                            </tr>
+                            <tr>
+                                <td>East</td>
+                                <td><span id="targetBboxEast"></span>°E</td>
+                            </tr>
+                            <tr>
+                                <td>West</td>
+                                <td><span id="targetBboxWest"></span>°W</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Modal dialog for tracking clipping progress. -->
+            <button class="btn btn-primary float-end"
+                    id="submit"
+                    type="submit"
+                    onclick="clip_cog();getData()"
+                    data-bs-toggle="modal"
+                    data-bs-target="#progress-modal">Clip layer</button>
+            <div class="modal fade"
+                        id="progress-modal"
+                        data-bs-backdrop="static"
+                        data-bs-keyboard="false"
+                        aria-labelledby="progress-modal-label"
+                        aria-hidden="true"
+                        tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-5"
+                                id="progress-modal-label">Clipping ...</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Clipping layer to your selected bounding box</p>
+                            <div class="progress"
+                                 role="progressbar"
+                                 aria-label="Clipping progress"
+                                 aria-valuenow="0"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100"
+                                 id="clipping-progress">
+                                <div class="progress-bar progress-bar-striped" id="clipping-progress-bar"></div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button"
+                                    id="cancel-button"
+                                    class="btn btn-warning"
+                                    data-bs-dismiss="modal">Cancel</button>
+                            <button type="button"
+                                    id="download"
+                                    onclick="download()"
+                                    class="btn btn-success invisible">Download</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="map"></div>
+
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+              integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+              crossorigin=""></script>
+        <script src="https://unpkg.com/@jonatanheyman/leaflet-areaselect@1.2.0/src/leaflet-areaselect.js"
+                type="application/x-javascript"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+                integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+                crossorigin="anonymous"></script>
+        <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+                integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+                crossorigin="anonymous"></script>
+        <script src="{{ url_for('static', filename='map.js') }}" type="application/x-javascript"></script>
+        <script>
+            document.getElementById('targetBboxSouth').addEventListener('change', updateBounds);
+            document.getElementById('targetBboxWest').addEventListener('change', updateBounds);
+            document.getElementById('targetBboxNorth').addEventListener('change', updateBounds);
+            document.getElementById('targetBboxEast').addEventListener('change', updateBounds);
+            document.getElementById('targetEPSG').addEventListener('change', updateSRSUnits);
+            document.getElementById('targetEPSG').addEventListener('change', writeURLParameters);
+            document.getElementById('cog-url').addEventListener('change', loadTiles)
+            document.getElementById('cog-url').addEventListener('change', writeURLParameters)
+            document.getElementById('targetResolutionX').addEventListener('change', writeURLParameters)
+            document.getElementById('targetResolutionY').addEventListener('change', writeURLParameters)
+            document.getElementById('customPixelDimensionsLink').addEventListener('click', togglePixelDimensionsLink)
+        </script>
+    </body>
+    <footer>
+    </footer>
+</html>
+

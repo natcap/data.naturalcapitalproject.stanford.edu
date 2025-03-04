@@ -11,14 +11,9 @@
         {{ h.natcap_get_filename(res.url) }}
       </div>
     </div>
+    <div class="icon-button icon-button-download">
+    </div>
   </a>
-  <div class="icon-group">
-    <div class="icon-button icon-button-clip" title="Clip dataset" onclick="openClippingApp('{{ h.natcap_get_filename(res.url) }}')"></div>
-    <div class="icon-button icon-button-copy" title="Copy file URL"></div>
-    <a href="{{ res.url}}">
-      <div class="icon-button icon-button-download" title="Download file"></div>
-    </a>
-  </div>
 
   {% set sources = h.get_pkg_dict_extra(c.pkg_dict, 'sources', '') %}
   {% set parsed_sources = h.zipexpand_parse_sources(sources) %}
