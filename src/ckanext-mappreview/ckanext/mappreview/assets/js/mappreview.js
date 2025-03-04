@@ -924,6 +924,39 @@ ckan.module("mappreview", function ($, _) {
       const clipping_endpoint = 'https://clipping-service-897938321824.us-west1.run.app'
 
 
+      function _setEPSGItems(epsg_code) {
+        fetch(`${clipping_endpoint}/epsg_info?epsg_code=${epsg_code}`, {
+          method: "GET",
+        }).then(epsg_response => {
+          if (epsg_response.ok) {
+            return epsg_response.json();
+          } else {
+            console.error(epsg_response);
+            throw new Error(`Response status: ${epsg_response.status}`);
+          }
+        }).then(epsg_json => {
+          if (epsg_json['status'] == 'success') {
+            console.log('updating EPSG-related labels');
+            document.getElementById('natcapClipSettingEPSGCodeLabel').textContent = epsg_json['epsg_name'];
+            document.getElementById('natcapClipSettingPixelSizeLabel').textContent = `Units: ${epsg_json['srs_units']}`;
+          } else {
+            console.error("Something went wrong getting EPSG info");
+            console.error(epsg_json);
+          }
+        });
+      }
+
+
+      function updateSRS() {
+        var epsg_input = document.getElementById('natcapClipSettingEPSGCode');
+        if (epsg_input.value !== undefined) {
+          _setEPSGItems(epsg_input.value);
+        }
+      }
+      document.getElementById('natcapClipSettingEPSGCode').addEventListener(
+        'change', function() {updateSRS()});
+
+
       function updateSourceRasterInfo() {
           const cog = document.getElementById(clip_button_id).getAttribute('layer-url');
           console.log('updating source raster from cog ' + cog);
@@ -946,25 +979,7 @@ ckan.module("mappreview", function ($, _) {
             // Update projection information like the friendly EPSG label and the human units.
             var epsg_code = epsg_input.value;
             console.log(`Updating SRS info for ${epsg_code}`);
-            fetch(`${clipping_endpoint}/epsg_info?epsg_code=${epsg_code}`, {
-              method: "GET",
-            }).then(epsg_response => {
-              if (epsg_response.ok) {
-                return epsg_response.json();
-              } else {
-                console.error(epsg_response);
-                throw new Error(`Response status: ${epsg_response.status}`);
-              }
-            }).then(epsg_json => {
-              if (epsg_json['status'] == 'success') {
-                console.log('updating EPSG-related labels');
-                document.getElementById('natcapClipSettingEPSGCodeLabel').textContent = epsg_json['epsg_name'];
-                document.getElementById('natcapClipSettingPixelSizeLabel').textContent = `Units: ${epsg_json['srs_units']}`;
-              } else {
-                console.error("Something went wrong getting EPSG info");
-                console.error(epsg_json);
-              }
-            });
+            _setEPSGItems(epsg_code);
           });
       }
 
