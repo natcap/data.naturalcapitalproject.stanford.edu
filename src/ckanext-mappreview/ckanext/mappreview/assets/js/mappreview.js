@@ -788,12 +788,14 @@ ckan.module("mappreview", function ($, _) {
 
       /**  Modal Controls
         */
-      function downloadComplete() {
+      function downloadComplete(download_url, filesize) {
           document.getElementById('clipping-progress').classList.add('d-none');
           document.getElementById('natcap-clip-cancel-button').classList.add('d-none');
           document.getElementById('natcap-clip-done-button').classList.remove('d-none');
-          document.getElementById('download-size').innerText = '42 MB';
+          document.getElementById('download-size').innerText = filesize;
           document.getElementById('natcapClipDownloadClippedLayer').classList.remove('d-none');
+          document.getElementById('natcapClipDownloadClippedLayer').setAttribute(
+            'onclick', `window.open('${download_url}')`);
           document.getElementById('natcapClipInProgress').classList.add('d-none');
       }
 
@@ -826,7 +828,23 @@ ckan.module("mappreview", function ($, _) {
 
           console.log(clipping_options);
 
-          setTimeout(function() {downloadComplete();}, 1000);
+          const clipping_service_url = 'https://clipping-service-897938321824.us-west1.run.app';
+          fetch(`${clipping_service_url}/clip`, {
+            method: "POST",
+            body: JSON.stringify(clip_body);
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }).then(response => {
+            if (response.ok) {
+              return response.json();
+            } else {
+              console.error("Something went wrong while clipping");
+              console.error(response);
+            }
+          }).then(response_json => {
+            downloadComplete(response_json.url, response_json.size);
+          });
       }
 
       function resetState() {
