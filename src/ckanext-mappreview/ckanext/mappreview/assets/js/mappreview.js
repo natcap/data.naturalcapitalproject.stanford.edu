@@ -507,7 +507,7 @@ ckan.module("mappreview", function ($, _) {
                   ["==", "$type", "Point"],
               ],
               "paint": {
-                  "circle-radius": 7,
+                  "circle-radius": 9,
                   "circle-color": "#2E2D29",
               },
           });
@@ -519,7 +519,7 @@ ckan.module("mappreview", function ($, _) {
                   ["==", "$type", "Point"],
               ],
               "paint": {
-                  "circle-radius": 5,
+                  "circle-radius": 7,
                   "circle-color": "#FFF",
               },
           });
