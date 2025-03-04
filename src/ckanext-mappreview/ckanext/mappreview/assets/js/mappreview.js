@@ -788,7 +788,6 @@ ckan.module("mappreview", function ($, _) {
 
       /**  Modal Controls
         */
-
       function downloadComplete() {
           document.getElementById('clipping-progress').classList.add('d-none');
           document.getElementById('natcap-clip-cancel-button').classList.add('d-none');
@@ -805,6 +804,14 @@ ckan.module("mappreview", function ($, _) {
           document.getElementById('natcap-clip-submit-button').classList.add('d-none');
           document.getElementById('natcapClipInProgress').classList.remove('d-none');
           document.getElementById('natcapClipInitOptions').classList.add('d-none');
+
+          var target_cog = document.getElementById(clip_button_id).getAttribute('layer-url');
+          var target_epsg = document.getElementById('natcapClipSettingEPSGCode').value;
+          var target_pixel_size = document.getElementById('natcapClipSettingPixelSize').value;
+
+          console.log(target_cog);
+          console.log(target_epsg);
+          console.log(target_pixel_size);
 
           setTimeout(function() {downloadComplete();}, 1000);
       }
