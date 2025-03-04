@@ -351,6 +351,16 @@ ckan.module("mappreview", function ($, _) {
           }
       }
 
+      function _box() {
+        var vertices = _vertices();
+        return [
+          features[0].geometry.coordinates[0],  // west
+          features[0].geometry.coordinates[1],  // south
+          features[3].geometry.coordinates[0],  // east
+          features[3].geometry.coordinates[1],  // north
+        ];
+      }
+
       // Given a new vertex, update the geometry's relevant vertices
       function _updateVertex(loc, lat, lng) {
           var coords = bbox_geojson.features[0].geometry.coordinates[0];
@@ -810,6 +820,7 @@ ckan.module("mappreview", function ($, _) {
           var target_cog = document.getElementById(clip_button_id).getAttribute('layer-url');
           var clipping_options = {
             cog_url: target_cog,
+            target_bbox: _box(),
           }
 
           // are we overriding the EPSG code?  If not, don't include it in the clipping_options.
