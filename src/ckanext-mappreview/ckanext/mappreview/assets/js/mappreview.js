@@ -831,7 +831,7 @@ ckan.module("mappreview", function ($, _) {
           const clipping_service_url = 'https://clipping-service-897938321824.us-west1.run.app';
           fetch(`${clipping_service_url}/clip`, {
             method: "POST",
-            body: JSON.stringify(clip_body),
+            body: JSON.stringify(clipping_options),
             headers: {
               "Content-Type": "application/json",
             },
