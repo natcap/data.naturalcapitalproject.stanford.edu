@@ -914,9 +914,9 @@ ckan.module("mappreview", function ($, _) {
               var warp = document.getElementById('natcapClipEnableOverrides').checked;
               var submit_text;
               if (warp) {
-                  submit_text = 'Warp/reproject the clipped raster!';
+                  submit_text = 'Warp/reproject the layer!'
               } else {
-                  submit_text = "Clip this raster!"
+                  submit_text = "Clip this layer!"
               }
               document.getElementById('natcap-clip-submit-button').innerHTML = submit_text;
       });
