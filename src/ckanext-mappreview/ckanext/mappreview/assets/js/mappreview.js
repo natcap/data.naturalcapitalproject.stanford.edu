@@ -154,6 +154,7 @@ ckan.module("mappreview", function ($, _) {
         minZoom: config.map.minzoom,
         maxZoom: config.map.maxzoom,
       });
+      map.addControl(new mapboxgl.FullscreenControl(), 'upper-left');
 
       const sources = config.layers.map(l => {
         if (l.type === 'raster') {
