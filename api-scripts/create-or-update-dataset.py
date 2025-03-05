@@ -317,14 +317,15 @@ def main(gmm_yaml_path, private=False, group=None):
             'sizetimestamp', 'sts'))
 
         # keys into the first contact info listing
+        # Prefer organization over the individual's name.
         possible_author_keys = [
-            'individual_name',
             'organization',
+            'individual_name',
         ]
         contact_info = gmm_yaml['contact']
         for author_key in possible_author_keys:
             if contact_info[author_key]:
-                break  # just keep author_key
+                break  # just keep the first author_key we find
 
         resources = [
             _create_resource_dict_from_file(
