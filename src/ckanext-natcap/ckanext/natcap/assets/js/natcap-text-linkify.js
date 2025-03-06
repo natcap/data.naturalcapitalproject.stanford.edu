@@ -8,6 +8,7 @@ ckan.module("natcap-text-linkify", function($, _) {
 
     // Adapted from https://stackoverflow.com/a/49634926
     initialize: function () {
+      console.log(this.el);
       const textDiv = $(this.el)[0];
       console.log(textDiv);
       var replacedText = textDiv.innerText;
@@ -24,7 +25,8 @@ ckan.module("natcap-text-linkify", function($, _) {
       var replacePattern3 = /(([a-zA-Z0-9\-\_\.])+@[a-zA-Z\_]+?(\.[a-zA-Z]{2,6})+)/gim;
       replacedText = replacedText.replace(replacePattern3, '<a href="mailto:$1">$1</a>');
 
-      $(this.el).html(replacedText);
+      //$(this.el).html(replacedText);
+      this.el.innerHTML = replacedText;
       console.log(replacedText);
       console.log($(this.el));
     }
