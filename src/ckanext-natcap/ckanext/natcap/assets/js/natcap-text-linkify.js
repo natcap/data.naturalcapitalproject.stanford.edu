@@ -1,12 +1,16 @@
+"use strict";
+
 ckan.module("natcap-text-linkify", function($, _) {
-  "use strict";
   return {
-    options: {}
+    options: {
+      debug: false,
+    }
   },
 
   // Adapted from https://stackoverflow.com/a/49634926
   initialize: function () {
     const textDiv = $(this.el);
+    console.log(textDiv);
     var replaceText = textDiv.innerText;
 
     //URLs starting with http://, https://, or ftp://
@@ -21,6 +25,6 @@ ckan.module("natcap-text-linkify", function($, _) {
     replacePattern3 = /(([a-zA-Z0-9\-\_\.])+@[a-zA-Z\_]+?(\.[a-zA-Z]{2,6})+)/gim;
     replacedText = replacedText.replace(replacePattern3, '<a href="mailto:$1">$1</a>');
 
-    textDiv.innerText = replaceText;
+    $(this.el).html(replaceText);
   }
 });
