@@ -10,11 +10,11 @@ ckan.module("natcap-text-linkify", function($, _) {
     initialize: function () {
       const textDiv = $(this.el)[0];
       console.log(textDiv);
-      var replaceText = textDiv.innerText;
+      var replacedText = textDiv.innerText;
 
       //URLs starting with http://, https://, or ftp://
       var replacePattern = /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gim;
-      replaceText.replace(replacePattern, '<a href="$1" target="_blank">$1</a>');
+      replacedText.replace(replacePattern, '<a href="$1" target="_blank">$1</a>');
 
       //URLs starting with "www." (without // before it, or it'd re-link the ones done above).
       replacePattern2 = /(^|[^\/])(www\.[\S]+(\b|$))/gim;
