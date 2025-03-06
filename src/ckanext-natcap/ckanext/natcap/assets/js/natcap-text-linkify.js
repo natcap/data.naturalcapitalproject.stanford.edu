@@ -8,7 +8,7 @@ ckan.module("natcap-text-linkify", function($, _) {
 
     // Adapted from https://stackoverflow.com/a/49634926
     initialize: function () {
-      const textDiv = $(this.el);
+      const textDiv = $(this.el)[0];
       console.log(textDiv);
       var replaceText = textDiv.innerText;
 
