@@ -28,7 +28,7 @@ RUN pip3 install -e git+https://github.com/ckan/ckanext-spatial.git@$CKANEXT_SPA
 RUN pip3 install -e 'git+https://github.com/ckan/ckanext-scheming.git@3af6056bbe16c3f8c6257f18cb2a0805370f85de#egg=ckanext-scheming'
 RUN pip3 install "numpy<2"
 
-ENV CKANEXT_GOOGLEANALYTICS_GIT_REV=44cb2844a1704bfd9a7a42164652aaf6826a1bc7
+ENV CKANEXT_GOOGLEANALYTICS_GIT_REV=6484a04fdc5eca1cdee9e3ee3b4e881678d1538d
 RUN pip3 install -e git+https://github.com/ckan/ckanext-googleanalytics.git@$CKANEXT_GOOGLEANALYTICS_GIT_REV#egg=ckanext-googleanalytics && \
     pip3 install -r https://raw.githubusercontent.com/ckan/ckanext-googleanalytics/$CKANEXT_GOOGLEANALYTICS_GIT_REV/requirements.txt && \
     python3 -m pip install oauth2client
