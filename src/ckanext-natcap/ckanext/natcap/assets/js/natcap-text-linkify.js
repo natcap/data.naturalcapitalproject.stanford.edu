@@ -1,6 +1,6 @@
-"use strict";
-
 ckan.module("natcap-text-linkify", function($, _) {
+  "use strict";
+
   return {
     options: {
       debug: false,
