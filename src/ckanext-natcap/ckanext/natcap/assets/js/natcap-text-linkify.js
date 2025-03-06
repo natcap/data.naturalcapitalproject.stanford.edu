@@ -24,7 +24,7 @@ ckan.module("natcap-text-linkify", function($, _) {
       var replacePattern3 = /(([a-zA-Z0-9\-\_\.])+@[a-zA-Z\_]+?(\.[a-zA-Z]{2,6})+)/gim;
       replacedText = replacedText.replace(replacePattern3, '<a href="mailto:$1">$1</a>');
 
-      $(this.el).html(replaceText);
+      $(this.el).html(replacedText);
     }
   }
 });
