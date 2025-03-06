@@ -14,7 +14,7 @@ ckan.module("natcap-text-linkify", function($, _) {
 
       //URLs starting with http://, https://, or ftp://
       var replacePattern = /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gim;
-      replaceText.replace(replacePattern '<a href="$1" target="_blank">$1</a>');
+      replaceText.replace(replacePattern, '<a href="$1" target="_blank">$1</a>');
 
       //URLs starting with "www." (without // before it, or it'd re-link the ones done above).
       replacePattern2 = /(^|[^\/])(www\.[\S]+(\b|$))/gim;
