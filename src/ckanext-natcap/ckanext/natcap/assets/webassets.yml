@@ -8,7 +8,7 @@ natcap-js:
     - js/natcap-advanced-search.js
     - js/natcap-dataset-clip.js
     - js/natcap-copy-url.js
-    - js/natcap-linkify.js
+    - js/natcap-text-linkify.js
   extra:
     preload:
       - base/main
