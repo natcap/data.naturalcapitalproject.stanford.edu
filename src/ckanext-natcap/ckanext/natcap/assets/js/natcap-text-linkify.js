@@ -8,14 +8,12 @@ ckan.module("natcap-text-linkify", function($, _) {
 
     // Adapted from https://stackoverflow.com/a/49634926
     initialize: function () {
-      console.log(this.el);
       const textDiv = $(this.el)[0];
-      console.log(textDiv);
       var replacedText = textDiv.innerText;
 
       //URLs starting with http://, https://, or ftp://
       var replacePattern = /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gim;
-      replacedText.replace(replacePattern, '<a href="$1" target="_blank">$1</a>');
+      replacedText = replacedText.replace(replacePattern, '<a href="$1" target="_blank">$1</a>');
 
       //URLs starting with "www." (without // before it, or it'd re-link the ones done above).
       var replacePattern2 = /(^|[^\/])(www\.[\S]+(\b|$))/gim;
@@ -25,10 +23,8 @@ ckan.module("natcap-text-linkify", function($, _) {
       var replacePattern3 = /(([a-zA-Z0-9\-\_\.])+@[a-zA-Z\_]+?(\.[a-zA-Z]{2,6})+)/gim;
       replacedText = replacedText.replace(replacePattern3, '<a href="mailto:$1">$1</a>');
 
-      //$(this.el).html(replacedText);
-      this.el.innerHTML = replacedText;
-      console.log(replacedText);
-      console.log($(this.el));
+      //this.el[0].innerHTML = replacedText;
+      textDiv.innerHTML = replacedText;
     }
   }
 });
