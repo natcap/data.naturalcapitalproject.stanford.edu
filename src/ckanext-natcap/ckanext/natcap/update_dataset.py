@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import urllib.request
+import warnings
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
@@ -111,20 +112,33 @@ def get_raster_info(url: str) -> dict:
         bounds = j['bounds']
         if not bounds or not bounds_valid(bounds):
             bounds = [-180, -90, 180, 90]
-        return {
+        info_stats = {
             'bounds': bounds,
             'minzoom': j.get('minzoom', 1),
             'maxzoom': j.get('maxzoom', 10),
+            'nodata_type': j['nodata_type'],
         }
+        if j['nodata_type'].lower() == 'nodata':
+            info_stats['nodata'] = j['nodata_value']
+        else:
+            warnings.warn(
+                f'nodata value of {info["nodata_type"]} not yet supported')
+            info_stats['nodata'] = None
+
+        return info_stats
 
 
-def get_raster_statistics(url: str) -> dict:
+def get_raster_statistics(url: str, nodata=None) -> dict:
     """Get raster statistics from Titiler"""
     percentiles = [2, 20, 40, 60, 80, 98]
-    params = urllib.parse.urlencode({
+    statistics_options = {
         'url': url,
         'p': percentiles,
-    }, doseq=True)
+    }
+    if nodata is not None:
+        statistics_options = nodata
+
+    params = urllib.parse.urlencode(statistics_options, doseq=True)
     url = f"{TITILER_URL}/cog/statistics?{params}"
 
     with urllib.request.urlopen(url) as response:
@@ -155,7 +169,7 @@ def get_raster_layer_metadata(raster_resource: dict) -> dict:
     # If it exists, get all the info about it
     try:
         info = get_raster_info(url)
-        stats = get_raster_statistics(url)
+        stats = get_raster_statistics(url, nodata=info['nodata'])
 
         return {
             'name': raster_resource['name'],

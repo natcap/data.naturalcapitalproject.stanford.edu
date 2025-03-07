@@ -1,8 +1,10 @@
+
 ckan.module("mappreview", function ($, _) {
   "use strict";
   return {
     options: {
       config: {},
+        // config is pulled form attributes on the div.mappreview element.
       globalConfig: {},
       debug: false,
     },

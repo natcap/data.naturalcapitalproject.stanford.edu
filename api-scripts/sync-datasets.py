@@ -1,12 +1,11 @@
 #!/usr/bin/env python
-import urllib.request
 import json
 import os
+import urllib.request
+import warnings
+
 import requests
 import yaml
-
-# TODO move
-# TODO make this something that can be run from the worker thread
 
 #
 # Sync CKAN datasets between two servers.
@@ -16,7 +15,7 @@ import yaml
 # deleted, then datasets from the source server are added.
 #
 # If the source and destination servers are the same, the extra fields will be
-# added/udpated instead of deleting and adding datasets. 
+# added/udpated instead of deleting and adding datasets.
 #
 # Usage:
 #  SYNC_DST_CKAN_APIKEY=... SYNC_SRC_URL=... SYNC_DST_URL=... python sync-datasets.py
@@ -98,11 +97,29 @@ def get_raster_info(url):
 
 
 def get_raster_statistics(url):
+    # Get the raster nodata value because rio_tiler is not honoring the nodata
+    # value for landscan for some reason. https://github.com/natcap/data.naturalcapitalproject.stanford.edu/issues/67
+    info_response = requests.get(f"{TITILER_URL}/cog/info", params={
+        'url': url,
+    })
+    info = info_response.json()
+
     percentiles = [2, 20, 40, 60, 80, 98]
-    statistics_response = requests.get(TITILER_URL + '/cog/statistics', params={
+    statistics_params = {
         'url': url,
         'p': percentiles,
-    })
+    }
+
+    # It's possible for a raster's nodata to be defined as a band rather than
+    # as a single value, so guard against that case.
+    if info['nodata_type'].lower() == 'nodata':
+        statistics_params['nodata'] = info['nodata_value']
+    else:
+        warnings.warn(
+            f'nodata value of {info["nodata_type"]} not yet supported')
+
+    statistics_response = requests.get(TITILER_URL + '/cog/statistics',
+                                       params=statistics_params)
     stats = statistics_response.json()['b1']
     return {
         'pixel_min_value': stats['min'],
