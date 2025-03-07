@@ -116,7 +116,8 @@ def get_raster_statistics(url):
         statistics_params['nodata'] = info['nodata_value']
     else:
         warnings.warn(
-            f'nodata value of {info["nodata_type"]} not yet supported')
+            f'nodata value of {info["nodata_type"]} not yet supported. '
+            f'Found on the raster {url}')
 
     statistics_response = requests.get(TITILER_URL + '/cog/statistics',
                                        params=statistics_params)

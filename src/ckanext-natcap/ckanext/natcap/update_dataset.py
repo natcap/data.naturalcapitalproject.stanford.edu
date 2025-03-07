@@ -122,7 +122,9 @@ def get_raster_info(url: str) -> dict:
             info_stats['nodata'] = j['nodata_value']
         else:
             warnings.warn(
-                f'nodata value of {info["nodata_type"]} not yet supported')
+                f'nodata value of {info_stats["nodata_type"]} not yet supported. '
+                f'Found on the raster {url}'
+            )
             info_stats['nodata'] = None
 
         return info_stats
