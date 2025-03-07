@@ -138,7 +138,7 @@ def get_raster_statistics(url: str, nodata=None) -> dict:
         'p': percentiles,
     }
     if nodata is not None:
-        statistics_options = nodata
+        statistics_options['nodata'] = nodata
 
     params = urllib.parse.urlencode(statistics_options, doseq=True)
     url = f"{TITILER_URL}/cog/statistics?{params}"
