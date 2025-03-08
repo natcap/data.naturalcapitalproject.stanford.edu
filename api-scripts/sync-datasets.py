@@ -114,6 +114,17 @@ def get_raster_statistics(url):
     # as a single value, so guard against that case.
     if info['nodata_type'].lower() == 'nodata':
         statistics_params['nodata'] = info['nodata_value']
+
+    # If the raster metadata has min/max values, use those for calculating
+    # histograms.  If these metadata are not defined for some reason, use the
+    # default values from titiler.
+    try:
+        minimum = info['band_metadata'][1]['STATISTICS_MINIMUM']
+        maximum = info['band_metadata'][1]['STATISTICS_MAXIMUM']
+        statistics_params['histogram_range'] = f"{minimum},{maximum}"
+    except KeyError:
+        pass
+
     else:
         warnings.warn(
             f'nodata value of {info["nodata_type"]} not yet supported. '

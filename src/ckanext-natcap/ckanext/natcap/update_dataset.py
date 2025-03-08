@@ -127,10 +127,19 @@ def get_raster_info(url: str) -> dict:
             )
             info_stats['nodata'] = None
 
+        try:
+            band_num, band_metadata = j['band_metadata']
+            info_stats['range'] = (
+                band_metadata['STATISTICS_MINIMUM'],
+                band_metadata['STATISTICS_MAXIMUM']
+            )
+        except KeyError:
+            info_stats['range'] = None
+
         return info_stats
 
 
-def get_raster_statistics(url: str, nodata=None) -> dict:
+def get_raster_statistics(url: str, nodata=None, pixel_range=None) -> dict:
     """Get raster statistics from Titiler"""
     percentiles = [2, 20, 40, 60, 80, 98]
     statistics_options = {
@@ -139,6 +148,10 @@ def get_raster_statistics(url: str, nodata=None) -> dict:
     }
     if nodata is not None:
         statistics_options['nodata'] = nodata
+
+    if pixel_range is not None:
+        statistics_options['histogram_range'] = (
+            f"{pixel_range[0]},{pixel_range[1]}")
 
     params = urllib.parse.urlencode(statistics_options, doseq=True)
     url = f"{TITILER_URL}/cog/statistics?{params}"
@@ -171,7 +184,11 @@ def get_raster_layer_metadata(raster_resource: dict) -> dict:
     # If it exists, get all the info about it
     try:
         info = get_raster_info(url)
-        stats = get_raster_statistics(url, nodata=info['nodata'])
+        stats = get_raster_statistics(
+            url,
+            nodata=info['nodata'],
+            pixel_range=info['range']
+        )
 
         return {
             'name': raster_resource['name'],
