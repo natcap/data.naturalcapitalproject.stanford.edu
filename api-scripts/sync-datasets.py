@@ -178,6 +178,7 @@ def get_raster_layer_metadata(raster_resource):
     try:
         info = get_raster_info(url)
         stats = get_raster_statistics(url)
+        print(stats)
 
         return {
             'name': raster_resource['name'],
