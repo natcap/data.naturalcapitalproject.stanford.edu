@@ -114,21 +114,21 @@ def get_raster_statistics(url):
     # as a single value, so guard against that case.
     if info['nodata_type'].lower() == 'nodata':
         statistics_params['nodata'] = info['nodata_value']
+    else:
+        warnings.warn(
+            f'nodata value of {info["nodata_type"]} not yet supported. '
+            f'Found on the raster {url}. info={info}')
 
     # If the raster metadata has min/max values, use those for calculating
     # histograms.  If these metadata are not defined for some reason, use the
     # default values from titiler.
     try:
-        minimum = info['band_metadata'][1]['STATISTICS_MINIMUM']
-        maximum = info['band_metadata'][1]['STATISTICS_MAXIMUM']
+        minimum = info['band_metadata'][0][1]['STATISTICS_MINIMUM']
+        maximum = info['band_metadata'][0][1]['STATISTICS_MAXIMUM']
         statistics_params['histogram_range'] = f"{minimum},{maximum}"
-    except KeyError:
+    except KeyError as e:
+        print(e)
         pass
-
-    else:
-        warnings.warn(
-            f'nodata value of {info["nodata_type"]} not yet supported. '
-            f'Found on the raster {url}. info={info}')
 
     statistics_response = requests.get(TITILER_URL + '/cog/statistics',
                                        params=statistics_params)
