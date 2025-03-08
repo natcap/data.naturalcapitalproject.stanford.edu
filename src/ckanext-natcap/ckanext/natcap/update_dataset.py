@@ -127,15 +127,6 @@ def get_raster_info(url: str) -> dict:
             )
             info_stats['nodata'] = None
 
-        try:
-            band_num, band_metadata = j['band_metadata']
-            info_stats['range'] = (
-                band_metadata['STATISTICS_MINIMUM'],
-                band_metadata['STATISTICS_MAXIMUM']
-            )
-        except KeyError:
-            info_stats['range'] = None
-
         return info_stats
 
 
@@ -146,6 +137,14 @@ def get_raster_statistics(url: str, nodata=None, pixel_range=None) -> dict:
         'url': url,
         'p': percentiles,
     }
+
+    # There is an apparent bug in rio-tiler where the raster minimum is
+    # incorrectly reported as different from the nodata value.
+    # https://github.com/natcap/data.naturalcapitalproject.stanford.edu/issues/67
+    # For now, I'm just manually adjusting the value here.
+    if url == "https://storage.googleapis.com/natcap-data-cache/global/landscan-pop/landscan_2023.tif":
+        nodata = -2147483648.0
+
     if nodata is not None:
         statistics_options['nodata'] = nodata
 

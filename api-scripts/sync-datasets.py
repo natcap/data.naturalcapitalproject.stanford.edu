@@ -97,38 +97,19 @@ def get_raster_info(url):
 
 
 def get_raster_statistics(url):
-    # Get the raster nodata value because rio_tiler is not honoring the nodata
-    # value for landscan for some reason. https://github.com/natcap/data.naturalcapitalproject.stanford.edu/issues/67
-    info_response = requests.get(f"{TITILER_URL}/cog/info", params={
-        'url': url,
-    })
-    info = info_response.json()
-
     percentiles = [2, 20, 40, 60, 80, 98]
     statistics_params = {
         'url': url,
         'p': percentiles,
     }
 
-    # It's possible for a raster's nodata to be defined as a band rather than
-    # as a single value, so guard against that case.
-    if info['nodata_type'].lower() == 'nodata':
-        statistics_params['nodata'] = info['nodata_value']
-    else:
-        warnings.warn(
-            f'nodata value of {info["nodata_type"]} not yet supported. '
-            f'Found on the raster {url}. info={info}')
-
-    # If the raster metadata has min/max values, use those for calculating
-    # histograms.  If these metadata are not defined for some reason, use the
-    # default values from titiler.
-    try:
-        minimum = info['band_metadata'][0][1]['STATISTICS_MINIMUM']
-        maximum = info['band_metadata'][0][1]['STATISTICS_MAXIMUM']
-        statistics_params['histogram_range'] = f"{minimum},{maximum}"
-    except KeyError as e:
-        print(e)
-        pass
+    # There is an apparent bug in rio-tiler where the raster minimum is
+    # incorrectly reported as different from the nodata value.
+    # https://github.com/natcap/data.naturalcapitalproject.stanford.edu/issues/67
+    # For now, I'm just manually adjusting the value here.
+    if url == "https://storage.googleapis.com/natcap-data-cache/global/landscan-pop/landscan_2023.tif":
+        nodata = -2147483648.0
+        statistics_params['nodata'] = nodata
 
     statistics_response = requests.get(TITILER_URL + '/cog/statistics',
                                        params=statistics_params)
