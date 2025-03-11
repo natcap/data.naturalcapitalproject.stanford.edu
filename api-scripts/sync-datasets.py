@@ -103,14 +103,6 @@ def get_raster_statistics(url):
         'p': percentiles,
     }
 
-    # There is an apparent bug in rio-tiler where the raster minimum is
-    # incorrectly reported as different from the nodata value.
-    # https://github.com/natcap/data.naturalcapitalproject.stanford.edu/issues/67
-    # For now, I'm just manually adjusting the value here.
-    if url == "https://storage.googleapis.com/natcap-data-cache/global/landscan-pop/landscan_2023.tif":
-        nodata = -2147483648.0
-        statistics_params['nodata'] = nodata
-
     statistics_response = requests.get(TITILER_URL + '/cog/statistics',
                                        params=statistics_params)
     stats = statistics_response.json()['b1']
