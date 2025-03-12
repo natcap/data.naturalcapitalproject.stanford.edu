@@ -92,7 +92,7 @@ def get_invest_models():
 
     def update_model(model):
         url = _url_with_params(
-            url_for('search'),
+            url_for('dataset.search'),
             params=[('invest_model', model['model'])],
         )
         name = model['model']
@@ -140,7 +140,7 @@ def get_topic_keywords():
 
     def update_topic(topic):
         url = _url_with_params(
-            url_for('search'),
+            url_for('dataset.search'),
             params=[('topic', topic['topic'])],
         )
         return {
