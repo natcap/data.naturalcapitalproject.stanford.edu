@@ -420,8 +420,8 @@ if __name__ == '__main__':
         sync_datasets(SRC, DST, DST_APIKEY, update=update)
     elif len(args) == 2:
         # NOTE: the ID is the URL slug, e.g. sts-48373e687cf175d436957b3d71f36d8f2e628675861383125519d0cbd0326759
-        print("Syncing dataset ID {sys.argv[2]}")
-        sync_dataset(str(sys.argv[2]), SRC, DST, DST_APIKEY, update=update)
+        print("Syncing dataset ID {sys.argv[1]}")
+        sync_dataset(str(sys.argv[1]), SRC, DST, DST_APIKEY, update=update)
     else:
         print("Usage: python sync-datasets.py [dataset_id]")
         sys.exit(1)
