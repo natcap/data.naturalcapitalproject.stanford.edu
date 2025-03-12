@@ -130,6 +130,7 @@ def get_all_search_facets():
         u'q': '',
         u'facet.field': list(facets.keys()),
     }
+    LOGGER.debug(f"Searching with data dict {data_dict}")
     query = logic.get_action(u'package_search')(context, data_dict)
 
     return query['search_facets']
