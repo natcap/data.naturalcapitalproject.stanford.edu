@@ -1,4 +1,4 @@
-FROM ckan/ckan-base:2.11.1
+FROM ckan/ckan-base:2.11.2
 
 ARG GITHUB_USER
 ARG GITHUB_REPO
