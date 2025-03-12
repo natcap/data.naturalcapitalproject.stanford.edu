@@ -406,7 +406,9 @@ if __name__ == '__main__':
     if DST == SRC:
         update = True
 
-    if len([arg for arg in sys.argv if len(arg.strip()) > 0]) > 0:
+    args = [arg for arg in sys.argv if len(arg.strip()) > 0]
+
+    if len(args) > 1:  # Script name is sys.argv[1]
         print("Syncing all datasets")
 
         if not update:
@@ -416,10 +418,10 @@ if __name__ == '__main__':
 
         print('Syncing datasets...')
         sync_datasets(SRC, DST, DST_APIKEY, update=update)
-    elif len(sys.argv) == 1:
+    elif len(sys.argv) == 2:
         # NOTE: the ID is the URL slug, e.g. sts-48373e687cf175d436957b3d71f36d8f2e628675861383125519d0cbd0326759
-        print("Syncing dataset ID {sys.argv[1]}")
-        sync_dataset(str(sys.argv[1]), SRC, DST, DST_APIKEY, update=update)
+        print("Syncing dataset ID {sys.argv[2]}")
+        sync_dataset(str(sys.argv[2]), SRC, DST, DST_APIKEY, update=update)
     else:
         print("Usage: python sync-datasets.py [dataset_id]")
         sys.exit(1)
