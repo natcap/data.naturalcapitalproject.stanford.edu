@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import json
 import os
+import sys
 import urllib.request
-import warnings
 
 import requests
 import yaml
@@ -21,11 +21,13 @@ import yaml
 #  SYNC_DST_CKAN_APIKEY=... SYNC_SRC_URL=... SYNC_DST_URL=... python sync-datasets.py
 #
 
-SRC = os.environ.get('SYNC_SRC_URL', 'https://data.naturalcapitalproject.stanford.edu')
-DST = os.environ.get('SYNC_DST_URL', 'http://localhost:5000')
+SRC = os.environ.get(
+    'SYNC_SRC_URL', 'https://data.naturalcapitalproject.stanford.edu').strip()
+DST = os.environ.get(
+    'SYNC_DST_URL', 'http://localhost:5000').strip()
 DST_APIKEY = os.environ['SYNC_DST_CKAN_APIKEY']
-TITILER_URL = os.environ.get('TITILER_URL',
-                             'https://titiler-897938321824.us-west1.run.app')
+TITILER_URL = os.environ.get(
+    'TITILER_URL', 'https://titiler-897938321824.us-west1.run.app')
 
 
 def to_short_format(f):
@@ -404,11 +406,22 @@ if __name__ == '__main__':
     if DST == SRC:
         update = True
 
-    if not update:
-        print('Deleting existing datasets...')
-        delete_datasets(DST, DST_APIKEY)
-        print('Done.')
+    if len([arg for arg in sys.argv if len(arg.strip()) > 0]) > 0:
+        print("Syncing all datasets")
 
-    print('Syncing datasets...')
-    sync_datasets(SRC, DST, DST_APIKEY, update=update)
+        if not update:
+            print('Deleting existing datasets...')
+            delete_datasets(DST, DST_APIKEY)
+            print('Done.')
+
+        print('Syncing datasets...')
+        sync_datasets(SRC, DST, DST_APIKEY, update=update)
+    elif len(sys.argv) == 1:
+        # NOTE: the ID is the URL slug, e.g. sts-48373e687cf175d436957b3d71f36d8f2e628675861383125519d0cbd0326759
+        print("Syncing dataset ID {sys.argv[1]}")
+        sync_dataset(str(sys.argv[1]), SRC, DST, DST_APIKEY, update=update)
+    else:
+        print("Usage: python sync-datasets.py [dataset_id]")
+        sys.exit(1)
+
     print('Done.')
