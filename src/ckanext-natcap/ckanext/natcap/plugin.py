@@ -238,6 +238,13 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
         facets_dict['extras_sources_res_formats'] = toolkit._('Resource Formats')
         return facets_dict
 
+    def organization_facets(self, facets_dict, organization_type, package_type):
+        # We basically aren't using organizations in this site, so just return
+        # the existing facets provided.
+        # Handling organization facets due to https://github.com/natcap/data.naturalcapitalproject.stanford.edu/issues/59
+        # See interface prototype at https://github.com/ckan/ckan/blob/042f6ffd3662e3a41e63a41b9b0c7079decb3b29/ckan/plugins/interfaces.py#L1659
+        return facets_dict
+
     def before_dataset_search(self, search_params: dict[str, Any]):
         # Check for topic facet and add tags if found
         if 'fq' in search_params and search_params['fq'].startswith('topic:'):
