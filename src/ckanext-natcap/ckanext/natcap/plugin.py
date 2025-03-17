@@ -290,5 +290,16 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
     def _after_dataset_update(context, package):
         LOGGER.info(f"After dataset update: {context} ||| {package}")
         resource_show = toolkit.get_action('resource_show')
-        resources = [resource_show(context, { 'id': r.id }) for r in context['package'].resources]
+        if "package" in context:
+            # This is what is supposed to happen when we add/update a dataset.
+            resources = [resource_show(context, { 'id': r.id }) for r in context['package'].resources]
+        elif "resources" not in package:
+            # In this case, the package is only the package ID
+            resources = [
+                resource for resource in toolkit.get_action(
+                    'package_show')(context, package)['resources']
+            ]
+        else:
+            # resources are defined in the package data
+            resources = package['resources']
         toolkit.enqueue_job(update_dataset, [context['user'], package, resources])
