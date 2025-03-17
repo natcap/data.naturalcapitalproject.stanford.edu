@@ -172,7 +172,10 @@ def parse_json(json_str):
 
 @toolkit.auth_disallow_anonymous_access
 def natcap_update_mappreview(context, package):
-    NatcapPlugin._after_dataset_update(context, package)
+    # make sure we have complete package data
+    package_data = toolkit.get_action('package_show')(
+        context, {'id': package['id']})
+    NatcapPlugin._after_dataset_update(context, package_data)
 
 
 class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
