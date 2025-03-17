@@ -170,14 +170,26 @@ def parse_json(json_str):
         return []
 
 
+@toolkit.auth_disallow_anonymous_access
+def natcap_update_mappreview(context, package):
+    NatcapPlugin._after_dataset_update(context, package)
+
+
 class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
     plugins.implements(plugins.IConfigurer)
     plugins.implements(plugins.IDatasetForm)
     plugins.implements(plugins.IFacets)
     plugins.implements(plugins.IPackageController, inherit=True)
     plugins.implements(plugins.ITemplateHelpers)
+    plugins.implements(plugins.IActions)
 
     # IConfigurer
+
+    # This is how we define new API endpoints.
+    def get_actions(self):
+        return {
+            'natcap_update_mappreview': natcap_update_mappreview,
+        }
 
     def update_config(self, config_):
         toolkit.add_template_directory(config_, "templates")
@@ -269,7 +281,13 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
 
         return search_params
 
+    # The CKAN API expects this to be local to the instance, but our logic
+    # doesn't use self.
     def after_dataset_update(self, context, package):
+        NatcapPlugin._after_dataset_update(context, package)
+
+    @staticmethod
+    def _after_dataset_update(context, package):
         resource_show = toolkit.get_action('resource_show')
         resources = [resource_show(context, { 'id': r.id }) for r in context['package'].resources]
         toolkit.enqueue_job(update_dataset, [context['user'], package, resources])
