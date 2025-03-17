@@ -391,28 +391,27 @@ def main(gmm_yaml_path, private=False, group=None):
             # dataset? If yes, figure out the URL to use.
             if (gmm_yaml[path_key].startswith('http') and not
                     source_path.startswith('http')):
-                filename, *parent_dirs = reversed(source_path.split('/'))
                 dataset_dirname = os.path.dirname(gmm_yaml[path_key])
-                for directory_component in parent_dirs:
-                    possible_url = f'{dataset_dirname}/{filename}'
-                    if requests.head(possible_url).ok:
-                        source_path = possible_url
-                        break
 
-                # if we couldn't find a valid URL, warn about it and skip
-                if source_path in gmm_yaml['sources']:
-                    warnings.warn(
-                        f'The source {source_path} could not be found near '
-                        f'the dataset {gmm_yaml[path_key]}; skipping',
-                        UserWarning)
-                    continue
+                # Is the resource relative to the parent dir of the primary
+                # URL?
+                resource_url = f"{dataset_dirname}/{source_path}"
+                if not requests.head(resource_url).ok:
+                    raise Exception(
+                        "Resource expected to be relative to the parent dir "
+                        "of the main dataset, but was not found or is not "
+                        f"publicly accessible: {resource_url}")
 
                 resources.append(_create_resource_dict_from_url(
-                    source_path, label))
+                    resource_url, label))
+
             elif source_path.startswith('http'):
+                # Resource is an absolute URL
                 resources.append(_create_resource_dict_from_url(
                     source_path, label))
+
             else:
+                # Resource is assumed to be a local filepath
                 resources.append(_create_resource_dict_from_file(
                     source_path, label, upload=True))
 
