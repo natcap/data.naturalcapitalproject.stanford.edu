@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import urllib.error
 import urllib.request
 import warnings
 from datetime import datetime
@@ -24,9 +25,12 @@ def get_dataset_metadata(resources: list[dict]) -> dict:
 
     for resource in resources:
         if resource['description'] == 'Geometamaker YML':
-            with urllib.request.urlopen(resource['url']) as response:
-                text = response.read()
-                return yaml.safe_load(text)
+            try:
+                with urllib.request.urlopen(resource['url']) as response:
+                    text = response.read()
+                    return yaml.safe_load(text)
+            except urllib.error.HTTPError:
+                LOGGER.warning(f"Could not load GMM YML from {resource['url']}")
 
     return None
 
