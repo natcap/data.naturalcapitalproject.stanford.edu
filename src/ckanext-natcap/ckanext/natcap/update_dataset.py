@@ -176,10 +176,15 @@ def get_raster_layer_metadata(raster_resource: dict) -> dict:
     # If it exists, get all the info about it
     try:
         info = get_raster_info(url)
+        try:
+            range_ = info['range']
+        except KeyError:
+            range_ = None
+
         stats = get_raster_statistics(
             url,
             nodata=info['nodata'],
-            pixel_range=info['range']
+            pixel_range=range_,
         )
 
         return {
