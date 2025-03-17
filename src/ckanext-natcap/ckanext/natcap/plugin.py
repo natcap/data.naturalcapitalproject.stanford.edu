@@ -288,6 +288,7 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
 
     @staticmethod
     def _after_dataset_update(context, package):
+        LOGGER.info(f"After dataset update: {context} ||| {package}")
         resource_show = toolkit.get_action('resource_show')
         resources = [resource_show(context, { 'id': r.id }) for r in context['package'].resources]
         toolkit.enqueue_job(update_dataset, [context['user'], package, resources])
