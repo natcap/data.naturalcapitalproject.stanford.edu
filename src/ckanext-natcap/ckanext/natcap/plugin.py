@@ -175,7 +175,14 @@ def natcap_update_mappreview(context, package):
     # make sure we have complete package data
     package_data = toolkit.get_action('package_show')(
         context, {'id': package['id']})
-    NatcapPlugin._after_dataset_update(context, package_data)
+
+    # Delete the natcap_last_updated extra to force a mappreview reload.
+    filtered_extras = [e for e in package_data['extras']
+                      if e['key'] != 'natcap_last_updated']
+    package_data['extras'] = filtered_extras
+
+    toolkit.get_action('package_update')(context, package_data)
+    #NatcapPlugin._after_dataset_update(context, package_data)
 
 
 class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
