@@ -183,7 +183,8 @@ def natcap_update_mappreview(context, package):
     filtered_extras = [e for e in package_data['extras']
                       if e['key'] != 'natcap_last_updated']
     try:
-        assert len([e['key'] == 'natcap_last_updated' for e in filtered_extras]) == 0
+        assert len([e for e in filtered_extras if e['key'] ==
+                    'natcap_last_updated']) == 0
     except AssertionError:
         LOGGER.debug(filtered_extras)
         raise
