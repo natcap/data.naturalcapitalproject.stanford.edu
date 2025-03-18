@@ -6,6 +6,11 @@ on:
   push:
     branches:
       - master
+    paths:
+      - 'src/**/*'
+      - 'nginx/**/*'
+      - 'postgresql/**/*'
+      - 'ckan/**/*'
   pull_request:
     branches:
       - master
