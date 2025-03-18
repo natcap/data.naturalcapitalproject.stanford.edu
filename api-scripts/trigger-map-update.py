@@ -1,10 +1,14 @@
+import argparse
 import contextlib
 import json
+import logging
 import os
 import sys
 
 import requests
 
+logging.basicConfig(level=logging.INFO)
+LOGGER = logging.getLogger(os.path.basename(__file__))
 CKAN_URL = os.environ.get(
     'CKAN_URL', 'https://data.naturalcapitalproject.stanford.edu/api/3/action')
 while CKAN_URL.endswith('/'):
@@ -28,6 +32,7 @@ def datasets(session):
         resp = session.get(f'{CKAN_URL}/package_list')
         resp_json = resp.json()
     except requests.exceptions.JSONDecodeError:
+        LOGGER.exception('Could not parse a json response from page body.')
         raise
     assert resp_json['success'] is True, (
         "Something went wrong listing packages: "
@@ -41,13 +46,7 @@ def package_data(session, package_id):
     return session.get(f'{CKAN_URL}/package_show?id={package_id}').json()
 
 
-def update_dataset(session, package_id):
-#    package_resp = session.get(
-#        f'{CKAN_URL}/package_show', json={'id': package_id}).json()
-#
-#    assert package_resp['success'] == 'true', (
-#        f"Package response failed: {package_resp}")
-#
+def trigger_map_update(session, package_id):
     print(f"Updating mappreview on {package_id}")
     post_resp = session.post(
         f'{CKAN_URL}/natcap_update_mappreview',
@@ -58,19 +57,41 @@ def update_dataset(session, package_id):
     print(json.dumps(post_resp, indent=4, sort_keys=True))
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(
+        prog=os.path.basename(__file__))
+    parser.add_argument(
+        '--staging', action='store_true', help=(
+            "If provided, the job will be triggered on the staging server "
+            "instead of prod."))
+    parser.add_argument(
+        'dataset_id', nargs='*', help=(
+            "The ID of the dataset to update. If not provided, all datasets "
+            "on the target site will be updated."
+        ))
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
+    parsed_args = parse_args()
+
+    if parsed_args.staging:
+        CKAN_URL = 'https://data-staging.naturalcapitalproject.org/api/3/action'
+
+    user_selected_datasets = parsed_args.dataset_id
+
     with http_session() as session:
         datasets_list = list(datasets(session))
-        if len(sys.argv) == 1:  # Just the script name, assume we process all
+        if len(user_selected_datasets) == 0:
             print("Updating mappreview on all datasets")
-            for package_id in datasets:
-                update_dataset(session, package_id)
+            for package_id in datasets_list:
+                trigger_map_update(session, package_id)
 
         else:
             datasets_set = set(datasets_list)
             mismatch = False
             if not set(sys.argv[1:]).issubset(datasets_set):
-                for dataset_id in sys.argv[1:]:
+                for dataset_id in user_selected_datasets:
                     print(dataset_id)
                     if dataset_id not in datasets_set:
                         mismatch = True
@@ -79,14 +100,5 @@ if __name__ == "__main__":
             if mismatch:
                 raise AssertionError()
 
-            for dataset_id in sys.argv[1:]:
-                before = package_data(session, dataset_id)
-                update_dataset(session, dataset_id)
-                after = package_data(session, dataset_id)
-
-                if json.dumps(before) != json.dumps(after):
-                    print("There's been a change!")
-                    import pdb; pdb.set_trace()
-                else:
-                    import pdb; pdb.set_trace()
-                    print('No change to the package')
+            for dataset_id in user_selected_datasets:
+                trigger_map_update(session, dataset_id)
