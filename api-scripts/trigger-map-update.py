@@ -24,13 +24,21 @@ def http_session():
 def datasets(session):
     print(f"Listing datasets on {CKAN_URL}")
 
-    resp_json = session.get(f'{CKAN_URL}/package_list').json()
+    try:
+        resp = session.get(f'{CKAN_URL}/package_list')
+        resp_json = resp.json()
+    except requests.exceptions.JSONDecodeError:
+        raise
     assert resp_json['success'] is True, (
         "Something went wrong listing packages: "
         f"{json.dumps(resp_json, indent=4, sort_keys=True)}")
 
     for dataset_id in resp_json['result']:
         yield dataset_id
+
+
+def package_data(session, package_id):
+    return session.get(f'{CKAN_URL}/package_show?id={package_id}').json()
 
 
 def update_dataset(session, package_id):
@@ -72,4 +80,13 @@ if __name__ == "__main__":
                 raise AssertionError()
 
             for dataset_id in sys.argv[1:]:
+                before = package_data(session, dataset_id)
                 update_dataset(session, dataset_id)
+                after = package_data(session, dataset_id)
+
+                if json.dumps(before) != json.dumps(after):
+                    print("There's been a change!")
+                    import pdb; pdb.set_trace()
+                else:
+                    import pdb; pdb.set_trace()
+                    print('No change to the package')
