@@ -38,7 +38,8 @@ from osgeo import osr
 logging.basicConfig(level=logging.DEBUG)
 LOGGER = logging.getLogger(os.path.basename(__file__))
 
-URL = "https://data.naturalcapitalproject.stanford.edu"
+URL = os.environ.get(
+    'CKAN_URL', "https://data.naturalcapitalproject.stanford.edu")
 
 MODIFIED_APIKEY = os.environ['CKAN_APIKEY']
 

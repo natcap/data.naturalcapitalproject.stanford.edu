@@ -9,8 +9,7 @@ CKAN_URL = os.environ.get(
     'CKAN_URL', 'https://data.naturalcapitalproject.stanford.edu/api/3/action')
 while CKAN_URL.endswith('/'):
     CKAN_URL = CKAN_URL[:-1]
-#CKAN_APIKEY = os.environ['CKAN_APIKEY']
-CKAN_APIKEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJTa3hsS0hzSGM5aVZnWmRwbXZ1d2Z1NW83dW0wUnNUX0ttS204TXlDcmlVIiwiaWF0IjoxNzM5MjIzNzkyfQ.t-loyY8H1POloOLtUmv8AmB7b0cSC65CQ4pL2B7v1yI"
+CKAN_APIKEY = os.environ['CKAN_STAGING_APIKEY']
 
 @contextlib.contextmanager
 def http_session():
