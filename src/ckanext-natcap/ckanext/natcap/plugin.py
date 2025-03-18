@@ -182,7 +182,7 @@ def natcap_update_mappreview(context, package):
     # Delete the natcap_last_updated extra to force a mappreview reload.
     filtered_extras = [e for e in package_data['extras']
                       if e['key'] != 'natcap_last_updated']
-    assert len([e['key'] != 'natcap_last_updated' for e in filtered_extras]) == 0
+    assert len([e['key'] == 'natcap_last_updated' for e in filtered_extras]) == 0
     package_data['extras'] = filtered_extras
 
     toolkit.get_action('package_update')(context, package_data)
