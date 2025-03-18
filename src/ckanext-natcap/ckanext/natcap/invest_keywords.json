@@ -11,7 +11,8 @@
         "WATERSHEDS",
         "SUBWATERSHEDS",
         "AWY",
-        "ANNUAL WATER YIELD"
+        "ANNUAL WATER YIELD",
+        "ANNUAL EVAPOTRANSPIRATION"
       ]
     },
     {
@@ -107,7 +108,8 @@
         "NUTRIENT DELIVERY RATIO",
         "LULC",
         "LAND USE LAND COVER",
-        "WATERSHEDS"
+        "WATERSHEDS",
+        "DEM"
       ]
     },
     {
@@ -178,7 +180,8 @@
         "LAND USE LAND COVER",
         "SOIL HYDROLOGIC GROUP",
         "RAIN EVENTS",
-        "CLIMATE ZONE MAP"
+        "CLIMATE ZONE MAP",
+        "MONTHLY EVAPOTRANSPIRATION"
       ]
     },
     {
