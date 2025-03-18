@@ -189,6 +189,8 @@ def natcap_update_mappreview(context, package):
         LOGGER.debug(filtered_extras)
         raise
     package_data['extras'] = filtered_extras
+    LOGGER.info(
+        f"Has natcap_last_updated been removed from extras? {package_data}")
 
     toolkit.get_action('package_update')(context, package_data)
     #NatcapPlugin._after_dataset_update(context, package_data)
