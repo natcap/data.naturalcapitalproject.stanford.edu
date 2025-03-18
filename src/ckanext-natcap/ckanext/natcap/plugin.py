@@ -172,6 +172,9 @@ def parse_json(json_str):
 
 @toolkit.auth_disallow_anonymous_access
 def natcap_update_mappreview(context, package):
+    LOGGER.info(f"Attempting to force the update of {package['id']}")
+    LOGGER.info(package)
+
     # make sure we have complete package data
     package_data = toolkit.get_action('package_show')(
         context, {'id': package['id']})
@@ -179,6 +182,7 @@ def natcap_update_mappreview(context, package):
     # Delete the natcap_last_updated extra to force a mappreview reload.
     filtered_extras = [e for e in package_data['extras']
                       if e['key'] != 'natcap_last_updated']
+    assert len([e['key'] != 'natcap_last_updated' for e in filtered_extras]) == 0
     package_data['extras'] = filtered_extras
 
     toolkit.get_action('package_update')(context, package_data)
