@@ -1,0 +1,12 @@
+{% if h.check_access('package_update', {'id': pkg.id}) %}
+    {# See CKAN's HTMX docs: https://docs.ckan.org/en/latest/theming/htmx.html #}
+    {# The function url_for comes from flask: https://flask.palletsprojects.com/en/stable/api/#flask.Flask.url_for #}
+    {# The id key is just passed as a URL parameter. #}
+    <a class="btn btn-default"
+       hx-post="{{ h.url_for('api.action', ver=3, logic_function='natcap_update_mappreview', id=pkg.name) }}"
+       hx-vals='{"id": "{{ pkg.name }}"}'
+       hx-target="#package-info">
+        <i class="fa fa-earth-europe"></i>
+        Refresh map data
+    </a>
+{% endif %}
