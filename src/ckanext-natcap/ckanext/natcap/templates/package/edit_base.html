@@ -4,7 +4,7 @@
 
     {# See CKAN's HTMX docs: https://docs.ckan.org/en/latest/theming/htmx.html #}
     <a class="btn btn-default"
-       hx-post="{{ h.url_for('api.action', ver=3, logic_function='natcap_update_mappreview' values={'id': pkg.id}) }}"
+       hx-post="{{ h.url_for('api.action', ver=3, logic_function='natcap_update_mappreview', values={'id': pkg.id}) }}"
        hx-target="#package-info">
         <i class="fa fa-earth-europe">
             " Refresh map data"
