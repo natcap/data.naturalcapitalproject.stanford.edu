@@ -1,0 +1,7 @@
+{% extends package/edit_base.html %}
+
+{% block content_action %}
+    {# The tilde operator does string concatenation in this context. #}
+    {% link_for _('Refresh map data'), named_route='natcap_update_mappreview', id=pkg.name, class_='btn btn-default', icon='earth-europe' %}
+    {{ super() }}
+{% endblock %}
