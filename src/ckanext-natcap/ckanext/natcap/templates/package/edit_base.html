@@ -1,7 +1,14 @@
 {% ckan_extends %}
 
 {% block content_action %}
-    {# The tilde operator does string concatenation in this context. #}
-    {% link_for _('Refresh map data'), named_route='natcap_update_mappreview', id=pkg.name, class_='btn btn-default', icon='earth-europe' %}
+
+    {# See CKAN's HTMX docs: https://docs.ckan.org/en/latest/theming/htmx.html #}
+    <a class="btn btn-light"
+       hx-post="{{ h.url_for('api.action', ver=3, logic_function='natcap_update_mappreview') }}"
+       hx-target="#package-info">
+        <i class="fa fa-earth-europe">
+            _(" Refresh map data")
+        </i>
+    </a>
     {{ super() }}
 {% endblock %}
