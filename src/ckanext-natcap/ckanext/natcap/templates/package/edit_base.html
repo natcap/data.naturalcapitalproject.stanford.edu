@@ -1,7 +1,7 @@
 {% ckan_extends %}
 
 {% block content_action %}
-    {% if h.check_access('group_update', {'id': group_dict.id}) %}
+    {% if h.check_access('package_update', {'id': pkg.id}) %}
         {# See CKAN's HTMX docs: https://docs.ckan.org/en/latest/theming/htmx.html #}
         {# The function url_for comes from flask: https://flask.palletsprojects.com/en/stable/api/#flask.Flask.url_for #}
         {# The id key is just passed as a URL parameter. #}
