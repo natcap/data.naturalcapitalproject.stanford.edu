@@ -8,6 +8,7 @@ from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
 
+import ckan.lib.helpers as helpers
 import ckan.plugins.toolkit as toolkit
 import yaml
 
@@ -385,29 +386,37 @@ def save_dataset(user, dataset, extras):
 
 
 def update_dataset(user, dataset, resources):
-    LOGGER.info(f"Updating dataset {dataset['id']} ({dataset['name']})")
-    LOGGER.debug(
-        f"Updating dataset {dataset['id']} with resources {resources}")
+    try:
+        LOGGER.info(f"Updating dataset {dataset['id']} ({dataset['name']})")
+        LOGGER.debug(
+            f"Updating dataset {dataset['id']} with resources {resources}")
 
-    extras = dataset['extras']
+        extras = dataset['extras']
 
-    if not should_update(extras):
-        LOGGER.info(f"Skipping update of dataset {dataset['id']}, was updated recently")
-        return
+        if not should_update(extras):
+            LOGGER.info(f"Skipping update of dataset {dataset['id']}, was updated recently")
+            return
 
-    metadata = get_dataset_metadata(resources)
+        metadata = get_dataset_metadata(resources)
 
-    if not metadata:
-        LOGGER.info(f"Skipping update of dataset {dataset['id']}, no metadata found")
-        return
+        if not metadata:
+            LOGGER.info(f"Skipping update of dataset {dataset['id']}, no metadata found")
+            return
 
-    extras = update_sources(dataset, resources, metadata, extras)
-    extras = update_mappreview(dataset, resources, metadata, extras)
-    extras = update_last_updated(extras)
+        extras = update_sources(dataset, resources, metadata, extras)
+        extras = update_mappreview(dataset, resources, metadata, extras)
+        extras = update_last_updated(extras)
 
-    # Remove extras covered by ckanext-scheming
-    extras = [e for e in extras if e['key'] not in ('suggested_citation',)]
+        # Remove extras covered by ckanext-scheming
+        extras = [e for e in extras if e['key'] not in ('suggested_citation',)]
 
-    # Call API to save
-    save_dataset(user, dataset, extras)
-    LOGGER.info(f"Done updating dataset {dataset['id']} ({dataset['name']})")
+        # Call API to save
+        save_dataset(user, dataset, extras)
+        LOGGER.info(f"Done updating dataset {dataset['id']} ({dataset['name']})")
+        helpers.flash_success(f"Map data has been updated for {dataset['id']} "
+                              f"({dataset['name']})")
+    except Exception as e:
+        LOGGER.exception("NatCap dataset update failed")
+        tb_list = traceback.format_exception(type(e), e, e.__traceback__)
+        tb_string = ''.join(tb_list)
+        helpers.flash_error(f"NatCap dataset update failed\n{tb_string}")
