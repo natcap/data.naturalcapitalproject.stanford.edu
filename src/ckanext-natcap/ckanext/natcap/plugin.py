@@ -172,8 +172,8 @@ def parse_json(json_str):
 
 @toolkit.auth_disallow_anonymous_access
 def natcap_update_mappreview(context, package):
-    LOGGER.info(f"Attempting to force the update of {package['id']}")
     LOGGER.info(package)
+    LOGGER.info(f"Attempting to force the update of {package['id']}")
 
     # make sure we have complete package data
     package_data = toolkit.get_action('package_show')(
