@@ -180,8 +180,9 @@
         "LAND USE LAND COVER",
         "SOIL HYDROLOGIC GROUP",
         "RAIN EVENTS",
-        "CLIMATE ZONE MAP",
-        "MONTHLY EVAPOTRANSPIRATION"
+        "CLIMATE ZONES",
+        "MONTHLY EVAPOTRANSPIRATION",
+        "EROSIVITY"
       ]
     },
     {
