@@ -105,20 +105,21 @@ def post_prod_resources_to_staging(target_package_ids=None,
                                 CUR_DIR, 'create-or-update-dataset.py')
                             logfile_path = os.path.join(
                                 temp_dir, f'{gmm_basename}.logfile')
-                            print("Creating dataset on staging with "
+                            print(f"Creating dataset on {STAGING_URL} with "
                                   f"{gmm_basename}")
-                            process = subprocess.run(
-                                [sys.executable, update_script, gmm_filepath],
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT,
-                                check=True, env={
-                                    "CKAN_URL": STAGING_URL,
-                                    "CKAN_APIKEY": STAGING_API_KEY,
-                                })
+                            with open(logfile_path, 'w') as logfile:
+                                subprocess.run(
+                                    [sys.executable, update_script, gmm_filepath],
+                                    stdout=logfile,
+                                    stderr=subprocess.STDOUT,
+                                    check=True, env={
+                                        "CKAN_URL": STAGING_URL,
+                                        "CKAN_APIKEY": STAGING_API_KEY,
+                                    })
                         except Exception:
                             print(INVALID_GMM_PACKAGE_MSG.format(
                                 package_id=package_id,
-                                package_name=info_json['result']['title'],
+                                package_name=info_json['title'],
                                 gmm_url=resource['url'],
                                 logfile_path=logfile_path,
                             ))
@@ -127,9 +128,6 @@ def post_prod_resources_to_staging(target_package_ids=None,
                                       "preference")
                             else:
                                 raise
-                        finally:
-                            with open(logfile_path, 'wb') as logfile:
-                                logfile.write(process.stdout)
                     else:
                         print("WARNING: a non-GMM uploaded file was found, "
                               f"skipping: {resource['url']}")
