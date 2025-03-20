@@ -61,6 +61,15 @@ for extension, mimetype in [
     mimetypes.add_type(mimetype, extension)
 
 
+def _path_is_in_zipfile(zipfile_url, resource_path):
+    zipfile_basename = os.path.splitext(os.path.basename(zipfile_url))[0]
+    zipfile_dirname = os.path.dirname(zipfile_url)
+
+    if zipfile_basename == resource_path.split('/')[0]:
+        return True
+    return False
+
+
 def _hash_file_sha256(filepath):
     sha256 = hashlib.sha256()
     with open(filepath, 'rb') as f:
@@ -392,6 +401,12 @@ def main(gmm_yaml_path, private=False, group=None):
             # dataset? If yes, figure out the URL to use.
             if (gmm_yaml[path_key].startswith('http') and not
                     source_path.startswith('http')):
+                # Exception: we should not include resources that are known to
+                # be members of zipfiles.
+                if gmm_yaml['path'].endswith('.zip') and _path_is_in_zipfile(
+                        gmm_yaml[path_key], source_path):
+                    continue
+
                 dataset_dirname = os.path.dirname(gmm_yaml[path_key])
 
                 # Is the resource relative to the parent dir of the primary
