@@ -385,6 +385,17 @@ def save_dataset(user, dataset, extras):
 
 
 def update_dataset(user, dataset, resources):
+    """Worker job to update a dataset's mappreview metadata.
+
+    Args:
+        user (dict): the ``user`` attribute from the http context.
+        dataset (dict): the dataset object dict with attributes about the
+            package consistent with "action/package_show?id=<package_id>"
+        resources (list): A list of resources dicts.
+
+    Returns:
+        ``None``
+    """
     LOGGER.info(f"Updating dataset {dataset['id']} ({dataset['name']})")
     LOGGER.debug(
         f"Updating dataset {dataset['id']} with resources {resources}")

@@ -311,10 +311,10 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
     @staticmethod
     def _after_dataset_update(context, package):
         LOGGER.info(f"After dataset update: {context} ||| {package}")
-        resource_show = toolkit.get_action('resource_show')
         if "package" in context:
             # This is what is supposed to happen when we add/update a dataset.
-            resources = [resource_show(context, { 'id': r.id }) for r in context['package'].resources]
+            resources = [toolkit.get_action('resource_show')(context, { 'id': r.id })
+                         for r in context['package'].resources]
         elif "resources" not in package:
             # In this case, the package is only the package ID
             resources = [
