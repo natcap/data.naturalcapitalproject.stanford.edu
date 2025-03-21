@@ -313,9 +313,10 @@ def get_mappreview_metadata(resources, zip_sources):
             geojson_path_end = path_basename.replace('.shp', '.geojson')
             url = f'{base}/{path_dirname}/{geojson_path_end}'
 
-            # Get mbtiles file
-            mbtiles_path_end = path_basename.replace('.shp', '.mbtiles')
-            url = f'{base}/{path_dirname}/{mbtiles_path_end}'
+            ## Get mbtiles file
+            ## get_vector_layers_metadata only support geojson right now
+            #mbtiles_path_end = path_basename.replace('.shp', '.mbtiles')
+            #url = f'{base}/{path_dirname}/{mbtiles_path_end}'
 
             # Get metadata file
             metadata_path_end = path_basename.replace('.shp', '.shp.yml')
