@@ -3,7 +3,7 @@
     {% set parts = source.name.split('.') %}
     {% if source.type == 'directory' or h.natcap_show_resource(source.name) %}
       <li class="nested-source-item">
-        <a class="heading" href="{{ res.url }}" aria-label="{{ _('Download resource: {name_or_id}').format(name_or_id=name_or_id)}}">
+        <a class="heading" href="{{ source.url }}" aria-label="{{ _('Download resource: {name_or_id}').format(name_or_id=name_or_id)}}">
           <div class="resource-item-description">
             {% if source.type != 'directory' and h.natcap_show_icon(source.name) %}
               <div class="resource-item-type">
@@ -27,7 +27,7 @@
           </div>
         {% else %}
           <div class="resource-item-name">
-            {{ h.natcap_get_filename(res.url) }}
+            {{ h.natcap_get_filename(source.url) }}
           </div>
         {% endif %}
         </a>
