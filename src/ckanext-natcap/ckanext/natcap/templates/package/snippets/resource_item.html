@@ -16,7 +16,7 @@
   </a>
 
   {% set sources = h.get_pkg_dict_extra(c.pkg_dict, 'sources', '') %}
-  {% set parsed_sources = h.zipexpand_parse_sources(sources) %}
+  {% set parsed_sources = h.zipexpand_parse_sources(sources, res) %}
   {% set resource_sources = h.zipexpand_sources_for_resource(parsed_sources, res) %}
   {% if resource_sources %}
     {% snippet 'package/snippets/sources_list.html',sources=resource_sources,indent=0 %}

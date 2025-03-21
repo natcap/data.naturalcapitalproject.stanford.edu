@@ -1,14 +1,18 @@
 import json
+import os
+
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
 
 
-def parse_sources(sources):
+def parse_sources(sources, resource_dict):
     if not sources:
         return None
+
     sources_arr = sorted(json.loads(sources))
     output_arr = []
 
+    zipfile_url = resource_dict['url']
     for s in sources_arr:
         components = s.split('\\')
         if len(components) == 1:
@@ -23,12 +27,14 @@ def parse_sources(sources):
                 dir_options.append(current_dir)
 
             dir_options = current_dir['children']
-            
+
         dir_options.append({
             'name': components[-1],
             'type': 'file',
-            'extension': components[-1].split('.')[-1]
-            })
+            'extension': components[-1].split('.')[-1],
+            'url': os.path.join(
+                os.path.dirname(zipfile_url), os.path.normpath(s)),
+        })
 
     return output_arr
 
