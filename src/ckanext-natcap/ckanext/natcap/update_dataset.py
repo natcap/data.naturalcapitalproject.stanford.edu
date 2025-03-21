@@ -301,8 +301,8 @@ def get_mappreview_metadata(resources, zip_sources):
         # Look at zip sources for spatial resources and add
         for shp_source in [s for s in zip_sources if s.endswith('shp')]:
             path = shp_source.replace('\\', '/')
-            path_start = path.split('/')[0]
-            path_end = '/'.join(path.split('/')[1:])
+            path_dirname = os.path.dirname(path)
+            path_basename = os.path.basename(path)
 
             name = path.split('/')[-1]
 
@@ -310,12 +310,16 @@ def get_mappreview_metadata(resources, zip_sources):
             base = base.replace('https://storage.cloud.google.com/', 'https://storage.googleapis.com/')
 
             # Get GeoJSON file
-            geojson_path_end = path_end.replace('.shp', '.geojson')
-            url = f'{base}/{path_start}/geojsons/{geojson_path_end}'
+            geojson_path_end = path_basename.replace('.shp', '.geojson')
+            url = f'{base}/{path_dirname}/{geojson_path_end}'
+
+            # Get mbtiles file
+            mbtiles_path_end = path_basename.replace('.shp', '.mbtiles')
+            url = f'{base}/{path_dirname}/{mbtiles_path_end}'
 
             # Get metadata file
-            metadata_path_end = path_end.replace('.shp', '.shp.yml')
-            metadata_url = f'{base}/{path_start}/{metadata_path_end}'
+            metadata_path_end = path_basename.replace('.shp', '.shp.yml')
+            metadata_url = f'{base}/{path_dirname}/{metadata_path_end}'
 
             vector_resources.append({
                 'name': name,
