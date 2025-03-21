@@ -26,8 +26,7 @@
             {% snippet 'package/snippets/sources_list.html',sources=source.children,indent=indent+1 %}
           </div>
         {% else %}
-          <div class="resource-item-name">
-            {{ h.natcap_get_filename(source.url) }}
+          <div class="icon-button icon-button-download">
           </div>
         {% endif %}
         </a>
