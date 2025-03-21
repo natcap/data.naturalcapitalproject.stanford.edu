@@ -1,5 +1,6 @@
 import json
 import os
+import re
 
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
@@ -28,13 +29,18 @@ def parse_sources(sources, resource_dict):
 
             dir_options = current_dir['children']
 
-        dir_options.append({
+        source_dict = {
             'name': components[-1],
             'type': 'file',
             'extension': components[-1].split('.')[-1],
             'url': os.path.join(
                 os.path.dirname(zipfile_url), os.path.normpath(s)),
-        })
+        }
+
+        # zipfiles are downloaded as the whole vector with the .zip extension.
+        if source_dict['extension'] == 'shp':
+            source_dict['url'] = re.sub('\.shp$', '.zip', source_dict['url'])
+        dir_options.append(source_dict)
 
     return output_arr
 
