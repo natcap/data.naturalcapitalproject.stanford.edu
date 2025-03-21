@@ -3,28 +3,34 @@
     {% set parts = source.name.split('.') %}
     {% if source.type == 'directory' or h.natcap_show_resource(source.name) %}
       <li class="nested-source-item">
-        <div class="resource-item-description">
-          {% if source.type != 'directory' and h.natcap_show_icon(source.name) %}
-            <div class="resource-item-type">
-              <img src="/img/icon-filetype-{{ h.natcap_get_resource_type_icon_slug(source.name) }}.png" />
-              {{ h.natcap_get_ext(source.name) }}
-            </div>
-          {% elif source.type == 'directory' %}
-            <div class="resource-item-type">
-              <img src="/img/icon-filetype-directory.png" />
-            </div>
-          {% endif %}
+        <a class="heading" href="{{ res.url }}" aria-label="{{ _('Download resource: {name_or_id}').format(name_or_id=name_or_id)}}">
+          <div class="resource-item-description">
+            {% if source.type != 'directory' and h.natcap_show_icon(source.name) %}
+              <div class="resource-item-type">
+                <img src="/img/icon-filetype-{{ h.natcap_get_resource_type_icon_slug(source.name) }}.png" />
+                {{ h.natcap_get_ext(source.name) }}
+              </div>
+            {% elif source.type == 'directory' %}
+              <div class="resource-item-type">
+                <img src="/img/icon-filetype-directory.png" />
+              </div>
+            {% endif %}
 
-          <div class="resource-item-name">
-            {{ parts[0] }}{% if source.type == 'directory' %}/{% endif %}
+            <div class="resource-item-name">
+              {{ parts[0] }}{% if source.type == 'directory' %}/{% endif %}
+            </div>
           </div>
-        </div>
-        
+
         {% if source.type == 'directory' %}
           <div class="resource-directory-contents">
             {% snippet 'package/snippets/sources_list.html',sources=source.children,indent=indent+1 %}
           </div>
+        {% else %}
+          <div class="resource-item-name">
+            {{ h.natcap_get_filename(res.url) }}
+          </div>
         {% endif %}
+        </a>
       </li>
     {% endif %}
   {% endfor %}
