@@ -347,8 +347,21 @@ def get_mappreview_metadata(resources, zip_sources):
 
 
 def update_mappreview(dataset, resources, metadata, extras):
+    """Update the mappreview metadata attached to the map object.
+
+    Args:
+        dataset (dict): A dataset object dict with attributes about the ckan
+            package.
+        resources (list): A list of resources attached to dataset.
+        metadata (dict): The geometamaker-loaded metadata.
+        extras (list): A list of extras attached to the
+
+    Return:
+        A new list of ``extras`` that has updated mappreview metadata.
+    """
     new_extras = extras
 
+    # This is just getting the `sources` attribute from the geometamaker yaml
     sources = get_dataset_sources(metadata)
 
     mappreview_metadata = get_mappreview_metadata(resources, sources)
