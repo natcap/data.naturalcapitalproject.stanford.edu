@@ -22,7 +22,7 @@ ENV PROJ_LIBDIR=/usr/lib
 ENV PROJ_INCDIR=/usr/include
 # Using latest commit from master branch to avoid having to compile PROJ from source
 ENV CKANEXT_SPATIAL_GIT_REVISION=v2.2.0
-RUN apt-get update && apt-get install -y libgeos-dev libgeos3.11.1 libproj-dev proj-bin python3-shapely
+RUN apt-get update && apt-get install -y libgeos-dev libgeos3.11.1 libproj-dev proj-bin python3-shapely python3-gdal gdal-bin
 RUN pip3 install -e git+https://github.com/ckan/ckanext-spatial.git@$CKANEXT_SPATIAL_GIT_REVISION#egg=ckanext-spatial && \
     pip3 install -r https://raw.githubusercontent.com/ckan/ckanext-spatial/refs/tags/$CKANEXT_SPATIAL_GIT_REVISION/requirements.txt
 RUN pip3 install -e 'git+https://github.com/ckan/ckanext-scheming.git@3af6056bbe16c3f8c6257f18cb2a0805370f85de#egg=ckanext-scheming'
