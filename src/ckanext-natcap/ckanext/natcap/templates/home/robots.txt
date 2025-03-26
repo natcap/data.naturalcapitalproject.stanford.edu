@@ -1,0 +1,8 @@
+{% ckan_extends %}
+
+{% block additional_user_agents -%}
+User-agent: meta-externalagent
+Disallow /dataset/?*
+{%- endblock %}
+
+
