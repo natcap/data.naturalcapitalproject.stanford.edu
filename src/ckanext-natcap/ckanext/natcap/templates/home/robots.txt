@@ -3,6 +3,9 @@
 {% block additional_user_agents -%}
 User-agent: meta-externalagent
 Disallow /dataset/?*
+
+User-agent: GPTBot
+Disallow /dataset/?*
 {%- endblock %}
 
 
