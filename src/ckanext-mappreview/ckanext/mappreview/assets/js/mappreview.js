@@ -169,11 +169,23 @@ ckan.module("mappreview", function ($, _) {
           };
         }
         else if (l.type === 'vector') {
-          return {
-            id: l.name,
-            type: 'geojson',
-            data: l.url,
-          };
+          if (l.url.endswith('.geojson')) {
+            return {
+              id: l.name,
+              type: 'geojson',
+              data: l.url,
+            };
+          } else if (l.url.endswith('.mvt')) {
+            // The only authoritative way to get the correct layer name is to
+            // request it from the MVT metadata.json file.
+            return {
+              if: l.name,
+              type: 'vector',
+              tiles: [`${l.url}/{z}/{x}/{y}.pbf`],
+            };
+          } else {
+            console.error(`Cannot map vector at url ${l.url}`);
+          }
         }
         else {
           console.warn(`Unsupported source type: ${l.type}`);
@@ -187,7 +199,32 @@ ckan.module("mappreview", function ($, _) {
             return this._getRasterLayer(l);
           }
           else if (l.type === 'vector') {
-            return this._getVectorLayers(l, i);
+            var config = this._getVectorLayers(l, i);
+            if (l.url.endswith('.mvt')) {
+              // get the layer name from metadata.json
+              // if an array, add layer to array
+              // otherwise if object, add layer
+              fetch(`${l.url}/metadata.json`)
+                .then(response => response.json())
+                .then(data => {
+                  var layername = data['name'];
+
+                  if (config.constructor === Object) {
+                    config['source-layer'] = layername;
+                  } else if (config.constructor === Array) {
+                    for (let i = 0; i < config.length; i++) {
+                      config[i]['source-layer'] = layername;
+                    }
+                  } else {
+                    console.error(
+                      `Unexpected mapbox gl js layer config: ${l}`);
+                  }
+
+                  return config;
+                })
+                .catch(error => console.error(
+                  `Error fetching MVT metadata: ${l.url}/metadata.json`));
+            }
           }
           else {
             console.warn(`Unsupported layer type: ${l.type}`);

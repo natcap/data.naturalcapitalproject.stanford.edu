@@ -11,9 +11,6 @@ from datetime import timezone
 import ckan.plugins.toolkit as toolkit
 import requests
 import yaml
-from osgeo import gdal
-
-gdal.UseExceptions()
 
 LOGGER = logging.getLogger(__name__)
 TITILER_URL = os.environ.get('TITILER_URL',
@@ -216,13 +213,40 @@ def get_raster_layers_metadata(raster_resources: list[dict]) -> list[dict]:
 def get_vector_layer_metadata(vector_resource: dict) -> dict:
     url = vector_resource['url']
 
-    if url.endswith('.mbtiles'):
-        return get_mbtiles_layer_metadata(vector_resource)
+    if url.endswith('.mvt'):
+        return get_mvt_layer_metadata(vector_resource)
     elif url.endswith('.geojson'):
         return get_geojson_layer_metadata(vector_resource)
 
     LOGGER.warning(f"Could not get metadata from {url}")
     return None
+
+
+def get_mvt_layer_metadata(vector_resource: dict) -> dict:
+    url = vector_resource['url']
+    try:
+        vector_metadata = requests.get(f'{url}/metadata.json').json()
+
+        bounds = [float(b) for b in
+                  vector_metadata['bounds'].split(',')]
+        vector_info = json.loads(vector_metadata['json']['tilestats'])
+        if len(vector_info['layerCount']) > 1:
+            LOGGER.warning(
+                f"Vector has more than 1 layer; only using the first: {url}")
+
+        layer = vector_info['layers'][0]
+
+        return {
+            "name": vector_resource['name'],
+            "type": "vector",
+            "url": url,
+            "bounds": bounds,
+            "vector_type": layer['geometry'],
+            "feature_count": layer['count'],
+        }
+    except Exception:
+        LOGGER.exception(f"Could not load MVT {url}")
+        return None
 
 
 def get_mbtiles_layer_metadata(vector_resource: dict) -> dict:
@@ -359,7 +383,7 @@ def get_mappreview_metadata(resources, zip_sources):
             # Identify a .mbtiles (preferred) or .geojson layer version of the
             # vector for mapping onto the globe.
             url = None
-            for extension in ('.mbtiles', '.geojson'):
+            for extension in ('.mvt', '.geojson'):
                 possible_url = (
                     f'{base}/{path_dirname}/'
                     f'{path_basename.replace(".shp", extension)}')
