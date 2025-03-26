@@ -179,7 +179,7 @@ ckan.module("mappreview", function ($, _) {
             // The only authoritative way to get the correct layer name is to
             // request it from the MVT metadata.json file.
             return {
-              if: l.name,
+              id: l.name,
               type: 'vector',
               tiles: [`${l.url}/{z}/{x}/{y}.pbf`],
             };
