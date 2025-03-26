@@ -185,9 +185,9 @@ ckan.module("mappreview", function ($, _) {
             };
           } else {
             console.error(`Cannot map vector at url ${l.url}`);
+            return null;
           }
-        }
-        else {
+        } else {
           console.warn(`Unsupported source type: ${l.type}`);
           return null;
         }
@@ -201,9 +201,9 @@ ckan.module("mappreview", function ($, _) {
           else if (l.type === 'vector') {
             var config = this._getVectorLayers(l, i);
             if (l.url.endsWith('.mvt')) {
-              // get the layer name from metadata.json
-              // if an array, add layer to array
-              // otherwise if object, add layer
+              // If we're using a Mapbox Vector Tiles layer, we need to get the
+              // layer name from its json metadata and add it to the mapbox gl
+              // js layer configuration.
               fetch(`${l.url}/metadata.json`)
                 .then(response => response.json())
                 .then(data => {
@@ -219,14 +219,12 @@ ckan.module("mappreview", function ($, _) {
                     console.error(
                       `Unexpected mapbox gl js layer config: ${l}`);
                   }
-
-                  return config;
                 })
                 .catch(error => console.error(
                   `Error fetching MVT metadata: ${l.url}/metadata.json`));
             }
-          }
-          else {
+            return config;
+          } else {
             console.warn(`Unsupported layer type: ${l.type}`);
             return null;
           }
