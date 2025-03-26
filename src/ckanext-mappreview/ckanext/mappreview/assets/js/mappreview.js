@@ -165,7 +165,7 @@ ckan.module("mappreview", function ($, _) {
           return {
             id: l.name,
             type: 'raster',
-            url,
+            url: url,
           };
         }
         else if (l.type === 'vector') {
