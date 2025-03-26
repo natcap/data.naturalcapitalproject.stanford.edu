@@ -387,6 +387,11 @@ def get_mappreview_metadata(resources, zip_sources):
                 possible_url = (
                     f'{base}/{path_dirname}/'
                     f'{path_basename.replace(".shp", extension)}')
+                # If we're working with an mvt, we cannot request a HEAD on a
+                # directory, so we need to get the metadata.json file instead
+                if extension == '.mvt':
+                    possible_url = f"{possible_url}/metadata.json"
+
                 if requests.head(possible_url).ok:
                     url = possible_url
                     break
