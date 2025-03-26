@@ -169,13 +169,13 @@ ckan.module("mappreview", function ($, _) {
           };
         }
         else if (l.type === 'vector') {
-          if (l.url.endswith('.geojson')) {
+          if (l.url.endsWith('.geojson')) {
             return {
               id: l.name,
               type: 'geojson',
               data: l.url,
             };
-          } else if (l.url.endswith('.mvt')) {
+          } else if (l.url.endsWith('.mvt')) {
             // The only authoritative way to get the correct layer name is to
             // request it from the MVT metadata.json file.
             return {
@@ -200,7 +200,7 @@ ckan.module("mappreview", function ($, _) {
           }
           else if (l.type === 'vector') {
             var config = this._getVectorLayers(l, i);
-            if (l.url.endswith('.mvt')) {
+            if (l.url.endsWith('.mvt')) {
               // get the layer name from metadata.json
               // if an array, add layer to array
               // otherwise if object, add layer
