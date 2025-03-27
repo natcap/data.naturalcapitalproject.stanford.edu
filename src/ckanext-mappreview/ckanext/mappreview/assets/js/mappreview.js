@@ -891,10 +891,6 @@ ckan.module("mappreview", function ($, _) {
           document.getElementById('natcapClipDownloadClippedLayer').classList.add('d-none');
       }
 
-      window.addEventListener('load', function() {
-          new bootstrap.Modal(document.getElementById('natcapClipProgressModal')).show();
-      });
-
       function toggleOverrideField(check_input, text_field_id) {
           var checked = document.getElementById(check_input).checked;
           var epsg_field = document.getElementById(text_field_id);
