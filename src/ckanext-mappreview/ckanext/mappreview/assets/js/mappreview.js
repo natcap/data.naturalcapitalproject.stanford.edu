@@ -220,8 +220,11 @@ ckan.module("mappreview", function ($, _) {
                       `Unexpected mapbox gl js layer config: ${l}`);
                   }
                 })
-                .catch(error => console.error(
-                  `Error fetching MVT metadata: ${l.url}/metadata.json`));
+                .catch(error => {
+                  console.error(
+                    `Error fetching MVT metadata: ${l.url}/metadata.json`);
+                  console.error(error);
+                });
             }
             return config;
           } else {
