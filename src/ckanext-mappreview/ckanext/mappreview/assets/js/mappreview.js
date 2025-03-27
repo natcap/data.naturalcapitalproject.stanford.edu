@@ -102,7 +102,7 @@ ckan.module("mappreview", function ($, _) {
           }
         };
       }
-      else if (layer.vector_type === 'Line') {
+      else if (layer.vector_type === 'Line' || layer.vector_type === "LineString") {
         return {
           id: layer.name,
           type: 'line',
@@ -134,6 +134,9 @@ ckan.module("mappreview", function ($, _) {
             }
           }
         ];
+      }
+      else {
+        console.error(`Layer type ${layer.vector_type} is not yet handled`);
       }
     },
 
@@ -222,8 +225,7 @@ ckan.module("mappreview", function ($, _) {
                 })
                 .catch(error => {
                   console.error(
-                    `Error fetching MVT metadata: ${l.url}/metadata.json`);
-                  console.error(error);
+                    `Error fetching MVT metadata: ${l.url}/metadata.json`, error);
                 });
             }
             return config;
