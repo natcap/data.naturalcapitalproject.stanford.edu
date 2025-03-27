@@ -102,7 +102,7 @@ ckan.module("mappreview", function ($, _) {
           }
         };
       }
-      else if (layer.vector_type === 'Line') {
+      else if (layer.vector_type === 'Line' || layer.vector_type === "LineString") {
         return {
           id: layer.name,
           type: 'line',
@@ -135,6 +135,9 @@ ckan.module("mappreview", function ($, _) {
           }
         ];
       }
+      else {
+        console.error(`Layer type ${layer.vector_type} is not yet handled`);
+      }
     },
 
     initialize: function () {
@@ -165,17 +168,29 @@ ckan.module("mappreview", function ($, _) {
           return {
             id: l.name,
             type: 'raster',
-            url,
+            url: url,
           };
         }
         else if (l.type === 'vector') {
-          return {
-            id: l.name,
-            type: 'geojson',
-            data: l.url,
-          };
-        }
-        else {
+          if (l.url.endsWith('.geojson')) {
+            return {
+              id: l.name,
+              type: 'geojson',
+              data: l.url,
+            };
+          } else if (l.url.endsWith('.mvt')) {
+            // The only authoritative way to get the correct layer name is to
+            // request it from the MVT metadata.json file.
+            return {
+              id: l.name,
+              type: 'vector',
+              tiles: [`${l.url}/{z}/{x}/{y}.pbf`],
+            };
+          } else {
+            console.error(`Cannot map vector at url ${l.url}`);
+            return null;
+          }
+        } else {
           console.warn(`Unsupported source type: ${l.type}`);
           return null;
         }
@@ -187,9 +202,34 @@ ckan.module("mappreview", function ($, _) {
             return this._getRasterLayer(l);
           }
           else if (l.type === 'vector') {
-            return this._getVectorLayers(l, i);
-          }
-          else {
+            var config = this._getVectorLayers(l, i);
+            if (l.url.endsWith('.mvt')) {
+              // If we're using a Mapbox Vector Tiles layer, we need to get the
+              // layer name from its json metadata and add it to the mapbox gl
+              // js layer configuration.
+              fetch(`${l.url}/metadata.json`)
+                .then(response => response.json())
+                .then(data => {
+                  var layername = data['name'];
+
+                  if (config.constructor === Object) {
+                    config['source-layer'] = layername;
+                  } else if (config.constructor === Array) {
+                    for (let i = 0; i < config.length; i++) {
+                      config[i]['source-layer'] = layername;
+                    }
+                  } else {
+                    console.error(
+                      `Unexpected mapbox gl js layer config: ${l}`);
+                  }
+                })
+                .catch(error => {
+                  console.error(
+                    `Error fetching MVT metadata: ${l.url}/metadata.json`, error);
+                });
+            }
+            return config;
+          } else {
             console.warn(`Unsupported layer type: ${l.type}`);
             return null;
           }

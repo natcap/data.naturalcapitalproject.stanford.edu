@@ -1,9 +1,14 @@
 import json
+import logging
+import os
 import re
 from urllib.parse import urlencode
-from ckan.common import config
+
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
+from ckan.common import config
+
+LOGGER = logging.getLogger(os.path.basename(__file__))
 
 
 def get_config():
@@ -51,6 +56,7 @@ add{slug}();"""
 
 def get_layers_js(pkg):
     layers = parse_metadata(pkg).get('layers') or []
+    LOGGER.debug(f"Layers: {layers}")
     return '\n'.join([get_layer_js(layer) for layer in layers])
 
 

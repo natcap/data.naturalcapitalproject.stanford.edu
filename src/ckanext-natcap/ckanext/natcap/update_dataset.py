@@ -9,6 +9,7 @@ from datetime import timedelta
 from datetime import timezone
 
 import ckan.plugins.toolkit as toolkit
+import requests
 import yaml
 
 LOGGER = logging.getLogger(__name__)
@@ -210,6 +211,71 @@ def get_raster_layers_metadata(raster_resources: list[dict]) -> list[dict]:
 
 
 def get_vector_layer_metadata(vector_resource: dict) -> dict:
+    url = vector_resource['url']
+
+    if url.endswith('.mvt'):
+        return get_mvt_layer_metadata(vector_resource)
+    elif url.endswith('.geojson'):
+        return get_geojson_layer_metadata(vector_resource)
+
+    LOGGER.warning(f"Could not get metadata from {url}")
+    return None
+
+
+def get_mvt_layer_metadata(vector_resource: dict) -> dict:
+    url = vector_resource['url']
+    try:
+        vector_metadata = requests.get(f'{url}/metadata.json').json()
+
+        bounds = [float(b) for b in
+                  vector_metadata['bounds'].split(',')]
+        vector_info = json.loads(vector_metadata['json'])['tilestats']
+        if vector_info['layerCount'] > 1:
+            LOGGER.warning(
+                f"Vector has more than 1 layer; only using the first: {url}")
+
+        layer = vector_info['layers'][0]
+
+        return {
+            "name": vector_resource['name'],
+            "type": "vector",
+            "url": url,
+            "bounds": bounds,
+            "vector_type": layer['geometry'],
+            "feature_count": layer['count'],
+        }
+    except Exception:
+        LOGGER.exception(f"Could not load MVT {url}")
+        return None
+
+
+def get_mbtiles_layer_metadata(vector_resource: dict) -> dict:
+    url = vector_resource['url']
+
+    if url.startswith('https://'):
+        url = f'/vsicurl/{url}'
+    vector_info = gdal.VectorInfo(url, format='json')  # returns a dict
+
+    bounds = [float(b) for b in
+              vector_info['metadata']['']['bounds'].split(',')]
+
+    if len(vector_info['layers']) > 1:
+        LOGGER.warning(
+            f"Vector has more than 1 layer; only using the first: {url}")
+
+    layer = vector_info['layers'][0]
+    geometry_type = layer['geometryFields'][0]['type']
+
+    return {
+        'name': vector_resource['name'],
+        'type': 'vector',
+        'url': url,
+        'bounds': bounds,
+        'vector_type': geometry_type,
+        'feature_count': layer['featureCount'],
+    }
+
+def get_geojson_layer_metadata(vector_resource: dict) -> dict:
     """Get metadata needed to display a raster layer in the map"""
     vector_type = None
     feature_count = None
@@ -255,7 +321,12 @@ def get_vector_layer_metadata(vector_resource: dict) -> dict:
 
 
 def get_vector_layers_metadata(vector_resources):
-    return filter(None, [get_vector_layer_metadata(r) for r in vector_resources])
+    vector_layers = []
+    for vector_layer in vector_resources:
+        if not vector_layer:
+            continue
+        vector_layers.append(get_vector_layer_metadata(vector_layer))
+    return vector_layers
 
 
 def get_map_settings(layers):
@@ -309,14 +380,27 @@ def get_mappreview_metadata(resources, zip_sources):
             base = '/'.join(zip_resource['url'].split('/')[0:-1])
             base = base.replace('https://storage.cloud.google.com/', 'https://storage.googleapis.com/')
 
-            # Get GeoJSON file
-            geojson_path_end = path_basename.replace('.shp', '.geojson')
-            url = f'{base}/{path_dirname}/{geojson_path_end}'
+            # Identify a .mbtiles (preferred) or .geojson layer version of the
+            # vector for mapping onto the globe.
+            url = None
+            for extension in ('.mvt', '.geojson'):
+                possible_url = (
+                    f'{base}/{path_dirname}/'
+                    f'{path_basename.replace(".shp", extension)}')
+                # If we're working with an mvt, we cannot request a HEAD on a
+                # directory, so we need to get the metadata.json file instead
+                url_to_check = possible_url
+                if extension == '.mvt':
+                    url_to_check = f"{possible_url}/metadata.json"
 
-            ## Get mbtiles file
-            ## get_vector_layers_metadata only support geojson right now
-            #mbtiles_path_end = path_basename.replace('.shp', '.mbtiles')
-            #url = f'{base}/{path_dirname}/{mbtiles_path_end}'
+                if requests.head(url_to_check).ok:
+                    url = possible_url
+                    break
+
+            if not url:
+                LOGGER.warning(
+                    f"Could not find web format equivalent for {shp_source}")
+                continue
 
             # Get metadata file
             metadata_path_end = path_basename.replace('.shp', '.shp.yml')
