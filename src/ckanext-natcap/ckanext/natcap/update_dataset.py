@@ -230,7 +230,7 @@ def get_mvt_layer_metadata(vector_resource: dict) -> dict:
         bounds = [float(b) for b in
                   vector_metadata['bounds'].split(',')]
         vector_info = json.loads(vector_metadata['json'])['tilestats']
-        if len(vector_info['layerCount']) > 1:
+        if vector_info['layerCount'] > 1:
             LOGGER.warning(
                 f"Vector has more than 1 layer; only using the first: {url}")
 
