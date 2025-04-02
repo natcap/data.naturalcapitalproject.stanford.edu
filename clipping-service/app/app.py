@@ -246,16 +246,6 @@ def clip():
                     'size': filesize})
 
 
-@app.route("/start")
-def submit():
-    for i in range(10):
-        time.sleep(1)
-        print(f"logging progress {i*10}%")
-        SOURCE_LOGGER.info(f"Progress: {i*10}%")
-    SOURCE_LOGGER.info("Done!")
-    return 'Done!'
-
-
 @app.route('/status')
 def status():
     def _generator():
