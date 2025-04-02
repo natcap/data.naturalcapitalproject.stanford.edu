@@ -152,24 +152,6 @@ def clip_app():
 
 @app.route("/clip", methods=['POST'])
 def clip():
-    #data = flask.request.json
-    #source_raster = data['cog_url']
-    #target_bbox = data['target_bbox']
-    #target_epsg = data['target_epsg']
-
-    #SOURCE_LOGGER.info(f"Clipping {source_raster} to {target_bbox}")
-
-    #for i in range(11):
-    #    time.sleep(1)
-    #    print(f"logging progress {i*10}%")
-    #    SOURCE_LOGGER.info(f"Progress: {i*10}%")
-    #SOURCE_LOGGER.info("Done!")
-
-    #return jsonify({
-    #    'status': 'success',
-    #    'message': 'Clipping finished'
-    #})
-
     parameters = request.get_json()
     app.logger.info(parameters)
 
@@ -244,6 +226,11 @@ def clip():
     app.logger.info("Returning URL: %s", downloadable_raster_path)
     return jsonify({'url': downloadable_raster_path,
                     'size': filesize})
+
+
+@app.route('/multiclip', methods=['POST'])
+def multiclip():
+    pass
 
 
 @app.route('/status')
