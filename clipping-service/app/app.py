@@ -252,6 +252,28 @@ def clip():
 
 @app.route('/multiclip', methods=['POST'])
 def multiclip():
+    """Clip several COGs to the same bounding box.
+
+    All parameters are passed as JSON args.
+
+    Args:
+        cog_urls (list): A list of URLs of the COGs to clip.  Must be located
+            in a trusted bucket.
+        target_bbox (list): A list of the target bounding box, in the form
+            minx, miny, maxx, maxy.
+        target_epsg (str, int): The EPSG code of the clipped raster's target
+            projection.
+        target_cellsize (list): A 2-tuple of the target cell size of the
+            clipped/reprojected COG, in the form (x size, y size).  If ``y
+            size`` is not negative, it will be converted to a negative value.
+
+    Returns:
+        A JSON response body with the attributes:
+
+            * ``url``: The public URL of a zipfile containing the clipped COGs
+            * ``size``: A human-readable string representing the filesize of
+                the zipfile.
+    """
     pass
 
 
