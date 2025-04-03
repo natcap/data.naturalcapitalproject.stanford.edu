@@ -1,5 +1,6 @@
 google-cloud-storage
-flask[async]
+flask
+asgiref>=3.2  # from flask[async], but need it here so conda reads it
 pygeoprocessing
 humanize
 flask_cors
