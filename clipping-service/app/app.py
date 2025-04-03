@@ -265,6 +265,13 @@ def _download_file(source_url, target_local_file):
                 f.write(chunk)
 
 
+async def single_clip_request(session, clip_params):
+    app.logger.info(
+        f"Submitting single-clip with params {clip_params}")
+    async with session.post(f"{SERVICE_URL}/clip", json=clip_params) as response:
+        return await response.json()
+
+
 @app.route('/multiclip', methods=['POST'])
 async def multiclip():
     """Clip several COGs to the same bounding box.
@@ -291,23 +298,16 @@ async def multiclip():
     """
     parameters = request.get_json()
 
-    async def single_clip_request(cog_url):
-        clip_params = {
-            'cog_url': cog_url,
-        }
-
-        # Copy over only the keys that are required.
-        for key in ['target_bbox', 'target_epsg', 'target_cellsize']:
-            if key in parameters:
-                clip_params[key] = parameters[key]
-        app.logger.info(
-            f"Submitting single-clip with params {clip_params}")
-        async with session.post(f"{SERVICE_URL}/clip", json=clip_params) as response:
-            return await response.json()
-
     async with aiohttp.ClientSession() as session:
-        tasks = [single_clip_request(cog_url)
-                 for cog_url in parameters['cog_urls']]
+        tasks = []
+        for cog_url in parameters['cog_urls']:
+            clip_params = {
+                'cog_url': cog_url,
+            }
+            for key in ['target_bbox', 'target_epsg', 'target_cellsize']:
+                if key in parameters:
+                    clip_params[key] = parameters[key]
+            tasks.append(single_clip_request(session, clip_params))
         app.logger.info(f"Waiting for {len(tasks)} single-clip jobs to complete.")
         results = await asyncio.gather(*tasks)
 
