@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import functools
 import json
@@ -7,9 +8,10 @@ import os
 import queue
 import re
 import subprocess
-import time
 import uuid
+import zipfile
 
+import aiohttp
 import flask
 import humanize
 import pygeoprocessing
@@ -54,6 +56,7 @@ TARGET_BUCKET_URL = f'{GOOGLE_STORAGE_URL}/jupyter-app-temp-storage'
 WORKSPACE_DIR = os.environ.get('WORKSPACE_DIR', os.getcwd())
 app.logger.info("WORKSPACE_DIR: %s", WORKSPACE_DIR)
 pygeoprocessing.geoprocessing._LOGGING_PERIOD = 1.0
+SERVICE_URL = os.environ.get('SERVICE_URL', 'http://localhost')
 
 
 def _epsg_to_wkt(epsg_code):
@@ -250,8 +253,20 @@ def clip():
                     'size': filesize})
 
 
+def _download_file(source_url, target_local_file):
+    app.logger.info(f'Downloading {source_url}')
+    with requests.get(source_url, stream=True) as r:
+        r.raise_for_status()
+        with open(target_local_file, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                # If you have chunk encoded response uncomment if
+                # and set chunk_size parameter to None.
+                #if chunk:
+                f.write(chunk)
+
+
 @app.route('/multiclip', methods=['POST'])
-def multiclip():
+async def multiclip():
     """Clip several COGs to the same bounding box.
 
     All parameters are passed as JSON args.
@@ -274,7 +289,57 @@ def multiclip():
             * ``size``: A human-readable string representing the filesize of
                 the zipfile.
     """
-    pass
+    parameters = request.get_json()
+
+    async def single_clip_request(cog_url):
+        clip_params = {
+            'cog_url': cog_url,
+            'target_bbox': parameters['target_bbox'],
+            'target_epsg': parameters['target_epsg'],
+            'target_cellsize': parameters['target_cellsize'],
+        }
+        async with session.post(f"{SERVICE_URL}/clip", json=clip_params) as response:
+            return await response.json()
+
+    async with aiohttp.ClientSession() as session:
+        tasks = [single_clip_request(cog_url)
+                 for cog_url in parameters['cog_urls']]
+        results = await asyncio.gather(*tasks)
+
+    # Collect results into a zipfile.
+    app.logger.info(f'Collecting {len(tasks)} into a zipfile')
+    today = datetime.datetime.now().strftime('%Y-%m-%d')
+    target_zip = None
+    try:
+        zip_filename = f'{today}--{uuid.uuid4()}-multiclip.zip'
+        target_zip_path = os.path.join(WORKSPACE_DIR, zip_filename)
+        with zipfile.ZipFile(target_zip_path) as archive:
+            for result_json in results:
+                app.logger.info(f"Adding {result_json['url']} to zipfile")
+                target_filename = os.path.join(
+                    WORKSPACE_DIR, os.path.basename(result_json['url']))
+                _download_file(result_json['url'], target_filename)
+                archive.write(target_filename)
+                os.remove(target_filename)
+
+        app.logger.info(f"Uploading to bucket: {target_zip_path}")
+        bucketname = re.sub('^gs://', '', TARGET_FILE_BUCKET)
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(bucketname)
+        blob = bucket.blob(zip_filename)
+        blob.upload_from_filename(target_zip_path)
+    except Exception:
+        app.logger.exception('Something failed while zipping COGs')
+        raise
+    finally:
+        if target_zip:  # in case something breaks before we write the zip
+            os.remove(target_zip)
+
+    filesize = humanize.naturalsize(os.path.getsize(target_zip_path))
+    return jsonify({
+        "url": f"{TARGET_BUCKET_URL}/{zip_filename}",
+        "size": filesize
+    })
 
 
 @app.route('/status')
