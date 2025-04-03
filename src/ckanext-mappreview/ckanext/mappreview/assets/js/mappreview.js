@@ -731,19 +731,30 @@ ckan.module("mappreview", function ($, _) {
                         title="At this time, clipping only works with raster layers.">
                   Clipping is disabled
                 </button>`;
-            } else if (rasters.length == 1) {
+            } else {
+              if (rasters.length == 1) {
+                clip_button_text = "Clip this layer";
+              } else {
+                clip_button_text = "Clip selected layers";
+              }
               this._container.innerHTML = `
                 <button type="button"
                         class="btn btn-secondary"
                         id='${clip_button_id}'>
                   <i class="fa-solid fa-scissors"></i>
-                  Clip this layer
+                  ${clip_button_text}
                 </button>${progress_modal_trigger_button}`;
 
               this._container.getElementsByTagName('button')[0].addEventListener('click', function() {
                 // when the 'clip to this bounding box' button is selected, set an attribute of the button
                 document.getElementById(clip_button_id).setAttribute(
-                  'layer-name', rasters[0].name);
+                  'layer-count', rasters.length);
+                document.getElementById(clip_button_id).setAttribute(
+                  'layer-data', JSON.stringify(rasters));
+
+
+                document.getElementById(clip_button_id).setAttribute(
+                  'layer-name', JSON.stringify(rasterse);
                 document.getElementById(clip_button_id).setAttribute(
                   'layer-url', rasters[0].url);
                 document.getElementById(clip_button_id).setAttribute(
@@ -751,45 +762,6 @@ ckan.module("mappreview", function ($, _) {
                 selected_layer = rasters[0].name;
                 natcapClipLayer(rasters[0].name);
               });
-            } else {
-              var raster_string = "";
-              for (const raster_layer of rasters) {
-                raster_string += `
-                  <li>
-                    <a class="dropdown-item
-                       href="#"
-                       layer-name='${raster_layer.name}'
-                       layer-url=${raster_layer.url}>
-                      ${raster_layer.name}
-                    </a>
-                  </li>\n`
-              }
-              this._container.innerHTML = `
-                <div class="dropup">
-                  <button class='btn btn-secondary dropdown-toggle'
-                          data-bs-toggle='dropdown'
-                          aria-expanded='false'
-                          id='${clip_button_id}'>
-                    <i class="fa-solid fa-scissors"></i>
-                    Clip this layer
-                  </button>
-                  <ul class="dropdown-menu">
-                    ${raster_string}
-                  </ul>
-                </div>
-                ${progress_modal_trigger_button}
-              `;
-              for (const elem of this._container.getElementsByTagName('a')) {
-                elem.addEventListener('click', function() {
-                  // When clicked, note the selected layer in the modal.
-                  document.getElementById(clip_button_id).setAttribute(
-                    'layer-name', elem.getAttribute('layer-name'));
-                  document.getElementById(clip_button_id).setAttribute(
-                    'layer-url', elem.getAttribute('layer-url'));
-                  document.getElementById(clip_button_id).setAttribute(
-                    'layer-type', elem.getAttribute('layer-type'));
-                });
-              }
             }
 
             // add a handler for cancelling clipping mode.
@@ -842,10 +814,23 @@ ckan.module("mappreview", function ($, _) {
           document.getElementById('natcapClipInProgress').classList.remove('d-none');
           document.getElementById('natcapClipInitOptions').classList.add('d-none');
 
-          var target_cog = document.getElementById(clip_button_id).getAttribute('layer-url');
-          var clipping_options = {
-            cog_url: target_cog,
-            target_bbox: _box(),
+          var layer_count = parseInt(document.getElementById(clip_button_id).getAttribute('layer-count'));
+          var layer_data = JSON.parse(document.getElementById(clip_button_id).getAttribute('layer-data'));
+
+          var clipping_options;
+          var clipping_endpoint;
+          if (layer_count == 1) {
+            clipping_options = {
+              cog_url: layer_data[0].url,
+              target_bbox: _box(),
+            }
+            clipping_endpoint = 'clip';
+          } else {
+            clipping_options = {
+              cog_urls: layer_data.map((data) => data.url);
+              target_bbox: _box(),
+            }
+            clipping_endpoint = 'multiclip';
           }
 
           // are we overriding the EPSG code?  If not, don't include it in the clipping_options.
@@ -863,7 +848,7 @@ ckan.module("mappreview", function ($, _) {
           }
 
           const clipping_service_url = 'https://clipping-service-897938321824.us-west1.run.app';
-          fetch(`${clipping_service_url}/clip`, {
+          fetch(`${clipping_service_url}/${clipping_endpoint}`, {
             method: "POST",
             body: JSON.stringify(clipping_options),
             headers: {
