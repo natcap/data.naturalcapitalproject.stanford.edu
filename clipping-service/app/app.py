@@ -300,12 +300,15 @@ async def multiclip():
         for key in ['target_bbox', 'target_epsg', 'target_cellsize']:
             if key in parameters:
                 clip_params[key] = parameters[key]
+        app.logger.info(
+            f"Submitting single-clip with params {clip_params}")
         async with session.post(f"{SERVICE_URL}/clip", json=clip_params) as response:
             return await response.json()
 
     async with aiohttp.ClientSession() as session:
         tasks = [single_clip_request(cog_url)
                  for cog_url in parameters['cog_urls']]
+        app.logger.info(f"Waiting for {len(tasks)} single-clip jobs to complete.")
         results = await asyncio.gather(*tasks)
 
     # Collect results into a zipfile.
