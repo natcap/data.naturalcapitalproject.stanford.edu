@@ -294,10 +294,12 @@ async def multiclip():
     async def single_clip_request(cog_url):
         clip_params = {
             'cog_url': cog_url,
-            'target_bbox': parameters['target_bbox'],
-            'target_epsg': parameters['target_epsg'],
-            'target_cellsize': parameters['target_cellsize'],
         }
+
+        # Copy over only the keys that are required.
+        for key in ['target_bbox', 'target_epsg', 'target_cellsize']:
+            if key in parameters:
+                clip_params[key] = parameters[key]
         async with session.post(f"{SERVICE_URL}/clip", json=clip_params) as response:
             return await response.json()
 
