@@ -642,30 +642,9 @@ ckan.module("mappreview", function ($, _) {
       });
 
       // clip the layer
-      function natcapClipLayer(layer_name) {
-        var layer_details = undefined;
-        for (var layer_index in config.layers) {
-          var layer = config.layers[layer_index];
-          if (layer.name == layer_name) {
-            layer_details = layer;
-            break;
-          }
-        }
-
+      function natcapClipLayer() {
         // hide the "Clip This Layer" button
         document.getElementById(clip_button_id).classList.add('d-none');  // use classList.remove('d-none') to re-enable
-
-        // Uncheck layers that aren't this one.
-        // Track which layers are checked for when we exit clipping mode.
-        var legend_inputs = document.querySelectorAll('div.mapboxgl-legend-list table.legend-table input');
-        for (const legend_input of legend_inputs) {
-          legend_former_check_state[legend_input.name] = legend_input.checked;
-          if (legend_input.name !== layer.name) {
-            legend_input.checked = false;
-          } else {
-            legend_input.checked = true;
-          }
-        }
 
         // Add the bounding box
         initBoundingBox();
@@ -683,7 +662,6 @@ ckan.module("mappreview", function ($, _) {
       }
 
 
-      var selected_layer;
       class ClippingControl{
         onAdd(map) {
 
@@ -746,21 +724,28 @@ ckan.module("mappreview", function ($, _) {
                 </button>${progress_modal_trigger_button}`;
 
               this._container.getElementsByTagName('button')[0].addEventListener('click', function() {
-                // when the 'clip to this bounding box' button is selected, set an attribute of the button
+                // determine which layers were selected for clipping.
+                var selected_rasters = [];
+                var legend_inputs = document.querySelectorAll('div.mapboxgl-legend-list table.legend-table input');
+                for (const legend_input of legend_inputs) {
+                  if (legend_input.checked) {
+                    for (const layer of rasters) {
+                      if (layer.name === legend_input.name) {
+                        selected_rasters.push(layer);
+                        break;
+                      }
+                    }
+                  }
+                }
+
+                // when the 'clip to this bounding box' button is selected, set
+                // an attribute of the button with data needed for clipping.
                 document.getElementById(clip_button_id).setAttribute(
                   'layer-count', rasters.length);
                 document.getElementById(clip_button_id).setAttribute(
-                  'layer-data', JSON.stringify(rasters));
+                  'layer-data', JSON.stringify(selected_rasters));
 
-
-                document.getElementById(clip_button_id).setAttribute(
-                  'layer-name', JSON.stringify(rasterse);
-                document.getElementById(clip_button_id).setAttribute(
-                  'layer-url', rasters[0].url);
-                document.getElementById(clip_button_id).setAttribute(
-                  'layer-type', rasters[0].type);
-                selected_layer = rasters[0].name;
-                natcapClipLayer(rasters[0].name);
+                natcapClipLayer();
               });
             }
 
