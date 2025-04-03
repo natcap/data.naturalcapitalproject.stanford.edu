@@ -849,6 +849,8 @@ ckan.module("mappreview", function ($, _) {
             }
           }).then(response_json => {
             downloadComplete(response_json.url, response_json.size);
+          }).catch(error => {
+            console.error("Caught an error while clipping", error);
           });
       }
 
