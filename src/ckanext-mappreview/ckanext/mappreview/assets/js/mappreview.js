@@ -812,7 +812,7 @@ ckan.module("mappreview", function ($, _) {
             clipping_endpoint = 'clip';
           } else {
             clipping_options = {
-              cog_urls: layer_data.map((data) => data.url);
+              cog_urls: layer_data.map((data) => data.url),
               target_bbox: _box(),
             }
             clipping_endpoint = 'multiclip';
