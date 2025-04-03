@@ -710,6 +710,7 @@ ckan.module("mappreview", function ($, _) {
                   Clipping is disabled
                 </button>`;
             } else {
+              var clip_button_text;
               if (rasters.length == 1) {
                 clip_button_text = "Clip this layer";
               } else {
