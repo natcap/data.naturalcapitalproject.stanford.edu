@@ -6,6 +6,9 @@ Disallow /dataset/?*
 
 User-agent: GPTBot
 Disallow /dataset/?*
+
+User-agent: SemrushBot
+Disallow /dataset/?*
 {%- endblock %}
 
 
