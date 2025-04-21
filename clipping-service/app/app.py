@@ -267,7 +267,8 @@ def _download_file(source_url, target_local_file):
 
 async def single_clip_request(session, clip_params):
     app.logger.info(
-        f"Submitting single-clip with params {clip_params}")
+        f"Submitting single-clip to {SERVICE_URL}/clip with params "
+        f"{clip_params}")
     async with session.post(f"{SERVICE_URL}/clip", json=clip_params) as response:
         return await response.json()
 
