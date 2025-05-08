@@ -7,9 +7,11 @@ import textwrap
 
 import requests
 
-STAGING_URL = 'https://data-staging.naturalcapitalproject.org'
+STAGING_URL = os.environ.get(
+    'CKAN_STAGING_URL', 'https://data-staging.naturalcapitalproject.org')
 STAGING_API = f'{STAGING_URL}/api/3/action'
-PROD_URL = 'https://data.naturalcapitalproject.stanford.edu'
+PROD_URL = os.environ.get(
+    'CKAN_PROD_URL', 'https://data.naturalcapitalproject.stanford.edu')
 PROD_API = f'{PROD_URL}/api/3/action'
 STAGING_API_KEY = os.environ['CKAN_STAGING_APIKEY']
 
