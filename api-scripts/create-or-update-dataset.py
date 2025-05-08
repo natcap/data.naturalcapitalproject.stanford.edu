@@ -43,6 +43,11 @@ URL = os.environ.get(
 
 MODIFIED_APIKEY = os.environ['CKAN_APIKEY']
 
+# Disable SSL verification if we're running on localhost.
+VERIFY=True
+if URL.split('https://')[1].startswith('localhost'):
+    VERIFY=False
+
 RESOURCES_BY_EXTENSION = {
     '.csv': 'CSV Table',
     '.tif.aux.xml': 'GDAL Auxiliary XML',
@@ -305,7 +310,9 @@ def main(gmm_yaml_path, private=False, group=None):
     session = requests.Session()
     session.headers.update({'Authorization': MODIFIED_APIKEY})
 
-    with RemoteCKAN(URL, apikey=MODIFIED_APIKEY) as catalog:
+    session = requests.Session()
+    session.verify = VERIFY
+    with RemoteCKAN(URL, apikey=MODIFIED_APIKEY, session=session) as catalog:
         print('list org natcap', catalog.action.organization_list(id='natcap'))
 
         licenses = catalog.action.license_list()
