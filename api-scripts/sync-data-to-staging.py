@@ -1,3 +1,16 @@
+"""Sync all datasets from prod to a staging CKAN instance.
+
+See api-scripts/create-or-update-dataset.py for the list of dependencies and
+required setup to run this program.
+
+By default, this program will sync datasets from prod
+(https://data.naturalcapitalproject.stanford.edu) over to staging
+(https://data-staging.naturalcapitalproject.org).  If you want to sync to a
+local docker-compose cluster, set environment variables like so:
+
+    $ CKAN_STAGING_URL="https://localhost:8443" CKAN_STAGING_APIKEY="<my api key>" python api-scripts/sync-data-to-staging.py
+"""
+
 import argparse
 import contextlib
 import os
@@ -7,13 +20,20 @@ import textwrap
 
 import requests
 
-STAGING_URL = 'https://data-staging.naturalcapitalproject.org'
+STAGING_URL = os.environ.get(
+    'CKAN_STAGING_URL', 'https://data-staging.naturalcapitalproject.org')
 STAGING_API = f'{STAGING_URL}/api/3/action'
-PROD_URL = 'https://data.naturalcapitalproject.stanford.edu'
+PROD_URL = os.environ.get(
+    'CKAN_PROD_URL', 'https://data.naturalcapitalproject.stanford.edu')
 PROD_API = f'{PROD_URL}/api/3/action'
 STAGING_API_KEY = os.environ['CKAN_STAGING_APIKEY']
 
 CUR_DIR = os.path.dirname(__file__)
+
+# Disable SSL verification if we're running on localhost.
+VERIFY=True
+if STAGING_URL.split('https://')[1].startswith('localhost'):
+    VERIFY=False
 
 # list out sources on ckan
 # clean out the sources
@@ -33,6 +53,7 @@ INVALID_GMM_PACKAGE_MSG = textwrap.dedent(
 @contextlib.contextmanager
 def http_session(api_key=None):
     session = requests.Session()
+    session.verify = VERIFY
     if api_key is not None:
         session.headers.update({'Authorization': api_key})
     yield session
