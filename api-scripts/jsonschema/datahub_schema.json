@@ -1,0 +1,203 @@
+{
+  "$defs": {
+    "HubContact": {
+      "additionalProperties": false,
+      "properties": {
+        "email": {
+          "minLength": 1,
+          "title": "Email",
+          "type": "string"
+        },
+        "organization": {
+          "default": "",
+          "title": "Organization",
+          "type": "string"
+        },
+        "individual_name": {
+          "minLength": 1,
+          "title": "Individual Name",
+          "type": "string"
+        },
+        "position_name": {
+          "default": "",
+          "title": "Position Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "email",
+        "individual_name"
+      ],
+      "title": "HubContact",
+      "type": "object"
+    },
+    "HubLicense": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "default": "",
+          "description": "URL that describes the license.",
+          "title": "Path",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "title": "HubLicense",
+      "type": "object"
+    }
+  },
+  "additionalProperties": true,
+  "properties": {
+    "contact": {
+      "$ref": "#/$defs/HubContact"
+    },
+    "license": {
+      "$ref": "#/$defs/HubLicense"
+    },
+    "geometamaker_version": {
+      "default": "",
+      "title": "Geometamaker Version",
+      "type": "string"
+    },
+    "metadata_path": {
+      "default": "",
+      "title": "Metadata Path",
+      "type": "string"
+    },
+    "bytes": {
+      "default": 0,
+      "description": "File size of the resource in bytes.",
+      "title": "Bytes",
+      "type": "integer"
+    },
+    "encoding": {
+      "default": "",
+      "description": "File encoding of the resource.",
+      "title": "Encoding",
+      "type": "string"
+    },
+    "format": {
+      "default": "",
+      "description": "File format of the resource.",
+      "title": "Format",
+      "type": "string"
+    },
+    "uid": {
+      "default": "",
+      "description": "Unique identifier for the resource.",
+      "title": "Uid",
+      "type": "string"
+    },
+    "path": {
+      "default": "",
+      "description": "Path to the resource being described.",
+      "title": "Path",
+      "type": "string"
+    },
+    "scheme": {
+      "default": "",
+      "description": "File protocol for opening the resource.",
+      "title": "Scheme",
+      "type": "string"
+    },
+    "type": {
+      "default": "",
+      "description": "The type of resource being described.",
+      "title": "Type",
+      "type": "string"
+    },
+    "last_modified": {
+      "default": "",
+      "description": "Last modified time of the file at ``path``.",
+      "title": "Last Modified",
+      "type": "string"
+    },
+    "sources": {
+      "description": "A list of files which comprise the dataset or resource.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "citation": {
+      "minLength": 1,
+      "title": "Citation",
+      "type": "string"
+    },
+    "description": {
+      "minLength": 1,
+      "title": "Description",
+      "type": "string"
+    },
+    "doi": {
+      "default": "",
+      "description": "A digital object identifier for the resource.",
+      "title": "Doi",
+      "type": "string"
+    },
+    "edition": {
+      "default": "",
+      "description": "A string representing the edition, or version, of the resource.",
+      "title": "Edition",
+      "type": "string"
+    },
+    "keywords": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Keywords",
+      "type": "array"
+    },
+    "lineage": {
+      "minLength": 1,
+      "title": "Lineage",
+      "type": "string"
+    },
+    "placenames": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Placenames",
+      "type": "array"
+    },
+    "purpose": {
+      "default": "",
+      "description": "The author's stated purpose for the resource.",
+      "title": "Purpose",
+      "type": "string"
+    },
+    "title": {
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    },
+    "url": {
+      "minLength": 1,
+      "title": "Url",
+      "type": "string"
+    }
+  },
+  "required": [
+    "contact",
+    "license",
+    "citation",
+    "description",
+    "keywords",
+    "lineage",
+    "placenames",
+    "title",
+    "url"
+  ],
+  "title": "HubResource",
+  "type": "object"
+}
