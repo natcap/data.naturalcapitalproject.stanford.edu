@@ -1211,3 +1211,9 @@ div.logo a {
         gap: 2rem;
     }
 }
+
+
+/* Undo the display:none on the tab-content class elsewhere in CKAN CSS */
+div#invest-model-lists.tab-content {
+    display: block;
+}
