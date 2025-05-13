@@ -1217,3 +1217,7 @@ div.logo a {
 div#invest-model-lists.tab-content {
     display: block;
 }
+
+div#invest-model-list-container div {
+    margin-bottom: 0.5rem;
+}
