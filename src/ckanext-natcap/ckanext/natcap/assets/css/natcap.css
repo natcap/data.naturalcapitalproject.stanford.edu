@@ -548,6 +548,12 @@ body {
 
 .home-invest-model-list-item a {
     color: var(--color-black);
+    display: flex;
+    align-items: center;
+}
+
+.home-invest-model-list-item a img {
+    padding-right: 5px;
 }
 
 .additional-info .table {
