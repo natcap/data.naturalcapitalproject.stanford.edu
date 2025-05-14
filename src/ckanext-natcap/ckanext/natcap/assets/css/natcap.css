@@ -1227,3 +1227,7 @@ div#invest-model-lists.tab-content {
 div#invest-model-list-container div {
     margin-bottom: 0.5rem;
 }
+
+#invest-model-list-container .nav-pills .nav-link.active {
+    background-color: var(--color-blue);
+}
