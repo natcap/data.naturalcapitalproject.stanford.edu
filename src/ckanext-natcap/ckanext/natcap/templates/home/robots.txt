@@ -6,6 +6,9 @@ Disallow /dataset/?*
 
 User-agent: GPTBot
 Disallow /dataset/?*
+
+User-agent: Bytespider
+Disallow /dataset/?*
 {%- endblock %}
 
 
