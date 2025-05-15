@@ -3,7 +3,7 @@
 If the dataset already exists, then its attributes are updated.
 
 Dependencies:
-    $ mamba install ckanapi pyyaml google-cloud-storage requests gdal
+    $ mamba install ckanapi pyyaml google-cloud-storage requests gdal pygeoprocessing
 
 Note:
     You will need to authenticate with the google cloud api in order to do
