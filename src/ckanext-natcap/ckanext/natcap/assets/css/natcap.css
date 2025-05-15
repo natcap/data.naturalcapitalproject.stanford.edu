@@ -548,6 +548,12 @@ body {
 
 .home-invest-model-list-item a {
     color: var(--color-black);
+    display: flex;
+    align-items: center;
+}
+
+.home-invest-model-list-item a img {
+    padding-right: 5px;
 }
 
 .additional-info .table {
@@ -1210,4 +1216,18 @@ div.logo a {
     .site-footer .row {
         gap: 2rem;
     }
+}
+
+
+/* Undo the display:none on the tab-content class elsewhere in CKAN CSS */
+div#invest-model-lists.tab-content {
+    display: block;
+}
+
+div#invest-model-list-container div {
+    margin-bottom: 0.5rem;
+}
+
+#invest-model-list-container .nav-pills .nav-link.active {
+    background-color: var(--color-blue);
 }
