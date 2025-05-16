@@ -9,6 +9,8 @@ Disallow /dataset/?*
 
 User-agent: Bytespider
 Disallow /dataset/?*
+
+Sitemap: https://data.naturalcapitalproject.stanford.edu/sitemap.xml
 {%- endblock %}
 
 

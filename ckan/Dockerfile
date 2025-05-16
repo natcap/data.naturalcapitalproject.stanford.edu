@@ -36,6 +36,8 @@ RUN pip3 install -e git+https://github.com/ckan/ckanext-googleanalytics.git@$CKA
 ENV CKANEXT_ORFACET_GIT_REV=7a01391186761ff112a76bc7e62dd487330a2371
 RUN pip3 install -e git+https://github.com/DataShades/ckanext-or_facet.git@$CKANEXT_ORFACET_GIT_REV#egg=ckanext-or_facet
 
+RUN pip3 install -e git+https://github.com/datopian/ckanext-sitemap.git#egg=ckanext-sitemap
+
 # NOTE: requires that the build context includes ./src/
 COPY ./src/ckanext-natcap /srv/app/src/ckanext-natcap
 RUN pip3 install -r /srv/app/src/ckanext-natcap/requirements.txt && \
