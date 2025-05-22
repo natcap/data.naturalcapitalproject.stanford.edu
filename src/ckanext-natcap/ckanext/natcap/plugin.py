@@ -103,7 +103,8 @@ def get_invest_models():
             'highlighted': name in highlighted,
             'url': url,
         }
-    models = [update_model(m) for m in models]
+    models = sorted([update_model(m) for m in models],
+                    key=lambda data: data['name'])
     return models
 
 
