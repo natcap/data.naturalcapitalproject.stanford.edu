@@ -9,6 +9,15 @@ def load_data_to_bigquery(event, context):
     #object_ = bucket.blob(event['name'])
     # Assuming CSV format; adjust for other formats
     # Assuming you have the BigQuery table setup beforehand
+
+    # Skip logs that aren't usage logs specifically for the bucket we care
+    # about.
+    if not event['name'].startswith(
+            'natcap-data-cache/natcap-data-cache_usage_'):
+        print('File is not in the target bucket or is not usage logging: '
+              f'{event["name"]}')
+        return
+
     destination_table = (
         f"sdss-natcap-gef-ckan.data-cache-logs.{event['bucket']}")
 
