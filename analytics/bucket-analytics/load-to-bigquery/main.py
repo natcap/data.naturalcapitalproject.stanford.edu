@@ -19,7 +19,7 @@ def load_data_to_bigquery(event, context):
         return
 
     destination_table = (
-        f"sdss-natcap-gef-ckan.data-cache-logs.{event['bucket']}")
+        f"sdss-natcap-gef-ckan.data_cache_logs.{event['bucket']}")
 
     try:
         # Load data from Cloud Storage to BigQuery
