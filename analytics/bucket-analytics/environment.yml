@@ -1,0 +1,16 @@
+# Create this environment with
+#   mamba create -p ./env313 --file environment.yml
+
+name: env313
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - jupyter
+  - notebook
+  - ipykernel
+  - nbconvert
+  - nbformat
+  - jupyterlab
+  - requests
+  - google-cloud-sdk
