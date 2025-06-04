@@ -12,5 +12,4 @@ dependencies:
   - nbconvert
   - nbformat
   - jupyterlab
-  - requests
-  - google-cloud-sdk
+  - google-cloud-bigquery
