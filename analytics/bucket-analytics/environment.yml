@@ -9,9 +9,7 @@ channels:
   - conda-forge
 dependencies:
   - google-cloud-bigquery
-  - google-cloud-sdk
   - ipykernel
-  - jq
   - jupyter
   - jupyterlab
   - nbconvert
