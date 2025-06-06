@@ -1,0 +1,18 @@
+# Create this environment in the local directory with
+#   mamba env create -p ./env313 --file environment.yml
+#
+# Or create the environment in your usual env location with
+#   mamba env create --file environment.yml
+
+name: env313
+channels:
+  - conda-forge
+dependencies:
+  - google-cloud-bigquery
+  - ipykernel
+  - jupyter
+  - jupyterlab
+  - nbconvert
+  - nbformat
+  - notebook
+  - python=3.12

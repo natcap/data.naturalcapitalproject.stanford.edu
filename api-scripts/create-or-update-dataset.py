@@ -38,10 +38,14 @@ from osgeo import osr
 logging.basicConfig(level=logging.DEBUG)
 LOGGER = logging.getLogger(os.path.basename(__file__))
 
-URL = os.environ.get(
-    'CKAN_URL', "https://data.naturalcapitalproject.stanford.edu")
+if '--staging' in sys.argv:
+    URL = 'https://data-staging.naturalcapitalproject.org'
+    MODIFIED_APIKEY = os.environ['CKAN_STAGING_APIKEY']
+else:
+    URL = os.environ.get(
+        'CKAN_URL', "https://data.naturalcapitalproject.stanford.edu")
+    MODIFIED_APIKEY = os.environ['CKAN_APIKEY']
 
-MODIFIED_APIKEY = os.environ['CKAN_APIKEY']
 
 # Disable SSL verification if we're running on localhost.
 VERIFY=True
