@@ -42,7 +42,7 @@ def get_dataset_metadata(resources: list[dict]) -> dict:
                 # This SHOULD be able to be configured by the CKAN
                 # configuration item ckan.site_url (CKAN_SITE_URL in the .env
                 # file), but this appears that this container always operates
-                # on post 5000, when the site itself may, in fact, be on a
+                # on port 5000, when the site itself may, in fact, be on a
                 # different port thanks to docker compose.
                 #
                 # Setting CKAN_SITE_URL correctly in the .env also affects
