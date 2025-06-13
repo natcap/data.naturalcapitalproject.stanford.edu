@@ -1,6 +1,10 @@
 proxy_cache_path /tmp/nginx_cache levels=1:2 keys_zone=cache:30m max_size=250m;
 proxy_temp_path /tmp/nginx_proxy 1 2;
 
+# Limit requests to 1 request per second from the same IP address over a 10m window
+# Adapted from https://www.jeffgeerling.com/blog/2022/rate-limiting-requests-ip-address-nginx
+limit_req_zone $binary_remote_addr zone=1req_per_s:1m rate=1r/s;
+
 server {
     server_name 34.28.204.100;
     client_max_body_size 100M;
@@ -10,8 +14,15 @@ server {
 	# Block bot query strings on specific pages only.  We DO want bots to
 	# index/crawl datasets, just not to use the search feature.
 	location = /dataset/ {
+		# Also throttle
+		# Throttle to 1req/sec rate, over a 1m window.
+		# If we have >5 requests over that rate, return a 503 error.
+		# To configure the error, see https://nginx.org/en/docs/http/ngx_http_limit_req_module.html#limit_req_status
+		limit_req zone=1req_per_s burst=5;
+
 		include /etc/nginx/throttle-bots.conf;
 		include /etc/nginx/ckan-proxy.conf;
+
 	}
 	location = /organization/natcap/ {
 		include /etc/nginx/throttle-bots.conf;
