@@ -41,6 +41,9 @@ LOGGER = logging.getLogger(os.path.basename(__file__))
 if '--staging' in sys.argv:
     URL = 'https://data-staging.naturalcapitalproject.org'
     MODIFIED_APIKEY = os.environ['CKAN_STAGING_APIKEY']
+elif '--local' in sys.argv:
+    URL = 'https://localhost:8443'
+    MODIFIED_APIKEY = os.environ['CKAN_LOCAL_APIKEY']
 else:
     URL = os.environ.get(
         'CKAN_URL', "https://data.naturalcapitalproject.stanford.edu")
