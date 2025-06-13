@@ -32,8 +32,8 @@ def get_dataset_metadata(resources: list[dict]) -> dict:
 
             # Handle the case where we're on a development machine, without a
             # globally-identifiable hostname.  In this case, santize the URL
-            # to use the correct port (from config) and not use HTTPS (not
-            # needed since on local container)
+            # to use the correct port and not use HTTPS (served by NGINX, not
+            # CKAN, which isn't in this container)
             if re.match('^https?://localhost', resource_url):
                 LOGGER.info(f"Resource is on localhost: {resource}")
                 resource = re.sub(
@@ -41,9 +41,9 @@ def get_dataset_metadata(resources: list[dict]) -> dict:
 
                 # This SHOULD be able to be configured by the CKAN
                 # configuration item ckan.site_url (CKAN_SITE_URL in the .env
-                # file), but this appears that this container always operates
-                # on port 5000, when the site itself may, in fact, be on a
-                # different port thanks to docker compose.
+                # file), but it appears that this container always operates
+                # on port 5000, when the site itself may, in fact, be exposed
+                # on a different port via docker compose.
                 #
                 # Setting CKAN_SITE_URL correctly in the .env also affects
                 # redirects (like after logging in), so it should, in fact
