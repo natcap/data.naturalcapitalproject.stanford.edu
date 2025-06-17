@@ -38,18 +38,6 @@ from osgeo import osr
 
 logging.basicConfig(level=logging.DEBUG)
 LOGGER = logging.getLogger(os.path.basename(__file__))
-
-if '--staging' in sys.argv:
-    URL = 'https://data-staging.naturalcapitalproject.org'
-    MODIFIED_APIKEY = os.environ['CKAN_STAGING_APIKEY']
-elif '--local' in sys.argv:
-    URL = 'https://localhost:8443'
-    MODIFIED_APIKEY = os.environ['CKAN_LOCAL_APIKEY']
-else:
-    URL = os.environ.get(
-        'CKAN_URL', "https://data.naturalcapitalproject.stanford.edu")
-    MODIFIED_APIKEY = os.environ['CKAN_APIKEY']
-
 CKAN_HOSTS = {
     'prod': 'https://data.naturalcapitalproject.stanford.edu',
     'staging': 'https://data-staging.naturalcapitalproject.org',
@@ -62,12 +50,6 @@ CKAN_APIKEY_ENVVARS = {
 }
 assert set(CKAN_HOSTS.keys()) == set(CKAN_APIKEY_ENVVARS.keys()), (
     'Mismatch between keys in CKAN host and apikey dicts')
-
-
-# Disable SSL verification if we're running on localhost.
-VERIFY = True
-if URL.split('https://')[1].startswith('localhost'):
-    VERIFY=False
 
 RESOURCES_BY_EXTENSION = {
     '.csv': 'CSV Table',
@@ -323,17 +305,18 @@ def _get_wgs84_bbox(config):
              [minx, maxy]]]
 
 
-def main(gmm_yaml_path, private=False, group=None):
+def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
+         verify_ssl=True):
     with open(gmm_yaml_path) as yaml_file:
         LOGGER.debug(f"Loading geometamaker yaml from {gmm_yaml_path}")
         gmm_yaml = yaml.load(yaml_file.read(), Loader=yaml.Loader)
 
     session = requests.Session()
-    session.headers.update({'Authorization': MODIFIED_APIKEY})
+    session.headers.update({'Authorization': ckan_apikey})
 
     session = requests.Session()
-    session.verify = VERIFY
-    with RemoteCKAN(URL, apikey=MODIFIED_APIKEY, session=session) as catalog:
+    session.verify = verify_ssl
+    with RemoteCKAN(ckan_url, apikey=ckan_apikey, session=session) as catalog:
         print('list org natcap', catalog.action.organization_list(id='natcap'))
 
         licenses = catalog.action.license_list()
@@ -581,16 +564,28 @@ def _ui(args=None):
         "The API key to use for the target host."))
 
     args = parser.parse_args(args)
-    print(args)
 
+    # If the user defined a selected host, use that.  Otherwise, fall back to
+    # production.
     selected_host = 'prod'
     for host in ('prod', 'staging', 'dev'):
         if getattr(args, host):
             selected_host = host
             break
-    LOGGER.info(f"User selected CKAN target {selected_host}: "
-                f"{CKAN_HOSTS[selected_host]}")
+    host_url = CKAN_HOSTS[selected_host]
+    LOGGER.info(f"User selected CKAN target {selected_host}: {host_url}")
+
+    if not args.apikey:
+        apikey = os.environ[CKAN_APIKEY_ENVVARS[selected_host]]
+    else:
+        apikey = args.apikey
+
+    return (
+        host_url, apikey, args.geometamaker_yml
+    )
 
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    host, apikey, gmm_path = _ui()
+    main(host, apikey, gmm_path,
+         verify_ssl=(host.split('https://'[1].startswith('localhost'))))
