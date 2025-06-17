@@ -23,7 +23,6 @@ import mimetypes
 import os
 import pprint
 import re
-import sys
 import warnings
 
 import ckanapi.errors
@@ -71,7 +70,6 @@ for extension, mimetype in [
 
 def _path_is_in_zipfile(zipfile_url, resource_path):
     zipfile_basename = os.path.splitext(os.path.basename(zipfile_url))[0]
-    zipfile_dirname = os.path.dirname(zipfile_url)
 
     if zipfile_basename == resource_path.split('/')[0]:
         return True
@@ -538,6 +536,19 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
 
 
 def _ui(args=None):
+    """Build and operate an argparse CLI UI.
+
+    Args:
+        args=None (list): A list of string command-line parameters to provide
+            to argparse.  If ``None``, retrieval of args is left to argparse.
+
+    Returns:
+        Returns a 3-tuple with the following variables:
+
+            * host_url (str): The url of the CKAN host selected.
+            * apikey (str): The API key selected
+            * gmm_path (str): The geometamaker yml filepath
+    """
     parser = argparse.ArgumentParser(
         prog=os.path.basename(__file__),
         description=(
@@ -576,8 +587,11 @@ def _ui(args=None):
     LOGGER.info(f"User selected CKAN target {selected_host}: {host_url}")
 
     if not args.apikey:
-        apikey = os.environ[CKAN_APIKEY_ENVVARS[selected_host]]
+        envvar_key = CKAN_APIKEY_ENVVARS[selected_host]
+        LOGGER.info(f"Using API key from environment variable {envvar_key}")
+        apikey = os.environ[envvar_key]
     else:
+        LOGGER.info("Using CLI-defined API key")
         apikey = args.apikey
 
     return (
