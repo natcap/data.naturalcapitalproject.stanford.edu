@@ -13,6 +13,7 @@ Note:
 
         $ gcloud auth application-default login
 """
+import argparse
 import collections
 import datetime
 import hashlib
@@ -49,9 +50,22 @@ else:
         'CKAN_URL', "https://data.naturalcapitalproject.stanford.edu")
     MODIFIED_APIKEY = os.environ['CKAN_APIKEY']
 
+CKAN_HOSTS = {
+    'prod': 'https://data.naturalcapitalproject.stanford.edu',
+    'staging': 'https://data-staging.naturalcapitalproject.org',
+    'dev': 'https://localhost:8443'
+}
+CKAN_APIKEY_ENVVARS = {
+    'prod': 'CKAN_APIKEY',
+    'staging': 'CKAN_STAGING_APIKEY',
+    'dev': 'CKAN_LOCAL_APIKEY',
+}
+assert set(CKAN_HOSTS.keys()) == set(CKAN_APIKEY_ENVVARS.keys()), (
+    'Mismatch between keys in CKAN host and apikey dicts')
+
 
 # Disable SSL verification if we're running on localhost.
-VERIFY=True
+VERIFY = True
 if URL.split('https://')[1].startswith('localhost'):
     VERIFY=False
 
@@ -538,6 +552,44 @@ def main(gmm_yaml_path, private=False, group=None):
 
         except AttributeError:
             print(dir(catalog.action))
+
+
+def _ui(args=None):
+    parser = argparse.ArgumentParser(
+        prog=os.path.basename(__file__),
+        description=(
+            "Script to create or update a dataset on a NatCap CKAN instance."),
+    )
+    parser.add_argument('geometamaker_yml', help=(
+        "The local path to a geometamaker yml file."))
+
+    # Allow a user to select the host they want.
+    # If no host is explicitly defined, assume prod.
+    host_group = parser.add_mutually_exclusive_group()
+    host_group.add_argument(
+        '--prod', action='store_true', default=False, help=(
+            'Create/update the dataset on '
+            'data.naturalcapitalproject.stanford.edu'))
+    host_group.add_argument(
+        '--staging', action='store_true', default=False, help=(
+            'Create/update the dataset on '
+            'data-staging.naturalcapitalproject.org.'))
+    host_group.add_argument(
+        '--dev', action='store_true', default=False, help=(
+            'Create/update the dataset on localhost:8443'))
+    parser.add_argument('--apikey', default=None, help=(
+        "The API key to use for the target host."))
+
+    args = parser.parse_args(args)
+    print(args)
+
+    selected_host = 'prod'
+    for host in ('prod', 'staging', 'dev'):
+        if getattr(args, host):
+            selected_host = host
+            break
+    LOGGER.info(f"User selected CKAN target {selected_host}: "
+                f"{CKAN_HOSTS[selected_host]}")
 
 
 if __name__ == '__main__':
