@@ -1,15 +1,15 @@
 {% ckan_extends %}
 
+{% block all_user_agents %}
+Disallow: /dataset/rate/
+Disallow: /revision/
+Disallow: /dataset/*/history
+Disallow: /api/
+Disallow: /dataset/?*
+Crawl-Delay: 10
+{% endblock %}
+
 {% block additional_user_agents -%}
-User-agent: meta-externalagent
-Disallow /dataset/?*
-
-User-agent: GPTBot
-Disallow /dataset/?*
-
-User-agent: Bytespider
-Disallow /dataset/?*
-
 Sitemap: https://data.naturalcapitalproject.stanford.edu/sitemap.xml
 {%- endblock %}
 

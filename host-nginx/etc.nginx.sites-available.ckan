@@ -1,15 +1,38 @@
-proxy_cache_path /tmp/nginx_cache levels=1:2 keys_zone=cache:30m max_size=250m;
+proxy_cache_path /tmp/nginx_cache levels=1:2 keys_zone=cache:1024m max_size=2048m;
 proxy_temp_path /tmp/nginx_proxy 1 2;
 
+# Limit requests to 1 request per second from the same IP address over a window
+# Adapted from https://www.jeffgeerling.com/blog/2022/rate-limiting-requests-ip-address-nginx
+# The 10m refers to the LRU cache size.
+# Commented out until we decide whether to stick with GCP WAF or return to NGINX
+#limit_req_zone $binary_remote_addr zone=1req_per_s:10m rate=1r/s;
+
+# We can also limit the number of connections allowed from any single client
+# Commented out until we decide whether to stick with GCP WAF or return to NGINX
+#limit_conn_zone $binary_remote_addr zone=addr:10m;
+
 server {
-    server_name 34.28.204.100;
+    server_name 34.8.16.110;
+    #server_name 34.28.204.100;  # deprecated for now
     client_max_body_size 100M;
     server_name data.naturalcapitalproject.stanford.edu;
+    server_name data-lb.naturalcapitalproject.org;
+
 
     location / {
 	# Block bot query strings on specific pages only.  We DO want bots to
 	# index/crawl datasets, just not to use the search feature.
 	location = /dataset/ {
+		# Also throttle
+		# Throttle to 1req/sec rate, over a 1m window.
+		# If we have >1 requests over that rate, return a 503 error.
+		# To configure the error, see https://nginx.org/en/docs/http/ngx_http_limit_req_module.html#limit_req_status
+                # Commented out until we decide whether to stick with GCP WAF or return to NGINX
+		#limit_req zone=1req_per_s burst=34 nodelay;
+
+		# limit the number of connections
+                # Commented out until we decide whether to stick with GCP WAF or return to NGINX
+		#limit_conn addr 10;
 		include /etc/nginx/throttle-bots.conf;
 		include /etc/nginx/ckan-proxy.conf;
 	}
@@ -60,7 +83,8 @@ server {
 
     listen 80;
     listen [::]:80;
-    server_name 34.28.204.100;
+    #server_name 34.28.204.100;  # deprecated for now
+    server_name 34.8.16.110;
     server_name data.naturalcapitalproject.stanford.edu;
     return 404; # managed by Certbot
 
