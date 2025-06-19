@@ -651,6 +651,21 @@ body {
     justify-content: flex-end;
 }
 
+.site-footer #su-logo {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+}
+
+.site-footer #su-logo a {
+    padding-right: 25px;
+}
+
+.site-footer #su-logo img {
+    width: 150px;
+    height: auto;
+}
+
 .site-footer img {
     max-width: min(100%, 200px);
 }
