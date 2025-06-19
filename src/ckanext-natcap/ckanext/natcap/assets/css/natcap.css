@@ -670,13 +670,19 @@ body {
     max-width: min(100%, 200px);
 }
 
- .site-footer .attribution p {
+.site-footer .attribution p {
   color: #fff;
   font-size: 0.875rem;
 }
 
 .site-footer label, .site-footer small, .site-footer .small {
     color: #fff;
+}
+
+footer#footer-su {
+    background: var(--color-black);
+    padding-top: 2rem;
+    padding-bottom: 2rem;
 }
 
 .main {
