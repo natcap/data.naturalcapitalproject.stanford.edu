@@ -600,5 +600,5 @@ def _ui(args=None):
 if __name__ == '__main__':
     host, apikey, gmm_path = _ui()
 
-    is_localhost = not host.split('https://')[1].startswith('localhost')
+    is_localhost = host.split('https://')[1].startswith('localhost')
     main(host, apikey, gmm_path, verify_ssl=(not is_localhost))
