@@ -23,10 +23,10 @@ import requests
 STAGING_URL = os.environ.get(
     'CKAN_STAGING_URL', 'https://data-staging.naturalcapitalproject.org')
 STAGING_API = f'{STAGING_URL}/api/3/action'
+STAGING_API_KEY = os.environ['CKAN_STAGING_APIKEY']
 PROD_URL = os.environ.get(
     'CKAN_PROD_URL', 'https://data.naturalcapitalproject.stanford.edu')
 PROD_API = f'{PROD_URL}/api/3/action'
-STAGING_API_KEY = os.environ['CKAN_STAGING_APIKEY']
 
 CUR_DIR = os.path.dirname(__file__)
 
@@ -126,16 +126,16 @@ def post_prod_resources_to_staging(target_package_ids=None,
                                 CUR_DIR, 'create-or-update-dataset.py')
                             logfile_path = os.path.join(
                                 temp_dir, f'{gmm_basename}.logfile')
-                            print(f"Creating dataset on {STAGING_URL} with "
+                            print(f"Creating dataset on staging with "
                                   f"{gmm_basename}")
                             with open(logfile_path, 'w') as logfile:
                                 subprocess.run(
-                                    [sys.executable, update_script, gmm_filepath],
+                                    [sys.executable, update_script,
+                                     gmm_filepath, '--staging'],
                                     stdout=logfile,
                                     stderr=subprocess.STDOUT,
                                     check=True, env={
-                                        "CKAN_URL": STAGING_URL,
-                                        "CKAN_APIKEY": STAGING_API_KEY,
+                                        "CKAN_STAGING_APIKEY": STAGING_API_KEY,
                                     })
                         except Exception:
                             print(INVALID_GMM_PACKAGE_MSG.format(
