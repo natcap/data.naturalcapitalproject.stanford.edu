@@ -311,8 +311,6 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
 
     session = requests.Session()
     session.headers.update({'Authorization': ckan_apikey})
-
-    session = requests.Session()
     session.verify = verify_ssl
     with RemoteCKAN(ckan_url, apikey=ckan_apikey, session=session) as catalog:
         print('list org natcap', catalog.action.organization_list(id='natcap'))
