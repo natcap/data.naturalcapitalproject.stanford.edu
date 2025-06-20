@@ -629,7 +629,7 @@ body {
 .site-footer {
     background: var(--color-blue);
     color: var(--color-off-white);
-    padding: 5rem;
+    padding: 4rem;
 }
 
 .site-footer .row {
@@ -651,20 +651,24 @@ body {
     justify-content: flex-end;
 }
 
-.site-footer #su-logo {
+.site-footer #su-logo,
+.site-footer #natcap-logo {
     display: flex;
     flex-direction: row;
     justify-content: flex-end;
 }
 
-.site-footer #su-logo a {
+.site-footer #su-logo a,
+.site-footer #natcap-logo a {
     padding-right: 25px;
 }
 
-.site-footer #su-logo img {
+.site-footer #su-logo img,
+.site-footer #natcap-logo img {
     width: 150px;
     height: auto;
 }
+
 
 .site-footer img {
     max-width: min(100%, 200px);
