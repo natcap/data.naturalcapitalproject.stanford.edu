@@ -4,35 +4,62 @@ volumes:
   solr_data:
   pip_cache:
   site_packages:
-  vscode_server:
 
 services:
 
-  ckan-dev:
+  nginx:
+    build:
+      context: nginx/
+      dockerfile: Dockerfile
+    networks:
+      - webnet
+      - ckannet
+    depends_on:
+      ckan:
+        condition: service_healthy
+    ports:
+      - "0.0.0.0:${NGINX_SSLPORT_HOST}:${NGINX_SSLPORT}"
+
+  ckan:
     build:
       context: .
       dockerfile: ckan/Dockerfile.dev
       args:
         - TZ=${TZ}
+        - GITHUB_USER=${GITHUB_USER}
+        - GITHUB_REPO=${GITHUB_REPO}
+        - GITHUB_BRANCH=${GITHUB_BRANCH}
+    networks:
+      - ckannet
+      - dbnet
+      - solrnet
+      - redisnet
     env_file:
       - .env
-    links:
-      - db
-      - solr
-      - redis
-    ports:
-      - "0.0.0.0:${CKAN_PORT_HOST}:${CKAN_PORT}"
+    depends_on:
+      db:
+        condition: service_healthy
+      solr:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - ckan_storage:/var/lib/ckan
-      - ./src:/srv/app/src_extensions
       - pip_cache:/root/.cache/pip
       - site_packages:/usr/lib/python3.10/site-packages
-      - vscode_server:/root/.vscode-server
     restart: unless-stopped
+    develop:
+      watch:
+        - action: sync
+          path: ./src
+          target: /srv/app/src
     healthcheck:
       test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:5000"]
 
   datapusher:
+    networks:
+      - ckannet
+      - dbnet
     image: ckan/ckan-base-datapusher:${DATAPUSHER_VERSION}
     restart: unless-stopped
     healthcheck:
@@ -41,6 +68,8 @@ services:
   db:
     build:
       context: postgresql/
+    networks:
+      - dbnet
     environment:
       - POSTGRES_USER
       - POSTGRES_PASSWORD
@@ -58,9 +87,9 @@ services:
       test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}"]
 
   solr:
+    networks:
+      - solrnet
     image: ckan/ckan-solr:${SOLR_IMAGE_VERSION}
-    ports:
-     - "8983:8983"
     volumes:
       - solr_data:/var/solr
     restart: unless-stopped
@@ -69,6 +98,18 @@ services:
 
   redis:
     image: redis:${REDIS_VERSION}
+    networks:
+      - redisnet
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "-e", "QUIT"]
+
+networks:
+  webnet:
+  ckannet:
+  solrnet:
+    internal: true
+  dbnet:
+    internal: true
+  redisnet:
+    internal: true
