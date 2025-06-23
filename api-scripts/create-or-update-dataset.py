@@ -13,6 +13,7 @@ Note:
 
         $ gcloud auth application-default login
 """
+import argparse
 import collections
 import datetime
 import hashlib
@@ -22,7 +23,6 @@ import mimetypes
 import os
 import pprint
 import re
-import sys
 import warnings
 
 import ckanapi.errors
@@ -37,23 +37,18 @@ from osgeo import osr
 
 logging.basicConfig(level=logging.DEBUG)
 LOGGER = logging.getLogger(os.path.basename(__file__))
-
-if '--staging' in sys.argv:
-    URL = 'https://data-staging.naturalcapitalproject.org'
-    MODIFIED_APIKEY = os.environ['CKAN_STAGING_APIKEY']
-elif '--local' in sys.argv:
-    URL = 'https://localhost:8443'
-    MODIFIED_APIKEY = os.environ['CKAN_LOCAL_APIKEY']
-else:
-    URL = os.environ.get(
-        'CKAN_URL', "https://data.naturalcapitalproject.stanford.edu")
-    MODIFIED_APIKEY = os.environ['CKAN_APIKEY']
-
-
-# Disable SSL verification if we're running on localhost.
-VERIFY=True
-if URL.split('https://')[1].startswith('localhost'):
-    VERIFY=False
+CKAN_HOSTS = {
+    'prod': 'https://data.naturalcapitalproject.stanford.edu',
+    'staging': 'https://data-staging.naturalcapitalproject.org',
+    'dev': 'https://localhost:8443'
+}
+CKAN_APIKEY_ENVVARS = {
+    'prod': 'CKAN_APIKEY',
+    'staging': 'CKAN_STAGING_APIKEY',
+    'dev': 'CKAN_LOCAL_APIKEY',
+}
+assert set(CKAN_HOSTS.keys()) == set(CKAN_APIKEY_ENVVARS.keys()), (
+    'Mismatch between keys in CKAN host and apikey dicts')
 
 RESOURCES_BY_EXTENSION = {
     '.csv': 'CSV Table',
@@ -75,7 +70,6 @@ for extension, mimetype in [
 
 def _path_is_in_zipfile(zipfile_url, resource_path):
     zipfile_basename = os.path.splitext(os.path.basename(zipfile_url))[0]
-    zipfile_dirname = os.path.dirname(zipfile_url)
 
     if zipfile_basename == resource_path.split('/')[0]:
         return True
@@ -309,17 +303,16 @@ def _get_wgs84_bbox(config):
              [minx, maxy]]]
 
 
-def main(gmm_yaml_path, private=False, group=None):
+def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
+         verify_ssl=True):
     with open(gmm_yaml_path) as yaml_file:
         LOGGER.debug(f"Loading geometamaker yaml from {gmm_yaml_path}")
         gmm_yaml = yaml.load(yaml_file.read(), Loader=yaml.Loader)
 
     session = requests.Session()
-    session.headers.update({'Authorization': MODIFIED_APIKEY})
-
-    session = requests.Session()
-    session.verify = VERIFY
-    with RemoteCKAN(URL, apikey=MODIFIED_APIKEY, session=session) as catalog:
+    session.headers.update({'Authorization': ckan_apikey})
+    session.verify = verify_ssl
+    with RemoteCKAN(ckan_url, apikey=ckan_apikey, session=session) as catalog:
         print('list org natcap', catalog.action.organization_list(id='natcap'))
 
         licenses = catalog.action.license_list()
@@ -540,5 +533,72 @@ def main(gmm_yaml_path, private=False, group=None):
             print(dir(catalog.action))
 
 
+def _ui(args=None):
+    """Build and operate an argparse CLI UI.
+
+    Args:
+        args=None (list): A list of string command-line parameters to provide
+            to argparse.  If ``None``, retrieval of args is left to argparse.
+
+    Returns:
+        Returns a 3-tuple with the following variables:
+
+            * host_url (str): The url of the CKAN host selected.
+            * apikey (str): The API key selected
+            * gmm_path (str): The geometamaker yml filepath
+    """
+    parser = argparse.ArgumentParser(
+        prog=os.path.basename(__file__),
+        description=(
+            "Script to create or update a dataset on a NatCap CKAN instance."),
+    )
+    parser.add_argument('geometamaker_yml', help=(
+        "The local path to a geometamaker yml file."))
+
+    # Allow a user to select the host they want.
+    # If no host is explicitly defined, assume prod.
+    host_group = parser.add_mutually_exclusive_group()
+    host_group.add_argument(
+        '--prod', action='store_true', default=False, help=(
+            'Create/update the dataset on '
+            'data.naturalcapitalproject.stanford.edu'))
+    host_group.add_argument(
+        '--staging', action='store_true', default=False, help=(
+            'Create/update the dataset on '
+            'data-staging.naturalcapitalproject.org.'))
+    host_group.add_argument(
+        '--dev', action='store_true', default=False, help=(
+            'Create/update the dataset on localhost:8443'))
+    parser.add_argument('--apikey', default=None, help=(
+        "The API key to use for the target host."))
+
+    args = parser.parse_args(args)
+
+    # If the user defined a selected host, use that.  Otherwise, fall back to
+    # production.
+    selected_host = 'prod'
+    for host in ('prod', 'staging', 'dev'):
+        if getattr(args, host):
+            selected_host = host
+            break
+    host_url = CKAN_HOSTS[selected_host]
+    LOGGER.info(f"User selected CKAN target {selected_host}: {host_url}")
+
+    if not args.apikey:
+        envvar_key = CKAN_APIKEY_ENVVARS[selected_host]
+        LOGGER.info(f"Using API key from environment variable {envvar_key}")
+        apikey = os.environ[envvar_key]
+    else:
+        LOGGER.info("Using CLI-defined API key")
+        apikey = args.apikey
+
+    return (
+        host_url, apikey, args.geometamaker_yml
+    )
+
+
 if __name__ == '__main__':
-    main(sys.argv[1])
+    host, apikey, gmm_path = _ui()
+
+    is_localhost = host.split('https://')[1].startswith('localhost')
+    main(host, apikey, gmm_path, verify_ssl=(not is_localhost))
