@@ -1,56 +1,34 @@
-FROM ckan/ckan-dev:2.10.4
+FROM ckan/ckan-base:2.11.2
 
-# Install any extensions needed by your CKAN instance
-# - Make sure to add the plugins to CKAN__PLUGINS in the .env file
-# - Also make sure all provide all extra configuration options, either by:
-#   * Adding them to the .env file (check the ckanext-envvars syntax for env vars), or
-#   * Adding extra configuration scripts to /docker-entrypoint.d folder) to update
-#      the CKAN config file (ckan.ini) with the `ckan config-tool` command
-#
-# See README > Extending the base images for more details
-#
-# For instance:
-#
-### XLoader ###
-#RUN pip3 install -e 'git+https://github.com/ckan/ckanext-xloader.git@master#egg=ckanext-xloader' && \
-#    pip3 install -r ${APP_DIR}/src/ckanext-xloader/requirements.txt && \
-#    pip3 install -U requests[security]
+ARG GITHUB_USER
+ARG GITHUB_REPO
+ARG GITHUB_BRANCH
 
-### Harvester ###
-#RUN pip3 install -e 'git+https://github.com/ckan/ckanext-harvest.git@master#egg=ckanext-harvest' && \
-#    pip3 install -r ${APP_DIR}/src/ckanext-harvest/pip-requirements.txt
-# will also require gather_consumer and fetch_consumer processes running (please see https://github.com/ckan/ckanext-harvest)
+USER root
 
-### Scheming ###
-#RUN  pip3 install -e 'git+https://github.com/ckan/ckanext-scheming.git@master#egg=ckanext-scheming'
+# Set up environment variables
+ENV APP_DIR=/opt/ckan-catalog/data.naturalcapitalproject.stanford.edu
+ENV TZ=UTC
+RUN echo ${TZ} > /etc/timezone
 
-### Pages ###
-#RUN  pip3 install -e git+https://github.com/ckan/ckanext-pages.git#egg=ckanext-pages
-
-### DCAT ###
-#RUN  pip3 install -e git+https://github.com/ckan/ckanext-dcat.git@v0.0.6#egg=ckanext-dcat && \
-#     pip3 install -r https://raw.githubusercontent.com/ckan/ckanext-dcat/v0.0.6/requirements.txt
-
-# Clone the extension(s) your are writing for your own project in the `src` folder
-# to get them mounted in this image at runtime
-
-# Apply any patches needed to CKAN core or any of the built extensions (not the
-# runtime mounted ones)
+# Make sure both files are not exactly the same
+RUN if ! [ /usr/share/zoneinfo/${TZ} -ef /etc/localtime ]; then \
+        cp /usr/share/zoneinfo/${TZ} /etc/localtime ;\
+    fi ;
 
 # Install package dependencies for ckanext-spatial
 ENV PROJ_DIR=/usr
 ENV PROJ_LIBDIR=/usr/lib
 ENV PROJ_INCDIR=/usr/include
 # Using latest commit from master branch to avoid having to compile PROJ from source
-ENV CKANEXT_SPATIAL_GIT_REVISION=938308469892e4bcf7389cb4adee5ccdd5a0ccca
-RUN apk add --no-cache geos geos-dev proj proj-dev proj-util py3-shapely py3-oauth2client
+ENV CKANEXT_SPATIAL_GIT_REVISION=v2.2.0
+RUN apt-get update && apt-get install -y libgeos-dev libgeos3.11.1 libproj-dev proj-bin python3-shapely
 RUN pip3 install -e git+https://github.com/ckan/ckanext-spatial.git@$CKANEXT_SPATIAL_GIT_REVISION#egg=ckanext-spatial && \
-    pip3 install -r https://raw.githubusercontent.com/ckan/ckanext-spatial/$CKANEXT_SPATIAL_GIT_REVISION/requirements.txt
-# RUN pip3 install -e 'git+https://github.com/ckan/ckanext-scheming.git@master#egg=ckanext-scheming'
+    pip3 install -r https://raw.githubusercontent.com/ckan/ckanext-spatial/refs/tags/$CKANEXT_SPATIAL_GIT_REVISION/requirements.txt
 RUN pip3 install -e 'git+https://github.com/ckan/ckanext-scheming.git@3af6056bbe16c3f8c6257f18cb2a0805370f85de#egg=ckanext-scheming'
 RUN pip3 install "numpy<2"
 
-ENV CKANEXT_GOOGLEANALYTICS_GIT_REV=44cb2844a1704bfd9a7a42164652aaf6826a1bc7
+ENV CKANEXT_GOOGLEANALYTICS_GIT_REV=6484a04fdc5eca1cdee9e3ee3b4e881678d1538d
 RUN pip3 install -e git+https://github.com/ckan/ckanext-googleanalytics.git@$CKANEXT_GOOGLEANALYTICS_GIT_REV#egg=ckanext-googleanalytics && \
     pip3 install -r https://raw.githubusercontent.com/ckan/ckanext-googleanalytics/$CKANEXT_GOOGLEANALYTICS_GIT_REV/requirements.txt && \
     python3 -m pip install oauth2client
@@ -58,18 +36,31 @@ RUN pip3 install -e git+https://github.com/ckan/ckanext-googleanalytics.git@$CKA
 ENV CKANEXT_ORFACET_GIT_REV=7a01391186761ff112a76bc7e62dd487330a2371
 RUN pip3 install -e git+https://github.com/DataShades/ckanext-or_facet.git@$CKANEXT_ORFACET_GIT_REV#egg=ckanext-or_facet
 
-# Enable SQLAlchemy support by installing it
-RUN pip3 install Flask-SQLAlchemy "flask<2.4" "Werkzeug<=2.1.2"
+RUN pip3 install -e git+https://github.com/datopian/ckanext-sitemap.git#egg=ckanext-sitemap
 
-# Enable SQLAlchemy support by installing it
-# RUN pip3 install Flask-SQLAlchemy "flask<2.4" "Werkzeug<=2.1.2"
-# RUN pip3 uninstall -y flask
-# RUN pip3 uninstall -y werkzeug
-# RUN pip3 install "werkzeug<=2.1.2" "Flask-SQLAlchemy==2.5.1"
+# NOTE: requires that the build context includes ./src/
+COPY ./src/ckanext-natcap /srv/app/src/ckanext-natcap
+RUN pip3 install -r /srv/app/src/ckanext-natcap/requirements.txt && \
+    pip3 install -e /srv/app/src/ckanext-natcap
+
+COPY ./src/ckanext-mappreview /srv/app/src/ckanext-mappreview
+RUN pip3 install -r /srv/app/src/ckanext-mappreview/requirements.txt && \
+    pip3 install -e /srv/app/src/ckanext-mappreview
+
+COPY ./src/ckanext-zipexpand /srv/app/src/ckanext-zipexpand
+RUN pip3 install -r /srv/app/src/ckanext-zipexpand/requirements.txt && \
+    pip3 install -e /srv/app/src/ckanext-zipexpand
+
+# Install any extensions needed by your CKAN instance
+RUN pip3 install -r /srv/app/src/ckan/dev-requirements.txt
+# $CKAN_INI is set by the base ckan image; location: /srv/app/ckan.ini
+RUN ckan config-tool $CKAN_INI "debug=true"
 
 # Copy custom initialization scripts
 COPY ./ckan/docker-entrypoint.d/* /docker-entrypoint.d/
 
+# Apply any patches needed to CKAN core or any of the built extensions (not the
+# runtime mounted ones)
 COPY ./ckan/patches ${APP_DIR}/patches
 
 RUN for d in $APP_DIR/patches/*; do \
