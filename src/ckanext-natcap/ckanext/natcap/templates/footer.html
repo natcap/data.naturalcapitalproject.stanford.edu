@@ -1,25 +1,91 @@
-{% ckan_extends %}
+{#
+NOTE:
 
-{% block footer_lang %}
-{% endblock %}
+This template used to extend the ckan footer template, but James needed to add
+the Stanford footer and it looked and worked better with a second `footer` tag.
 
-{% block footer_content %}
-<div class="row">
-  <div class="col-md-3">
-    <a class="icon-link" href="https://naturalcapitalproject.stanford.edu/">
-      <img src="/img/natcap-logo.png" alt="The Natural Capital Project logo" />
-    </a>
-  </div>
-  <div class="col-md-9">
-    <h2>About</h2>
-    <div>
-      <p>
-        The Natural Capital Project Data Hub provides analysis-ready ecosystem services data as well as data for and from InVEST®, our suite of free, open-source ecosystem service models. With this Data Hub, we intend to make it faster and simpler for anyone to create and use ecosystem services information for a wide range of analyses and decisions. <a href="mailto:datahub@naturalcapitalproject.org">Contact us</a> with feedback about the site or suggestions for open access datasets to add.
-      </p>
-      <p>
-        <a href="https://naturalcapitalproject.stanford.edu/">The Natural Capital Project</a>, based at Stanford University, is a partnership between interdisciplinary researchers, professionals, and leaders working to make valuing natural capital easier and more accessible to all. To read more about the Natural Capital Project and InVEST, please visit our <a href="https://naturalcapitalproject.stanford.edu">website</a>.
-      </p>
+#}
+
+<footer class="site-footer" id="footer-natcap">
+  <div class="container">
+    <div class="row">
+      <div id="natcap-logo" class="col-md-3">
+        <a class="icon-link" href="https://naturalcapitalproject.stanford.edu/">
+          <img src="/img/natcap-logo.png" alt="The Natural Capital Project logo" />
+        </a>
+      </div>
+      <div class="col-md-9">
+        <h2>About</h2>
+        <div>
+          <p>
+            The Natural Capital Project Data Hub provides analysis-ready ecosystem services data as well as data produced by and used in InVEST®, our suite of free, open-source ecosystem service models. With this Data Hub, we intend to simplify and accelerate the creation and use of ecosystem services information for a wide range of analyses and decisions. <a href="mailto:datahub@naturalcapitalproject.org">Contact us</a> with feedback about the site or suggestions for open access datasets to add.
+
+          </p>
+          <p>
+            <a href="https://naturalcapitalproject.stanford.edu/">The Natural Capital Project</a>, based at <a href="https://www.stanford.edu">Stanford University</a>, is a partnership between interdisciplinary researchers, professionals, and leaders working to make valuing natural capital easier and more accessible to all. To read more about the Natural Capital Project and InVEST, please visit our <a href="https://naturalcapitalproject.stanford.edu">website</a>.
+          </p>
+        </div>
+      </div>
     </div>
   </div>
-</div>
-{% endblock %}
+</footer>
+
+<footer class="site-footer" id="footer-su">
+  <div class="container">
+    <div class="row align-items-start">
+      <div id="su-logo" class="col-md-3">
+        <a class="icon-link" href="https://www.stanford.edu">
+          <img src="/img/stanford-logo.png" alt="The Stanford University wordmark" />
+        </a>
+      </div>
+      <div class="col-md-9">
+        <div class="row fs-4">
+          <div class="col-md-auto">
+            <a href="https://www.stanford.edu/">Stanford Home</a>
+          </div>
+          <div class="col-md-auto">
+            <a href="https://visit.stanford.edu/basics/">Maps & Directions</a>
+          </div>
+          <div class="col-md-auto">
+            <a href="https://www.stanford.edu/search/">Search Stanford</a>
+          </div>
+          <div class="col-md-auto">
+            <a href="https://emergency.stanford.edu/">Emergency Info</a>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-auto">
+            <a href="https://www.stanford.edu/site/terms" title="Terms of use for sites">Terms of Use</a>
+          </div>
+          <div class="col-md-auto">
+            <a href="https://www.stanford.edu/site/privacy" title="Privacy and cookie policy">Privacy</a>
+          </div>
+          <div class="col-md-auto">
+            <a href="https://uit.stanford.edu/security/copyright-infringement"
+               title="Report alleged copyright infringement">Copyright</a>
+          </div>
+          <div class="col-md-auto">
+            <a href="https://adminguide.stanford.edu/chapter-1/subchapter-5/policy-1-5-4"
+               title="Ownership and use of Stanford trademarks and images">Trademarks</a>
+          </div>
+          <div class="col-md-auto">
+            <a href="https://non-discrimination.stanford.edu/"
+               title="Non-discrimination policy">Non-Discrimination</a>
+          </div>
+          <div class="col-md-auto">
+            <a href="https://www.stanford.edu/site/accessibility"
+               title="Report web accessibility issues">Accessibility</a>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-auto">
+
+            © Stanford University.   Stanford, California 94305.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+
