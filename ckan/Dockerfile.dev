@@ -53,6 +53,7 @@ RUN pip3 install -r /srv/app/src/ckanext-zipexpand/requirements.txt && \
 
 # Install any extensions needed by your CKAN instance
 RUN pip3 install -r /srv/app/src/ckan/dev-requirements.txt
+# $CKAN_INI is set by the base ckan image; location: /srv/app/ckan.ini
 RUN ckan config-tool $CKAN_INI "debug=true"
 
 # Copy custom initialization scripts
