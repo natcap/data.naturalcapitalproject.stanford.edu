@@ -491,18 +491,6 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
                 pkg_dict = catalog.action.package_show(name_or_id=name)
                 LOGGER.info(f"Package already exists name={name}")
 
-                # The suggested citation is not yet in geometamaker (see
-                # https://github.com/natcap/geometamaker/issues/17), but it can
-                # be set by CKAN.
-                #
-                # Once we know which part of the MCF we should use for the
-                # suggested citation, we can just insert it into
-                # `pkg_dict['suggested_citation']`, assuming we don't change
-                # the key in the ckanext-scheming schema.
-                if 'suggested_citation' in pkg_dict:
-                    package_parameters['suggested_citation'] = (
-                        pkg_dict['suggested_citation'])
-
                 pkg_dict = catalog.action.package_update(
                     id=pkg_dict['id'],
                     **package_parameters
