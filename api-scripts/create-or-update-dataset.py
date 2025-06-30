@@ -313,6 +313,12 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
     session.headers.update({'Authorization': ckan_apikey})
     session.verify = verify_ssl
     with RemoteCKAN(ckan_url, apikey=ckan_apikey, session=session) as catalog:
+        if 'natcap' not in catalog.action.organization_list():
+            _ = catalog.action.organization_create(
+                name="natcap",
+                title="Natural Capital Project",
+                description=""
+            )
         print('list org natcap', catalog.action.organization_list(id='natcap'))
 
         licenses = catalog.action.license_list()
