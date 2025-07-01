@@ -503,6 +503,11 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
                     package_parameters['suggested_citation'] = (
                         pkg_dict['suggested_citation'])
 
+                if pkg_dict['state'] == 'deleted':
+                    LOGGER.info(f"Dataset {title} (name: {name}) exists in "
+                                "deleted state. Setting state to active.")
+                    package_parameters['state'] = 'active'
+
                 pkg_dict = catalog.action.package_update(
                     id=pkg_dict['id'],
                     **package_parameters
