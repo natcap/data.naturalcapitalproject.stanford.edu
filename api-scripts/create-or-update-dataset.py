@@ -59,6 +59,13 @@ RESOURCES_BY_EXTENSION = {
     '.gcolors': 'GRASS Color Table',
 }
 
+# Map of GMM YML keys to the names of the associated CKAN Tag Vocabularies
+# Treating `keywords` as "free tags" (no associated vocabulary)
+YML_KEY_VOCAB_NAME_MAP = {
+    'keywords': None,
+    'placenames': "place"
+}
+
 # Add a few mimetypes for extensions we're likely to encounter
 for extension, mimetype in [
         ('.shp', 'application/octet-stream'),
@@ -240,9 +247,29 @@ def get_from_config(config, dot_keys):
     return ''
 
 
-def _create_tags_dicts(config):
-    tags_list = get_from_config(config, 'keywords')
-    return [{'name': name} for name in tags_list]
+def _create_tags_dicts(catalog, config, vocab_tag_keys_dict):
+    tag_dicts_list = []
+    for config_key, vocab_name in vocab_tag_keys_dict.items():
+        tags_list = get_from_config(config, config_key)
+
+        try:
+            vocab_id = catalog.action.vocabulary_show(id=vocab_name)['id']
+        except ckanapi.errors.NotFound:
+            # Don't create tags that are mapped to a vocabulary
+            # if that vocabulary doesn't exist
+            LOGGER.exception(f"No Tag Vocabulary with name {vocab_name} was found. "
+                "If this is a desired new vocabulary, please create it first. "
+                "Skipping for now.")
+            continue
+        except ckanapi.errors.ValidationError:
+            # Raised on free tags, when vocab_name=None; in this case,
+            # we want to create the tag with vocabulary_id=None
+            vocab_id = None
+
+        tag_dicts_list.extend([{'name': name, 'vocabulary_id': vocab_id}
+            for name in tags_list])
+
+    return tag_dicts_list
 
 
 def _get_wgs84_bbox(config):
@@ -454,15 +481,6 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
             LOGGER.exception("Something happened when loading the bbox")
             pass
 
-        try:
-            extras.append({
-                'key': 'placenames',
-                'value': json.dumps(gmm_yaml['placenames'])
-            })
-        except KeyError:
-            # KeyError: when no placenames provided.
-            pass
-
         package_parameters = {
             'name': name,
             'title': title,
@@ -477,11 +495,7 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
             'suggested_citation': gmm_yaml['citation'],
             'license_id': license_id,
             'groups': [] if not group else [{'id': group}],
-
-            # Just use existing tags as CKAN "free" tags
-            # TODO: support defined vocabularies
-            'tags': _create_tags_dicts(gmm_yaml),
-
+            'tags': _create_tags_dicts(catalog, gmm_yaml, YML_KEY_VOCAB_NAME_MAP),
             'extras': extras
         }
         try:

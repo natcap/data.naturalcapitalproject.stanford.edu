@@ -113,6 +113,7 @@ def get_all_search_facets():
 
     default_facet_titles = {
         u'tags': _(u'Tags'),
+        u'vocab_place': _(u'Places'),
         u'res_format': _(u'Formats'),
         u'license_id': _(u'Licenses'),
     }
@@ -171,6 +172,28 @@ def parse_json(json_str):
         return []
 
 
+def get_vocab_id(vocab_name):
+    vocab_info = toolkit.get_action('vocabulary_show')(
+            {}, {'id': vocab_name})
+    return vocab_info['id']
+
+
+def get_pkg_tag_vocabs(package_tags):
+    return set([tag['vocabulary_id'] for tag in package_tags])
+
+
+def vocab_places():
+    LOGGER.info("Finding tags in vocabulary 'place'")
+    try:
+        tag_list = toolkit.get_action('tag_list')(
+            {}, {'vocabulary_id': 'place'})
+        LOGGER.info(f"Tags: {tag_list}")
+        return tag_list
+    except toolkit.ObjectNotFound:
+        LOGGER.warning("Vocabulary 'place' not found.")
+        return None
+
+
 @toolkit.auth_disallow_anonymous_access
 def natcap_update_mappreview(context, package):
     LOGGER.info(f"package: {package}")
@@ -219,21 +242,26 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
         toolkit.add_public_directory(config_, "public")
         toolkit.add_resource("assets", "natcap")
 
-    def create_package_schema(self) -> Schema:
-        # grab the default schema from core CKAN and update it.
-        schema = super(NatcapPlugin, self).create_package_schema()
+    def _modify_package_schema(self, schema):
         schema.update({
             'suggested_citation': [toolkit.get_validator('ignore_missing'),
                                    toolkit.get_converter('convert_to_extras')],
         })
+        schema.update({
+            'place': [toolkit.get_validator('ignore_missing'),
+                      toolkit.get_converter('convert_to_tags')('place')],
+        })
+        return schema
+
+    def create_package_schema(self) -> Schema:
+        # grab the default schema from core CKAN and update it.
+        schema = super(NatcapPlugin, self).create_package_schema()
+        schema = self._modify_package_schema(schema)
         return schema
 
     def update_package_schema(self) -> Schema:
         schema = super(NatcapPlugin, self).update_package_schema()
-        schema.update({
-            'suggested_citation': [toolkit.get_validator('ignore_missing'),
-                                   toolkit.get_converter('convert_to_extras')],
-        })
+        schema = self._modify_package_schema(schema)
         return schema
 
     def show_package_schema(self) -> Schema:
@@ -242,7 +270,13 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
             'suggested_citation': [toolkit.get_converter('convert_from_extras'),
                                    toolkit.get_validator('ignore_missing')],
         })
+        schema['tags']['__extras'].append(toolkit.get_converter('free_tags_only'))
+        schema.update({
+            'place': [toolkit.get_converter('convert_from_tags')('place'),
+                      toolkit.get_validator('ignore_missing')],
+        })
         return schema
+
 
     def is_fallback(self):
         # Return True to register this plugin as the default handler for
@@ -267,11 +301,14 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
             'natcap_show_icon': show_icon,
             'natcap_show_resource': show_resource,
             'natcap_parse_json': parse_json,
+            'natcap_get_vocab_id': get_vocab_id,
+            'natcap_get_pkg_tag_vocabs': get_pkg_tag_vocabs,
+            'natcap_vocab_places': vocab_places,
         }
 
     def dataset_facets(self, facets_dict, package_type):
-        facets_dict['extras_placenames'] = toolkit._('Places')
         facets_dict['extras_sources_res_formats'] = toolkit._('Resource Formats')
+        facets_dict['vocab_place'] = toolkit._('Place')
         return facets_dict
 
     def organization_facets(self, facets_dict, organization_type, package_type):
