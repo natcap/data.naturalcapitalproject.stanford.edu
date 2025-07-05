@@ -8,6 +8,7 @@ from os import path
 from typing import Any
 
 import ckan.logic as logic
+import ckan.model as model
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
 from ckan.common import _
@@ -193,6 +194,82 @@ def vocab_places():
         LOGGER.warning("Vocabulary 'place' not found.")
         return None
 
+def convert_list_to_string(tag_list):
+    return ', '.join(tag_list)
+
+def convert_string_to_list(tag_string):
+    return tag_string.split(', ')
+
+def natcap_convert_to_tags(vocab):
+    """Convert list of tag names into a list of tag dictionaries
+    """
+    def func(key, data, errors, context):
+        new_tags = data.get(key)
+        LOGGER.info("\n##################\n")
+        LOGGER.info(f"### new_tags: {new_tags}")
+        LOGGER.info(f"### type(new_tags){type(new_tags)}")
+        if not new_tags:
+            return
+        if isinstance(new_tags, str):
+            new_tags = new_tags.split(',')
+            LOGGER.info(f"### new_tags: {new_tags}")
+            LOGGER.info(f"### type(new_tags){type(new_tags)}")
+
+        # get current number of tags
+        n = 0
+        for k in data.keys():
+            if k[0] == 'tags':
+                n = max(n, k[1] + 1)
+
+        v = model.Vocabulary.get(vocab)
+        if not v:
+            raise df.Invalid(_('Tag vocabulary "%s" does not exist') % vocab)
+        context['vocabulary'] = v
+
+        for tag in new_tags:
+            LOGGER.info(f"#### TAG {tag} in new_tags")
+            logic.validators.tag_in_vocabulary_validator(tag, context)
+
+        for num, tag in enumerate(new_tags):
+            data[('tags', num + n, 'name')] = tag
+            data[('tags', num + n, 'vocabulary_id')] = v.id
+        LOGGER.info("\n##################\n")
+        LOGGER.info("\n### DATA ###\n")
+        LOGGER.info(data)
+        LOGGER.info("\n### PLACE ###\n")
+        LOGGER.info(data.get('place'))
+        LOGGER.info("\n### TAGS ###\n")
+        LOGGER.info(data.get('tags'))
+        LOGGER.info("\n##################\n")
+    return func
+
+#################
+#def create_places():
+#    try:
+#        data = {'id': 'place'}
+#        toolkit.get_action('vocabulary_show')({}, data)
+#        logging.info("Example vocabulary already exists, skipping.")
+#    except toolkit.ObjectNotFound:
+#        logging.info("Creating vocab 'place'")
+#        data = {'name': 'place'}
+#        vocab = toolkit.get_action('vocabulary_create')({}, data)
+#        for tag in (u'uk', u'ie', u'de', u'fr', u'es'):
+#            logging.info("Adding tag %s to vocab 'country_codes'", tag)
+#            data: dict[str, str] = {'name': tag, 'vocabulary_id': vocab['id']}
+#            tk.get_action('tag_create')(context, data)
+#
+#
+#def country_codes_helper():
+#    '''Return the list of country codes from the country codes vocabulary.'''
+#    create_country_codes()
+#    try:
+#        country_codes = tk.get_action('tag_list')(
+#                {}, {'vocabulary_id': 'country_codes'})
+#        return country_codes
+#    except tk.ObjectNotFound:
+#        return None
+##############################
+
 
 @toolkit.auth_disallow_anonymous_access
 def natcap_update_mappreview(context, package):
@@ -228,6 +305,7 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
     plugins.implements(plugins.IPackageController, inherit=True)
     plugins.implements(plugins.ITemplateHelpers)
     plugins.implements(plugins.IActions)
+    plugins.implements(plugins.IValidators)
 
     # IConfigurer
 
@@ -249,7 +327,7 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
         })
         schema.update({
             'place': [toolkit.get_validator('ignore_missing'),
-                      toolkit.get_converter('convert_to_tags')('place')],
+                      toolkit.get_converter('natcap_convert_to_tags')('place')],
         })
         return schema
 
@@ -288,6 +366,12 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
         # registers itself as the default (above).
         return []
 
+    def get_validators(self):
+        return {
+            'natcap_convert_to_tags': natcap_convert_to_tags,
+        }
+
+
     def get_helpers(self):
         return {
             'natcap_get_ext': get_ext,
@@ -304,6 +388,7 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
             'natcap_get_vocab_id': get_vocab_id,
             'natcap_get_pkg_tag_vocabs': get_pkg_tag_vocabs,
             'natcap_vocab_places': vocab_places,
+            'natcap_convert_list_to_string': convert_list_to_string,
         }
 
     def dataset_facets(self, facets_dict, package_type):

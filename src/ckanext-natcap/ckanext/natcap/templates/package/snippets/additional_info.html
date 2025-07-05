@@ -8,6 +8,7 @@
     </thead>
     <tbody>
       {% block package_additional_info %}
+        {{pkg_dict}}
         {% if pkg_dict.url %}
           <tr>
             <th scope="row" class="dataset-label">{{ _('Source') }}</th>
@@ -41,34 +42,29 @@
             <td class="dataset-details" property="dc:subject">
               <ol class="additional-info-tag-list">
                 {% for tag in pkg_dict.tags %}
-                  {% if not tag.vocabulary_id %}
                   <li class="additional-info-tag">
                     <a href="{% url_for 'dataset.search', tags=tag.name %}" aria-label="{{ _('Search datasets with the tag: {name}').format(name=tag.display_name) }}">
                       <img src="/img/filters-tag.png" />
                       {{ tag.display_name }}
                     </a>
                   </li>
-                  {% endif %}
                 {% endfor %}
               </ol>
             </td>
           </tr>
 
-          {% set place_vocab_id = h.natcap_get_vocab_id('place') %}
-          {% if place_vocab_id in h.natcap_get_pkg_tag_vocabs(pkg_dict.tags) %}
+          {% if pkg_dict.place %}
           <tr>
             <th scope="row" class="dataset-label">{{ _('Places') }}</th>
             <td class="dataset-details" property="dc:subject">
               <ol class="additional-info-tag-list">
-                {% for tag in pkg_dict.tags %}
-                  {% if tag.vocabulary_id == place_vocab_id %}
+                {% for place in pkg_dict.place %}
                   <li class="additional-info-tag">
-                    <a href="{% url_for 'dataset.search', vocab_place=tag.name %}" aria-label="{{ _('Search datasets with the place: {name}').format(name=tag.display_name) }}">
+                    <a href="{% url_for 'dataset.search', vocab_place=place %}" aria-label="{{ _('Search datasets with the place: {name}').format(name=place) }}">
                       <img src="/img/filters-place.png" />
-                      {{ tag.display_name }}
+                      {{ place }}
                     </a>
                   </li>
-                  {% endif %}
                 {% endfor %}
               </ol>
             </td>
