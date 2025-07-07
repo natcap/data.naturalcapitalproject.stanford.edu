@@ -173,47 +173,19 @@ def parse_json(json_str):
         return []
 
 
-def get_vocab_id(vocab_name):
-    vocab_info = toolkit.get_action('vocabulary_show')(
-            {}, {'id': vocab_name})
-    return vocab_info['id']
-
-
-def get_pkg_tag_vocabs(package_tags):
-    return set([tag['vocabulary_id'] for tag in package_tags])
-
-
-def vocab_places():
-    LOGGER.info("Finding tags in vocabulary 'place'")
-    try:
-        tag_list = toolkit.get_action('tag_list')(
-            {}, {'vocabulary_id': 'place'})
-        LOGGER.info(f"Tags: {tag_list}")
-        return tag_list
-    except toolkit.ObjectNotFound:
-        LOGGER.warning("Vocabulary 'place' not found.")
-        return None
-
 def convert_list_to_string(tag_list):
     return ', '.join(tag_list)
 
-def convert_string_to_list(tag_string):
-    return tag_string.split(', ')
 
 def natcap_convert_to_tags(vocab):
     """Convert list of tag names into a list of tag dictionaries
     """
     def func(key, data, errors, context):
         new_tags = data.get(key)
-        LOGGER.info("\n##################\n")
-        LOGGER.info(f"### new_tags: {new_tags}")
-        LOGGER.info(f"### type(new_tags){type(new_tags)}")
         if not new_tags:
             return
         if isinstance(new_tags, str):
             new_tags = new_tags.split(',')
-            LOGGER.info(f"### new_tags: {new_tags}")
-            LOGGER.info(f"### type(new_tags){type(new_tags)}")
 
         # get current number of tags
         n = 0
@@ -227,48 +199,12 @@ def natcap_convert_to_tags(vocab):
         context['vocabulary'] = v
 
         for tag in new_tags:
-            LOGGER.info(f"#### TAG {tag} in new_tags")
             logic.validators.tag_in_vocabulary_validator(tag, context)
 
         for num, tag in enumerate(new_tags):
             data[('tags', num + n, 'name')] = tag
             data[('tags', num + n, 'vocabulary_id')] = v.id
-        LOGGER.info("\n##################\n")
-        LOGGER.info("\n### DATA ###\n")
-        LOGGER.info(data)
-        LOGGER.info("\n### PLACE ###\n")
-        LOGGER.info(data.get('place'))
-        LOGGER.info("\n### TAGS ###\n")
-        LOGGER.info(data.get('tags'))
-        LOGGER.info("\n##################\n")
     return func
-
-#################
-#def create_places():
-#    try:
-#        data = {'id': 'place'}
-#        toolkit.get_action('vocabulary_show')({}, data)
-#        logging.info("Example vocabulary already exists, skipping.")
-#    except toolkit.ObjectNotFound:
-#        logging.info("Creating vocab 'place'")
-#        data = {'name': 'place'}
-#        vocab = toolkit.get_action('vocabulary_create')({}, data)
-#        for tag in (u'uk', u'ie', u'de', u'fr', u'es'):
-#            logging.info("Adding tag %s to vocab 'country_codes'", tag)
-#            data: dict[str, str] = {'name': tag, 'vocabulary_id': vocab['id']}
-#            tk.get_action('tag_create')(context, data)
-#
-#
-#def country_codes_helper():
-#    '''Return the list of country codes from the country codes vocabulary.'''
-#    create_country_codes()
-#    try:
-#        country_codes = tk.get_action('tag_list')(
-#                {}, {'vocabulary_id': 'country_codes'})
-#        return country_codes
-#    except tk.ObjectNotFound:
-#        return None
-##############################
 
 
 @toolkit.auth_disallow_anonymous_access
@@ -385,9 +321,6 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
             'natcap_show_icon': show_icon,
             'natcap_show_resource': show_resource,
             'natcap_parse_json': parse_json,
-            'natcap_get_vocab_id': get_vocab_id,
-            'natcap_get_pkg_tag_vocabs': get_pkg_tag_vocabs,
-            'natcap_vocab_places': vocab_places,
             'natcap_convert_list_to_string': convert_list_to_string,
         }
 
