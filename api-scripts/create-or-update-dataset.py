@@ -245,21 +245,6 @@ def _create_tags_dicts(config):
     return [{'name': name} for name in tags_list]
 
 
-def _check_update_vocab_tags(catalog, tags, vocab_name):
-    try:
-        vocab_id = catalog.action.vocabulary_show(id=vocab_name)['id']
-    except ckanapi.errors.NotFound:
-        LOGGER.error(f"No Tag Vocabulary with name {vocab_name} was found.")
-        raise
-
-    vocab = catalog.action.tag_list(vocabulary_id=vocab_name)
-
-    for tag in tags:
-        if tag not in vocab:
-            catalog.action.tag_create(name=tag, vocabulary_id=vocab_id)
-    return tags
-
-
 def _get_wgs84_bbox(config):
     extent = config['spatial']
     bbox = extent['bounding_box']
@@ -484,8 +469,7 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
             'license_id': license_id,
             'groups': [] if not group else [{'id': group}],
             'tags': _create_tags_dicts(gmm_yaml),
-            'place': _check_update_vocab_tags(
-                catalog, gmm_yaml.get('placenames', []), 'place'),
+            'place': gmm_yaml.get('placenames', []),
             'extras': extras,
         }
         try:
