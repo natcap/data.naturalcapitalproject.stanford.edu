@@ -313,6 +313,12 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
     session.headers.update({'Authorization': ckan_apikey})
     session.verify = verify_ssl
     with RemoteCKAN(ckan_url, apikey=ckan_apikey, session=session) as catalog:
+        if 'natcap' not in catalog.action.organization_list():
+            _ = catalog.action.organization_create(
+                name="natcap",
+                title="Natural Capital Project",
+                description=""
+            )
         print('list org natcap', catalog.action.organization_list(id='natcap'))
 
         licenses = catalog.action.license_list()
@@ -490,6 +496,11 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
                     f"Checking to see if package exists with name={name}")
                 pkg_dict = catalog.action.package_show(name_or_id=name)
                 LOGGER.info(f"Package already exists name={name}")
+
+                if pkg_dict['state'] == 'deleted':
+                    LOGGER.info(f"Dataset {title} (name: {name}) exists in "
+                                "deleted state. Setting state to active.")
+                    package_parameters['state'] = 'active'
 
                 pkg_dict = catalog.action.package_update(
                     id=pkg_dict['id'],
