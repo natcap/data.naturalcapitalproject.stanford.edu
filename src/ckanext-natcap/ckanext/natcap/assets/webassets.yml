@@ -6,7 +6,6 @@ natcap-js:
     - js/natcap-spatial-query.js
     - js/natcap-textarea-copy.js
     - js/natcap-advanced-search.js
-    - js/natcap-dataset-clip.js
     - js/natcap-copy-url.js
     - js/natcap-text-linkify.js
   extra:
