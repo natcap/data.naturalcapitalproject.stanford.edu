@@ -178,7 +178,11 @@ def convert_list_to_string(tag_list):
 
 
 def natcap_convert_to_tags(vocab):
-    """Convert list of tag names into a list of tag dictionaries
+    """Convert list of tag names into a list of tag dictionaries.
+
+    Copies the logic from CKAN's ``convert_to_tags`` but adds a ``.split(',')``
+    to handles the case where tags are provided as a comma-separated string
+    (which is how the /dataset/edit form submission provides them)
     """
     def func(key, data, errors, context):
         new_tags = data.get(key)

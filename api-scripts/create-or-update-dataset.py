@@ -469,7 +469,7 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
             'license_id': license_id,
             'groups': [] if not group else [{'id': group}],
             'tags': _create_tags_dicts(gmm_yaml),
-            'place': gmm_yaml.get('placenames', []),
+            'place': [tag.upper() for tag in gmm_yaml.get('placenames', [])],
             'extras': extras,
         }
         try:
