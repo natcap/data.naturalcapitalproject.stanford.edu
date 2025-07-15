@@ -29,6 +29,7 @@ CORS(app, resources={
         'origins': [
             # Only use localhost for local development.
             # 'http://localhost:*',
+            # 'https://localhost:*',
             # 'http://127.0.0.1:*',
             'https://data-staging.naturalcapitalproject.org',
             'https://data.naturalcapitalproject.stanford.edu',
