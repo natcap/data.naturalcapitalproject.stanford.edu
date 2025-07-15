@@ -19,6 +19,7 @@ import datetime
 import hashlib
 import json
 import logging
+import numpy
 import mimetypes
 import os
 import pprint
@@ -303,6 +304,117 @@ def _get_wgs84_bbox(config):
              [minx, maxy]]]
 
 
+def _detect_vector(gmm_yaml, path_key, data_format):
+    """Get path to vector dataset (_get_average_latlon helper function )"""
+    dataset_path = gmm_yaml[path_key]
+    if data_format.lower() in ['zip', 'geojson', 'gpkg', 'shp']:  # and path_key == 'path':
+        if dataset_path.endswith(".zip"):  # assume that zips contain shps
+            basename = os.path.basename(dataset_path)
+            try:
+                dataset_path = dataset_path.replace(
+                    basename, [src for src in gmm_yaml['sources'] if src.endswith(".shp")][0])
+                print(f"datasetpth: {dataset_path}")
+            except IndexError:
+                LOGGER.info(f"{dataset_path} does not contain a "
+                            "shapefile (or file naming is unexpected)")
+                return False
+        if os.path.exists(dataset_path) or (
+                requests.get(dataset_path).status_code == 200):
+            return dataset_path
+        else:
+            print("!! getting URL")
+            dataset_path = gmm_yaml['url']
+            if os.path.exists(dataset_path) or (
+                    requests.get(dataset_path).status_code == 200):
+                return dataset_path
+        return False
+
+
+def _get_average_latlon_bounds(vector_path):
+    """Compute the average lat/lon and bbox of a vector dataset.
+
+    Compute the average latitude and longitude coordinates of a vector dataset
+    and determine a bounding box that encloses ~75% of the features (centroids)
+
+    Return
+        average lat, lon, and 75% bounding box
+
+    """
+    from osgeo.osr import OAMS_TRADITIONAL_GIS_ORDER
+
+    wgs84 = gdal.osr.SpatialReference()
+    wgs84.ImportFromEPSG(4326)
+    wgs84.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER)
+
+    if vector_path.startswith("http"):  # read file from remote
+        vector_path = os.path.join("/vsicurl", vector_path)
+    driver = ogr.GetDriverByName('ESRI Shapefile')  # default
+    if vector_path.lower().endswith('.geojson'):
+        driver = ogr.GetDriverByName('GeoJSON')
+    elif vector_path.lower().endswith('.gpkg'):
+        driver = ogr.GetDriverByName('GPKG')
+
+    dataset = driver.Open(vector_path, 0)
+    if dataset is None:
+        raise RuntimeError(f"Could not open vector: {vector_path}")
+
+    layer = dataset.GetLayer()
+    source_srs = layer.GetSpatialRef()
+
+    # Reproject to WGS84 if needed
+    # wgs84 = osr.SpatialReference()
+    # wgs84.ImportFromEPSG(4326)
+    if source_srs is None:
+        LOGGER.warning("No CRS found; assuming WGS84.")
+        coord_transform = None
+    else:
+        coord_transform = osr.CoordinateTransformation(source_srs, wgs84)
+
+    # sum_x, sum_y, count = 0.0, 0.0, 0
+    coords = []
+    for feature in layer:
+        geom = feature.GetGeometryRef()
+        if geom is None:
+            continue
+        geom_pt = geom.Centroid() if geom.GetGeometryType() != ogr.wkbPoint else geom
+        coord = (geom_pt.GetX(), geom_pt.GetY()) if geom_pt.GetGeometryType() in [ogr.wkbPoint, ogr.wkbPoint25D] else (None, None, None)
+        if coord[0] is None or coord[1] is None:
+            continue
+        if coord_transform:
+            x, y, _ = coord_transform.TransformPoint(coord[0], coord[1])
+            coord = (x, y)
+        coords.append(coord)
+        # sum_x += x
+        # sum_y += y
+        # count += 1
+
+    if not coords:  #count == 0 or # TODO: are both of these conditions needed?
+        raise ValueError(f"No valid geometries found in {vector_path} to "
+                         "compute center lat/lon and bbox")
+
+    xs, ys = zip(*coords)
+    xs = numpy.array(xs)  # lons
+    ys = numpy.array(ys)  # lats
+
+    print(f"min x: {numpy.min(xs)}, max x: {numpy.max(x)}, min y: {numpy.min(ys)}, max y: {numpy.max(ys)}")
+
+    # Ensure that x (lon) is between -180 and 180, and y (lat) between -90 and 90
+    if numpy.min(xs) < -180 or numpy.max(x) > 180 or numpy.min(ys) < -90  or numpy.max(ys) > 90:
+        print(f"Potential error with latitude/longitude. {numpy.min(xs)}, "
+              f"max x: {numpy.max(x)}, min y: {numpy.min(ys)}, max y: "
+              f"{numpy.max(ys)}")
+        raise ValueError
+
+    # Compute IQR bounds (12.5th to 87.5th percentiles for 75% range)
+    x_low, x_high = numpy.percentile(xs, [12.5, 87.5])
+    y_low, y_high = numpy.percentile(ys, [12.5, 87.5])
+    bbox_75 = (x_low, y_low, x_high, y_high)
+
+    return (numpy.median(ys), numpy.median(xs), bbox_75)  # lat, lon, bounds
+
+    # return (sum_y / count, sum_x / count, bbox_75)  # lat, lon, bounds
+
+
 def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
          verify_ssl=True):
     with open(gmm_yaml_path) as yaml_file:
@@ -460,6 +572,18 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
             LOGGER.exception("Something happened when loading the bbox")
             pass
 
+        # Computing average lat/lon for vectors
+        vector_path = _detect_vector(gmm_yaml, path_key, resource_dict['format'])
+        avg_lat = None
+        avg_lon = None
+        if vector_path:
+            avg_lat, avg_lon, bbox_75 = _get_average_latlon_bounds(vector_path)
+            # lat_lon_json = json.dumps([avg_lat, avg_lon])
+            extras.append({
+                'key': 'center_lat_lon',
+                'value': json.dumps([avg_lat, avg_lon])
+            })
+
         try:
             extras.append({
                 'key': 'placenames',
@@ -483,6 +607,7 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
             'suggested_citation': gmm_yaml['citation'],
             'license_id': license_id,
             'groups': [] if not group else [{'id': group}],
+            # 'center_lat_lon': lat_lon_json, #[avg_lat, avg_lon],
 
             # Just use existing tags as CKAN "free" tags
             # TODO: support defined vocabularies
