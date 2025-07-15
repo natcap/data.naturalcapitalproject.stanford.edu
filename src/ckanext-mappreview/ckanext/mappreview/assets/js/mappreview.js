@@ -99,7 +99,8 @@ ckan.module("mappreview", function ($, _) {
           paint: {
             'circle-radius': 5,
             'circle-color': color,
-          }
+          },
+          center_lat_lon: layer.center_lat_lon,
         };
       }
       else if (layer.vector_type === 'Line' || layer.vector_type === "LineString") {
@@ -110,7 +111,8 @@ ckan.module("mappreview", function ($, _) {
           paint: {
             'line-width': 5,
             'line-color': color,
-          }
+          },
+          center_lat_lon: layer.center_lat_lon,
         };
       }
       else if (layer.vector_type === 'Polygon') {
@@ -122,7 +124,8 @@ ckan.module("mappreview", function ($, _) {
             paint: {
               'line-width': 2,
               'line-color': color,
-            }
+            },
+            center_lat_lon: layer.center_lat_lon,
           },
           {
             id: layer.name,
@@ -131,7 +134,8 @@ ckan.module("mappreview", function ($, _) {
             paint: {
               'fill-color': color,
               'fill-opacity': 0.5
-            }
+            },
+            center_lat_lon: layer.center_lat_lon,
           }
         ];
       }
@@ -139,7 +143,6 @@ ckan.module("mappreview", function ($, _) {
         console.error(`Layer type ${layer.vector_type} is not yet handled`);
       }
     },
-
     initialize: function () {
       jQuery.proxyAll(this, '_getGlobalConfig');
       jQuery.proxyAll(this, '_getRasterLayer');
@@ -172,11 +175,13 @@ ckan.module("mappreview", function ($, _) {
           };
         }
         else if (l.type === 'vector') {
+          console.log(config.layers, "is config layrs")
           if (l.url.endsWith('.geojson')) {
             return {
               id: l.name,
               type: 'geojson',
               data: l.url,
+              center_lat_lon: l.center_lat_lon //|| [0,0]
             };
           } else if (l.url.endsWith('.mvt')) {
             // The only authoritative way to get the correct layer name is to
@@ -185,6 +190,7 @@ ckan.module("mappreview", function ($, _) {
               id: l.name,
               type: 'vector',
               tiles: [`${l.url}/{z}/{x}/{y}.pbf`],
+              center_lat_lon: l.center_lat_lon// || [0,0]
             };
           } else {
             console.error(`Cannot map vector at url ${l.url}`);
@@ -240,6 +246,56 @@ ckan.module("mappreview", function ($, _) {
           const order = ['raster', 'fill', 'line', 'circle'];
           return order.indexOf(a.type) - order.indexOf(b.type);
         });
+
+        let boundsArray = config.map.bounds;
+        map.fitBounds(boundsArray, {padding: 20, linear: true}); //bearing: 0 , pitch: 55
+        function isGlobal(bounds) {
+          const [minLng, minLat, maxLng, maxLat] = bounds;
+  
+          return (minLng <= -170 && maxLng >= 170 && minLat <= -50 && maxLat >= 50 );
+        }
+
+        function spinGlobe(userInteracting) {
+          const zoom = map.getZoom();
+          if (!userInteracting) {
+              let distancePerSecond = 3;
+              const center = map.getCenter();
+              center.lng -= distancePerSecond;
+              // Smoothly animate the map over one second.
+              // When this animation is complete, it calls a 'moveend' event.
+              map.easeTo({ center, duration: 1000, easing: (n) => n });
+          }
+      }
+
+        if (isGlobal(boundsArray)){
+          map.setCenter([0,0], {zoom:1})
+          let userInteracting = false;
+          spinGlobe(userInteracting);
+          // Stop spinning if user moves mouse onto map
+          map.on('mousemove', () => {
+            userInteracting = true;
+          });
+          // When animation is complete, start spinning (if still no mouse move)
+          // Without this, rotation will stop
+          map.on('moveend', () => {
+            spinGlobe(userInteracting);
+          });
+        } else if (config.layers.length === 1 && config.layers[0].type === 'vector' && layers[0].center_lat_lon){
+          console.log('layers0!!', layers[0])
+          const centerLatLon =  layers[0].center_lat_lon;
+          // const bbox75 = config.layers[0].bbox_75;
+          // if (bbox75){
+          //   map.fitBounds(bbox75, {padding: 20, linear=true});
+          // } 
+          if (centerLatLon){
+            console.log("setting cetner lat long:" , centerLatLon[1], "lat:", centerLatLon[0])
+            // mpabox uses long, lat format
+            map.setCenter([centerLatLon[1], centerLatLon[0]]);
+            map.setZoom(config.map.minzoom);
+          }
+        } else{ // bounds aren't global, and map doesn't just show 1 vector layer
+          map.fitBounds(boundsArray, { padding: 20, linear: true}); //bearing: 0 , pitch: 55
+        }
 
       map.on('load', () => {
         sources.forEach((source) => {
