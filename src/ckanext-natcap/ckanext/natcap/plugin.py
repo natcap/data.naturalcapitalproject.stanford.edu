@@ -183,6 +183,8 @@ def natcap_convert_to_tags(vocab):
     Copies the logic from CKAN's ``convert_to_tags`` but adds a ``.split(',')``
     to handles the case where tags are provided as a comma-separated string
     (which is how the /dataset/edit form submission provides them)
+
+    CKAN source: https://github.com/ckan/ckan/blob/823cafdb276e2255378fe2106b531abd9127eaf6/ckan/logic/converters.py#L73
     """
     def func(key, data, errors, context):
         new_tags = data.get(key)

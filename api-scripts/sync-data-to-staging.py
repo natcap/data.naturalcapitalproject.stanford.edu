@@ -103,16 +103,18 @@ def update_vocabularies_on_staging(prod_vocab_json):
                 print(f"Updating tags in vocabulary `{vocab['name']}`")
                 vocab_info = resp_json['result']
                 staging_tags = [tag['name'] for tag in vocab_info['tags']]
-                missing_tags = [tag['name'] for tag in prod_tags
-                    if tag not in staging_tags]
-                for tag in missing_tags:
-                    create_resp = session.post(
-                        f'{api_url}/tag_create',
-                        json={'name': tag, 'vocabulary_id': vocab_info['id']})
-                    if not create_resp.ok:
+                missing_tags = list(set(tag['name'] for tag in prod_tags).difference(
+                    set(staging_tags)))
+
+                if missing_tags:
+                    all_tags = [{'name': tag} for tag in staging_tags + missing_tags]
+                    update_resp = session.post(
+                        f'{api_url}/vocabulary_update',
+                        json={'id': vocab_info['id'], 'tags': all_tags})
+                    if not update_resp.ok:
                         raise Exception(
-                            f"Error creating tag {tag} in vocabulary {vocab['name']}: "
-                            f"{create_resp.json()['error']}")
+                            f"Error updating vocabulary {vocab['name']}: "
+                            f"{update_resp.json()['error']}")
             else:
                 # Vocab doesn't exist; create it and add all tags
                 print(f"Creating vocabulary `{vocab['name']}`")

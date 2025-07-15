@@ -1,11 +1,11 @@
 """A script that checks and creates CKAN vocabulary tags.
 
-When run with ``create=False`` (default behavior), the script will check
+When run with ``--create=False`` (default behavior), the script will check
 the existing tags in the Vocabulary associated with the provided gmm yml key
 and return a list of tags in the yml that don't currently exist in the
 Vocabulary.
 
-When run with ``create=True``, any tags that do not currently exist in the
+When run with ``--create=True``, any tags that do not currently exist in the
 Vocabulary will be created. Tags are standardized to all-uppercase and
 (per CKAN requirements) must be strings between 2 and 100 characters long,
 containing only alphanumeric characters and hyphens, underscores, and periods.
@@ -47,6 +47,26 @@ YML_KEY_VOCAB_NAME_MAP = {
 
 def main(ckan_url, ckan_apikey, gmm_yaml_path, yaml_key, create=False,
          verify_ssl=True):
+    """Check for the existence of and create CKAN Vocabulary Tags.
+
+    Args:
+        ckan_url (str): The URL of the CKAN host selected.
+        ckan_apikey (str): The API key selected.
+        gmm_yaml_path (str): Path to the geometamaker YML file, from
+            which vocabulary tags will be extracted.
+        yaml_key (str): The key from the YML file, the values of which
+            are intended to be turned into tags. This key must map to a
+            tag vocabulary name in ``YML_KEY_VOCAB_NAME_MAP``.
+        create (bool): Defaults to False. If True, any tags that don't
+            currently exist in the vocabulary will be created.
+        verify_ssl (bool): Defaults to True.
+
+    Returns:
+        Returns None when run with ``--create=True``.
+        Returns a list of new tags (tags that appear in the geometamaker
+            yml but do not exist in the Vocabulary) when run with
+            ``--create=False`.
+    """
     try:
         vocab_name = YML_KEY_VOCAB_NAME_MAP[yaml_key]
     except KeyError:
@@ -70,18 +90,13 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, yaml_key, create=False,
     session.verify = verify_ssl
     with RemoteCKAN(ckan_url, apikey=ckan_apikey, session=session) as catalog:
         try:
-            vocab_id = catalog.action.vocabulary_show(id=vocab_name)['id']
+            # `.tag_list()` returns a list of strings
+            vocab_tags = catalog.action.tag_list(vocabulary_id=vocab_name)
         except ckanapi.errors.NotFound:
             LOGGER.error(f"No Tag Vocabulary with name `{vocab_name}` was found.")
             raise
 
-        vocab_tags = catalog.action.tag_list(vocabulary_id=vocab_id)
-
-    new_tags = []
-    for tag in gmm_yaml_tags:
-        t = tag.upper()
-        if t not in vocab_tags:
-            new_tags.append(t)
+    new_tags = list(set(t.upper() for t in gmm_yaml_tags).difference(set(vocab_tags)))
 
     if not new_tags:
         LOGGER.info("All tags in this yaml already exist in the vocabulary "
@@ -93,12 +108,13 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, yaml_key, create=False,
     if create:
         LOGGER.info(f"Adding tag(s) {new_tags} to vocabulary `{vocab_name}`")
         with RemoteCKAN(ckan_url, apikey=ckan_apikey, session=session) as catalog:
-            for tag in new_tags:
-                try:
-                    catalog.action.tag_create(name=tag, vocabulary_id=vocab_id)
-                    LOGGER.info(f"Tag `{tag}` added successfully.")
-                except ckanapi.errors.ValidationError as e:
-                    LOGGER.error(f"Error creating tag `{tag}`: {e}")
+            # Must provide all current and new tags to `.vocabulary_update()`
+            all_vocab_tags = [{'name': tag} for tag in vocab_tags + new_tags]
+            try:
+                catalog.action.vocabulary_update(id=vocab_name, tags=all_vocab_tags)
+                LOGGER.info(f"Tags added successfully!")
+            except ckanapi.errors.ValidationError as e:
+                LOGGER.error(f"Error updating vocabulary: {e}")
     else:
         LOGGER.info("Re-run with the `--create` flag to add these tags "
                     "to the vocabulary.")
