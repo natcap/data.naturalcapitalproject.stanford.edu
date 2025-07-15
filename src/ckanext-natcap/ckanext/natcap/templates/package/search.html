@@ -35,7 +35,7 @@
           {% set search_facets_items = facets.search.get(field)['items'] if facets.search and field in facets.search else [] %}
           {% for value in facets.fields[field] %}
             <span class="filtered pill facet-{{ field }}">
-              {% if field == 'extras_placenames' %}
+              {% if field == 'vocab_place' %}
                 <img class="field-icon" src="/img/filters-place.png" />
               {% elif field == 'extras_sources_res_formats' %}
                 <img class="field-icon" src="/img/filters-file-type.png" />

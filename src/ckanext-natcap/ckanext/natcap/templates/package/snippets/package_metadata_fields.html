@@ -5,3 +5,18 @@
   {% block custom_fields %}
   {% endblock %}
 #}
+
+{% block package_metadata_fields %}
+  {% set place_attrs = {
+      'data-module': 'autocomplete', 'data-module-tags': '',
+      'data-module-source': '/api/2/util/tag/autocomplete?incomplete=?'} %}
+  {{ form.input('place',
+      id='field-places',
+      label=_('Places'),
+      placeholder=_('eg. GLOBAL'),
+      value=h.natcap_convert_list_to_string(data.get('place', [])),
+      error=errors.place,
+      classes=['control-full'], attrs=place_attrs) }}
+
+  {{ super() }}
+{% endblock %}

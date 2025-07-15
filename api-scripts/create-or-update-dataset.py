@@ -460,15 +460,6 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
             LOGGER.exception("Something happened when loading the bbox")
             pass
 
-        try:
-            extras.append({
-                'key': 'placenames',
-                'value': json.dumps(gmm_yaml['placenames'])
-            })
-        except KeyError:
-            # KeyError: when no placenames provided.
-            pass
-
         package_parameters = {
             'name': name,
             'title': title,
@@ -483,12 +474,9 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
             'suggested_citation': gmm_yaml['citation'],
             'license_id': license_id,
             'groups': [] if not group else [{'id': group}],
-
-            # Just use existing tags as CKAN "free" tags
-            # TODO: support defined vocabularies
             'tags': _create_tags_dicts(gmm_yaml),
-
-            'extras': extras
+            'place': [tag.upper() for tag in gmm_yaml.get('placenames', [])],
+            'extras': extras,
         }
         try:
             try:

@@ -86,6 +86,50 @@ def clear_datasets_on_staging(target_package_ids=None):
                 f"{api_url}/dataset_purge", json={'id': package_id})
 
 
+def update_vocabularies_on_staging(prod_vocab_json):
+    api_url = STAGING_API
+    api_key = STAGING_API_KEY
+    print(f"Updating Tag Vocabularies on staging {api_url}")
+
+    prod_vocabs = prod_vocab_json['result']
+    with http_session(api_key) as session:
+        for vocab in prod_vocabs:
+            prod_tags = vocab['tags']
+            resp_json = session.post(
+                f'{api_url}/vocabulary_show', json={'id': vocab['name']}).json()
+
+            if resp_json['success']:
+                # Vocab already exists; add missing tags
+                print(f"Updating tags in vocabulary `{vocab['name']}`")
+                vocab_info = resp_json['result']
+                staging_tags = [tag['name'] for tag in vocab_info['tags']]
+                missing_tags = list(set(tag['name'] for tag in prod_tags).difference(
+                    set(staging_tags)))
+
+                if missing_tags:
+                    all_tags = [{'name': tag} for tag in staging_tags + missing_tags]
+                    update_resp = session.post(
+                        f'{api_url}/vocabulary_update',
+                        json={'id': vocab_info['id'], 'tags': all_tags})
+                    if not update_resp.ok:
+                        raise Exception(
+                            f"Error updating vocabulary {vocab['name']}: "
+                            f"{update_resp.json()['error']}")
+            else:
+                # Vocab doesn't exist; create it and add all tags
+                print(f"Creating vocabulary `{vocab['name']}`")
+                tag_dicts = [{'name': tag['name']} for tag in prod_tags]
+                create_resp = session.post(
+                    f'{api_url}/vocabulary_create',
+                    json={'name': vocab['name'], 'tags': tag_dicts})
+                if not create_resp.ok:
+                    raise Exception(
+                        f"Error creating vocabulary {vocab['name']}: "
+                        f"{create_resp.json()['error']}")
+
+    print("Vocabularies updated successfully!")
+
+
 # https://stackoverflow.com/a/16696317
 def download_file(url, local_filename):
     with requests.get(url, stream=True) as r:
@@ -105,6 +149,9 @@ def post_prod_resources_to_staging(target_package_ids=None,
 
     # We don't need an API key to read what we need
     with http_session() as session:
+        prod_vocabs = session.get(f'{api_url}/vocabulary_list')
+        update_vocabularies_on_staging(prod_vocabs.json())
+
         for package_id in _list_datasets(session, api_url):
             info_resp = session.get(f'{api_url}/package_show?id={package_id}')
             info_json = info_resp.json()['result']

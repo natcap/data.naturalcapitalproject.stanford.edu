@@ -8,6 +8,7 @@ from os import path
 from typing import Any
 
 import ckan.logic as logic
+import ckan.model as model
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
 from ckan.common import _
@@ -113,6 +114,7 @@ def get_all_search_facets():
 
     default_facet_titles = {
         u'tags': _(u'Tags'),
+        u'vocab_place': _(u'Places'),
         u'res_format': _(u'Formats'),
         u'license_id': _(u'Licenses'),
     }
@@ -171,6 +173,46 @@ def parse_json(json_str):
         return []
 
 
+def convert_list_to_string(tag_list):
+    return ', '.join(tag_list)
+
+
+def natcap_convert_to_tags(vocab):
+    """Convert list of tag names into a list of tag dictionaries.
+
+    Copies the logic from CKAN's ``convert_to_tags`` but adds a ``.split(',')``
+    to handles the case where tags are provided as a comma-separated string
+    (which is how the /dataset/edit form submission provides them)
+
+    CKAN source: https://github.com/ckan/ckan/blob/823cafdb276e2255378fe2106b531abd9127eaf6/ckan/logic/converters.py#L73
+    """
+    def func(key, data, errors, context):
+        new_tags = data.get(key)
+        if not new_tags:
+            return
+        if isinstance(new_tags, str):
+            new_tags = new_tags.split(',')
+
+        # get current number of tags
+        n = 0
+        for k in data.keys():
+            if k[0] == 'tags':
+                n = max(n, k[1] + 1)
+
+        v = model.Vocabulary.get(vocab)
+        if not v:
+            raise df.Invalid(_('Tag vocabulary "%s" does not exist') % vocab)
+        context['vocabulary'] = v
+
+        for tag in new_tags:
+            logic.validators.tag_in_vocabulary_validator(tag, context)
+
+        for num, tag in enumerate(new_tags):
+            data[('tags', num + n, 'name')] = tag
+            data[('tags', num + n, 'vocabulary_id')] = v.id
+    return func
+
+
 @toolkit.auth_disallow_anonymous_access
 def natcap_update_mappreview(context, package):
     LOGGER.info(f"package: {package}")
@@ -205,6 +247,7 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
     plugins.implements(plugins.IPackageController, inherit=True)
     plugins.implements(plugins.ITemplateHelpers)
     plugins.implements(plugins.IActions)
+    plugins.implements(plugins.IValidators)
 
     # IConfigurer
 
@@ -219,21 +262,26 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
         toolkit.add_public_directory(config_, "public")
         toolkit.add_resource("assets", "natcap")
 
-    def create_package_schema(self) -> Schema:
-        # grab the default schema from core CKAN and update it.
-        schema = super(NatcapPlugin, self).create_package_schema()
+    def _modify_package_schema(self, schema):
         schema.update({
             'suggested_citation': [toolkit.get_validator('ignore_missing'),
                                    toolkit.get_converter('convert_to_extras')],
         })
+        schema.update({
+            'place': [toolkit.get_validator('ignore_missing'),
+                      toolkit.get_converter('natcap_convert_to_tags')('place')],
+        })
+        return schema
+
+    def create_package_schema(self) -> Schema:
+        # grab the default schema from core CKAN and update it.
+        schema = super(NatcapPlugin, self).create_package_schema()
+        schema = self._modify_package_schema(schema)
         return schema
 
     def update_package_schema(self) -> Schema:
         schema = super(NatcapPlugin, self).update_package_schema()
-        schema.update({
-            'suggested_citation': [toolkit.get_validator('ignore_missing'),
-                                   toolkit.get_converter('convert_to_extras')],
-        })
+        schema = self._modify_package_schema(schema)
         return schema
 
     def show_package_schema(self) -> Schema:
@@ -242,7 +290,13 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
             'suggested_citation': [toolkit.get_converter('convert_from_extras'),
                                    toolkit.get_validator('ignore_missing')],
         })
+        schema['tags']['__extras'].append(toolkit.get_converter('free_tags_only'))
+        schema.update({
+            'place': [toolkit.get_converter('convert_from_tags')('place'),
+                      toolkit.get_validator('ignore_missing')],
+        })
         return schema
+
 
     def is_fallback(self):
         # Return True to register this plugin as the default handler for
@@ -253,6 +307,12 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
         # This plugin doesn't handle any special package types, it just
         # registers itself as the default (above).
         return []
+
+    def get_validators(self):
+        return {
+            'natcap_convert_to_tags': natcap_convert_to_tags,
+        }
+
 
     def get_helpers(self):
         return {
@@ -267,11 +327,12 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
             'natcap_show_icon': show_icon,
             'natcap_show_resource': show_resource,
             'natcap_parse_json': parse_json,
+            'natcap_convert_list_to_string': convert_list_to_string,
         }
 
     def dataset_facets(self, facets_dict, package_type):
-        facets_dict['extras_placenames'] = toolkit._('Places')
         facets_dict['extras_sources_res_formats'] = toolkit._('Resource Formats')
+        facets_dict['vocab_place'] = toolkit._('Place')
         return facets_dict
 
     def organization_facets(self, facets_dict, organization_type, package_type):
