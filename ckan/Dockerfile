@@ -25,7 +25,6 @@ ENV CKANEXT_SPATIAL_GIT_REVISION=v2.2.0
 RUN apt-get update && apt-get install -y libgeos-dev libgeos3.11.1 libproj-dev proj-bin python3-shapely
 RUN pip3 install -e git+https://github.com/ckan/ckanext-spatial.git@$CKANEXT_SPATIAL_GIT_REVISION#egg=ckanext-spatial && \
     pip3 install -r https://raw.githubusercontent.com/ckan/ckanext-spatial/refs/tags/$CKANEXT_SPATIAL_GIT_REVISION/requirements.txt
-RUN pip3 install -e 'git+https://github.com/ckan/ckanext-scheming.git@3af6056bbe16c3f8c6257f18cb2a0805370f85de#egg=ckanext-scheming'
 RUN pip3 install "numpy<2"
 
 ENV CKANEXT_GOOGLEANALYTICS_GIT_REV=6484a04fdc5eca1cdee9e3ee3b4e881678d1538d

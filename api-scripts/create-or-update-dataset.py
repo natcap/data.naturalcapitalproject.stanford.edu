@@ -587,20 +587,10 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
         avg_lon = None
         if vector_path:
             avg_lat, avg_lon = _get_median_latlon_bounds(vector_path)
-            # lat_lon_json = json.dumps([avg_lat, avg_lon])
             extras.append({
                 'key': 'center_lat_lon',
                 'value': json.dumps([avg_lat, avg_lon])
             })
-
-        try:
-            extras.append({
-                'key': 'placenames',
-                'value': json.dumps(gmm_yaml['placenames'])
-            })
-        except KeyError:
-            # KeyError: when no placenames provided.
-            pass
 
         package_parameters = {
             'name': name,
@@ -616,13 +606,9 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
             'suggested_citation': gmm_yaml['citation'],
             'license_id': license_id,
             'groups': [] if not group else [{'id': group}],
-            # 'center_lat_lon': lat_lon_json, #[avg_lat, avg_lon],
-
-            # Just use existing tags as CKAN "free" tags
-            # TODO: support defined vocabularies
             'tags': _create_tags_dicts(gmm_yaml),
-
-            'extras': extras
+            'place': [tag.upper() for tag in gmm_yaml.get('placenames', [])],
+            'extras': extras,
         }
         try:
             try:
@@ -630,18 +616,6 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
                     f"Checking to see if package exists with name={name}")
                 pkg_dict = catalog.action.package_show(name_or_id=name)
                 LOGGER.info(f"Package already exists name={name}")
-
-                # The suggested citation is not yet in geometamaker (see
-                # https://github.com/natcap/geometamaker/issues/17), but it can
-                # be set by CKAN.
-                #
-                # Once we know which part of the MCF we should use for the
-                # suggested citation, we can just insert it into
-                # `pkg_dict['suggested_citation']`, assuming we don't change
-                # the key in the ckanext-scheming schema.
-                if 'suggested_citation' in pkg_dict:
-                    package_parameters['suggested_citation'] = (
-                        pkg_dict['suggested_citation'])
 
                 if pkg_dict['state'] == 'deleted':
                     LOGGER.info(f"Dataset {title} (name: {name}) exists in "
