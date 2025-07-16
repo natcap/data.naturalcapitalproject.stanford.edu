@@ -39,32 +39,18 @@ def parse_metadata(pkg):
 
     # Extract dataset-level extras
     center_lat_lon = None
-    # bbox_75 = None
-    # if pkg.get('center_lat_lon'):
-    #     try:
-    #         center_lat_lon = json.loads(pkg['center_lat_lon'])
-    #     except json.JSONDecodeError:
-    #         pass
-
     for extra in pkg.get('extras', []):
         if extra['key'] == 'center_lat_lon':
             try:
                 center_lat_lon = json.loads(extra['value'])
             except json.JSONDecodeError:
                 pass
-        # if extra['key'] == 'bbox_75':
-        #     try:
-        #         bbox_75 = json.loads(extra['value'])
-        #     except json.JSONDecodeError:
-        #         pass
 
     # Inject into each vector layer (optional: only if one layer?)
     for layer in metadata.get('layers', []):
         if layer.get('type') == 'vector':
             if center_lat_lon:
                 layer['center_lat_lon'] = center_lat_lon
-            # if bbox_75:
-            #     layer['bbox_75'] = bbox_75
 
     return metadata
 
