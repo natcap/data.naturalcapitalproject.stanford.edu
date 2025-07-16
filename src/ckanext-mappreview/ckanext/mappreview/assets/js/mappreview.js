@@ -175,13 +175,11 @@ ckan.module("mappreview", function ($, _) {
           };
         }
         else if (l.type === 'vector') {
-          console.log(config.layers, "is config layrs")
           if (l.url.endsWith('.geojson')) {
             return {
               id: l.name,
               type: 'geojson',
               data: l.url,
-              // center_lat_lon: l.center_lat_lon //|| [0,0]
             };
           } else if (l.url.endsWith('.mvt')) {
             // The only authoritative way to get the correct layer name is to
@@ -190,7 +188,6 @@ ckan.module("mappreview", function ($, _) {
               id: l.name,
               type: 'vector',
               tiles: [`${l.url}/{z}/{x}/{y}.pbf`],
-              // center_lat_lon: l.center_lat_lon// || [0,0]
             };
           } else {
             console.error(`Cannot map vector at url ${l.url}`);
@@ -278,7 +275,7 @@ ckan.module("mappreview", function ($, _) {
           map.on('moveend', () => {
             spinGlobe(userInteracting);
           });
-        } else if (config.layers.length === 11 && config.layers[0].type === 'vector' && (
+        } else if (config.layers.length === 1 && config.layers[0].type === 'vector' && (
           'center_lat_lon' in layers[0])){
           const centerLatLon =  layers[0].center_lat_lon;
           if (centerLatLon) {
