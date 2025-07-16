@@ -181,7 +181,7 @@ ckan.module("mappreview", function ($, _) {
               id: l.name,
               type: 'geojson',
               data: l.url,
-              center_lat_lon: l.center_lat_lon //|| [0,0]
+              // center_lat_lon: l.center_lat_lon //|| [0,0]
             };
           } else if (l.url.endsWith('.mvt')) {
             // The only authoritative way to get the correct layer name is to
@@ -190,7 +190,7 @@ ckan.module("mappreview", function ($, _) {
               id: l.name,
               type: 'vector',
               tiles: [`${l.url}/{z}/{x}/{y}.pbf`],
-              center_lat_lon: l.center_lat_lon// || [0,0]
+              // center_lat_lon: l.center_lat_lon// || [0,0]
             };
           } else {
             console.error(`Cannot map vector at url ${l.url}`);
@@ -248,15 +248,13 @@ ckan.module("mappreview", function ($, _) {
         });
 
         let boundsArray = config.map.bounds;
-        map.fitBounds(boundsArray, {padding: 20, linear: true}); //bearing: 0 , pitch: 55
         function isGlobal(bounds) {
           const [minLng, minLat, maxLng, maxLat] = bounds;
-  
+          // loose restrictions on whats considered a global dataset
           return (minLng <= -170 && maxLng >= 170 && minLat <= -50 && maxLat >= 50 );
         }
 
         function spinGlobe(userInteracting) {
-          const zoom = map.getZoom();
           if (!userInteracting) {
               let distancePerSecond = 3;
               const center = map.getCenter();
@@ -280,21 +278,17 @@ ckan.module("mappreview", function ($, _) {
           map.on('moveend', () => {
             spinGlobe(userInteracting);
           });
-        } else if (config.layers.length === 1 && config.layers[0].type === 'vector' && layers[0].center_lat_lon){
-          console.log('layers0!!', layers[0])
+        } else if (config.layers.length === 11 && config.layers[0].type === 'vector' && (
+          'center_lat_lon' in layers[0])){
           const centerLatLon =  layers[0].center_lat_lon;
-          // const bbox75 = config.layers[0].bbox_75;
-          // if (bbox75){
-          //   map.fitBounds(bbox75, {padding: 20, linear=true});
-          // } 
-          if (centerLatLon){
-            console.log("setting cetner lat long:" , centerLatLon[1], "lat:", centerLatLon[0])
-            // mpabox uses long, lat format
+          if (centerLatLon) {
+            // mapbox uses long, lat format
             map.setCenter([centerLatLon[1], centerLatLon[0]]);
+            // zoom level conservatively set to the min zoom of full dataset
             map.setZoom(config.map.minzoom);
           }
         } else{ // bounds aren't global, and map doesn't just show 1 vector layer
-          map.fitBounds(boundsArray, { padding: 20, linear: true}); //bearing: 0 , pitch: 55
+          map.fitBounds(boundsArray, { padding: 20, linear: true});
         }
 
       map.on('load', () => {
