@@ -305,32 +305,45 @@ def _get_wgs84_bbox(config):
 
 
 def _detect_vector(gmm_yaml, path_key, data_format):
-    """Get path to vector dataset (_get_average_latlon helper function )"""
+    """Get path to vector dataset (_get_median_latlon helper function )
+    
+    if dataset is not a vector, return False
+    if dataset is a vector, check to see if filepath exists
+    if dataset is a zip, assume that it contains a shapefile and parse the shp path, check to see if it exists
+    """
     dataset_path = gmm_yaml[path_key]
-    if data_format.lower() in ['zip', 'geojson', 'gpkg', 'shp']:  # and path_key == 'path':
-        if dataset_path.endswith(".zip"):  # assume that zips contain shps
-            basename = os.path.basename(dataset_path)
-            try:
-                dataset_path = dataset_path.replace(
-                    basename, [src for src in gmm_yaml['sources'] if src.endswith(".shp")][0])
-                print(f"datasetpth: {dataset_path}")
-            except IndexError:
-                LOGGER.info(f"{dataset_path} does not contain a "
-                            "shapefile (or file naming is unexpected)")
-                return False
+    if data_format.lower() in ['geojson', 'gpkg', 'shp']:
         if os.path.exists(dataset_path) or (
                 requests.get(dataset_path).status_code == 200):
             return dataset_path
-        else:
-            print("!! getting URL")
-            dataset_path = gmm_yaml['url']
-            if os.path.exists(dataset_path) or (
-                    requests.get(dataset_path).status_code == 200):
-                return dataset_path
-        return False
+
+    elif data_format.lower() == 'zip':  # and path_key == 'path':
+        if dataset_path.endswith(".zip"):  # assume that zips contain shps
+            dirname = os.path.dirname(dataset_path)
+            try:
+                shp_name = [src for src in gmm_yaml['sources'] if src.endswith(".shp")][0]
+            except IndexError:
+                LOGGER.info(f"{dataset_path} does not contain a "
+                            "shapefile (or file naming is unexpected)")
+                return False  # center lat lon won't get computed
+
+            shp_path = os.path.join(dirname, shp_name)
+            if os.path.exists(shp_path) or (
+                    requests.get(shp_path).status_code == 200):
+                return shp_path
+            else:
+                # try removing last folder from dataset_path
+                base_path = os.path.dirname(dirname)
+                shp_path = os.path.join(base_path, shp_name)
+
+                if os.path.exists(shp_path) or (
+                        requests.get(shp_path).status_code == 200):
+                    return shp_path
+
+    return False
 
 
-def _get_average_latlon_bounds(vector_path):
+def _get_median_latlon_bounds(vector_path):
     """Compute the average lat/lon and bbox of a vector dataset.
 
     Compute the average latitude and longitude coordinates of a vector dataset
@@ -408,11 +421,7 @@ def _get_average_latlon_bounds(vector_path):
     # Compute IQR bounds (12.5th to 87.5th percentiles for 75% range)
     x_low, x_high = numpy.percentile(xs, [12.5, 87.5])
     y_low, y_high = numpy.percentile(ys, [12.5, 87.5])
-    bbox_75 = (x_low, y_low, x_high, y_high)
-
-    return (numpy.median(ys), numpy.median(xs), bbox_75)  # lat, lon, bounds
-
-    # return (sum_y / count, sum_x / count, bbox_75)  # lat, lon, bounds
+    return (numpy.median(ys), numpy.median(xs))  # lat, lon, bounds
 
 
 def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
@@ -577,7 +586,7 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
         avg_lat = None
         avg_lon = None
         if vector_path:
-            avg_lat, avg_lon, bbox_75 = _get_average_latlon_bounds(vector_path)
+            avg_lat, avg_lon = _get_median_latlon_bounds(vector_path)
             # lat_lon_json = json.dumps([avg_lat, avg_lon])
             extras.append({
                 'key': 'center_lat_lon',
