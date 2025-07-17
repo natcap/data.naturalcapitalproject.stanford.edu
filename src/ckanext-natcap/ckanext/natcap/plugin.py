@@ -201,7 +201,7 @@ def natcap_convert_to_tags(vocab):
 
         v = model.Vocabulary.get(vocab)
         if not v:
-            raise df.Invalid(_('Tag vocabulary "%s" does not exist') % vocab)
+            raise toolkit.Invalid(_('Tag vocabulary "%s" does not exist') % vocab)
         context['vocabulary'] = v
 
         for tag in new_tags:
