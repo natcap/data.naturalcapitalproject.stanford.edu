@@ -381,7 +381,6 @@ def _get_median_latlon_bounds(vector_path):
     else:
         coord_transform = osr.CoordinateTransformation(source_srs, wgs84)
 
-    # sum_x, sum_y, count = 0.0, 0.0, 0
     coords = []
     for feature in layer:
         geom = feature.GetGeometryRef()
