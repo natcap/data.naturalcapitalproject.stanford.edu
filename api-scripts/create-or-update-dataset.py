@@ -306,10 +306,11 @@ def _get_wgs84_bbox(config):
 
 def _detect_vector(gmm_yaml, path_key, data_format):
     """Get path to vector dataset (_get_median_latlon helper function )
-    
+
     if dataset is not a vector, return False
     if dataset is a vector, check to see if filepath exists
-    if dataset is a zip, assume that it contains a shapefile and parse the shp path, check to see if it exists
+    if dataset is a zip, assume that it contains a shapefile,
+      parse the shp path, check to see if it exists
     """
     dataset_path = gmm_yaml[path_key]
     if data_format.lower() in ['geojson', 'gpkg', 'shp']:
@@ -374,9 +375,6 @@ def _get_median_latlon_bounds(vector_path):
     layer = dataset.GetLayer()
     source_srs = layer.GetSpatialRef()
 
-    # Reproject to WGS84 if needed
-    # wgs84 = osr.SpatialReference()
-    # wgs84.ImportFromEPSG(4326)
     if source_srs is None:
         LOGGER.warning("No CRS found; assuming WGS84.")
         coord_transform = None
@@ -397,11 +395,8 @@ def _get_median_latlon_bounds(vector_path):
             x, y, _ = coord_transform.TransformPoint(coord[0], coord[1])
             coord = (x, y)
         coords.append(coord)
-        # sum_x += x
-        # sum_y += y
-        # count += 1
 
-    if not coords:  #count == 0 or # TODO: are both of these conditions needed?
+    if not coords:
         raise ValueError(f"No valid geometries found in {vector_path} to "
                          "compute center lat/lon and bbox")
 
@@ -409,18 +404,12 @@ def _get_median_latlon_bounds(vector_path):
     xs = numpy.array(xs)  # lons
     ys = numpy.array(ys)  # lats
 
-    print(f"min x: {numpy.min(xs)}, max x: {numpy.max(x)}, min y: {numpy.min(ys)}, max y: {numpy.max(ys)}")
-
     # Ensure that x (lon) is between -180 and 180, and y (lat) between -90 and 90
     if numpy.min(xs) < -180 or numpy.max(x) > 180 or numpy.min(ys) < -90  or numpy.max(ys) > 90:
-        print(f"Potential error with latitude/longitude. {numpy.min(xs)}, "
-              f"max x: {numpy.max(x)}, min y: {numpy.min(ys)}, max y: "
-              f"{numpy.max(ys)}")
-        raise ValueError
+        raise ValueError("Latitude/longitude outside expected range: Min x: "
+                         f"{numpy.min(xs)}, max x: {numpy.max(x)}, min y: "
+                         f"{numpy.min(ys)}, max y: {numpy.max(ys)}")
 
-    # Compute IQR bounds (12.5th to 87.5th percentiles for 75% range)
-    x_low, x_high = numpy.percentile(xs, [12.5, 87.5])
-    y_low, y_high = numpy.percentile(ys, [12.5, 87.5])
     return (numpy.median(ys), numpy.median(xs))  # lat, lon, bounds
 
 
