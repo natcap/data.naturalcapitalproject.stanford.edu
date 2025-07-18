@@ -318,7 +318,7 @@ def _detect_vector(gmm_yaml, path_key, data_format):
                 requests.get(dataset_path).status_code == 200):
             return dataset_path
 
-    elif data_format.lower() == 'zip':  # and path_key == 'path':
+    elif data_format.lower() == 'zip':
         if dataset_path.endswith(".zip"):  # assume that zips contain shps
             dirname = os.path.dirname(dataset_path)
             try:
