@@ -24,12 +24,6 @@ def should_show(pkg):
     return get_mappreview(pkg)
 
 
-# def parse_metadata(pkg):
-#     mappreview = get_mappreview(pkg)
-#     if not mappreview:
-#         return {}
-#     return json.loads(mappreview['value'])
-
 def parse_metadata(pkg):
     mappreview = get_mappreview(pkg)
     if not mappreview:
