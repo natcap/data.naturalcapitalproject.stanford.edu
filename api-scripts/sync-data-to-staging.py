@@ -1,3 +1,16 @@
+"""Sync all datasets from prod to a staging CKAN instance.
+
+See api-scripts/create-or-update-dataset.py for the list of dependencies and
+required setup to run this program.
+
+By default, this program will sync datasets from prod
+(https://data.naturalcapitalproject.stanford.edu) over to staging
+(https://data-staging.naturalcapitalproject.org).  If you want to sync to a
+local docker-compose cluster, set environment variables like so:
+
+    $ CKAN_STAGING_URL="https://localhost:8443" CKAN_STAGING_APIKEY="<my api key>" python api-scripts/sync-data-to-staging.py
+"""
+
 import argparse
 import contextlib
 import os
@@ -7,13 +20,20 @@ import textwrap
 
 import requests
 
-STAGING_URL = 'https://data-staging.naturalcapitalproject.org'
+STAGING_URL = os.environ.get(
+    'CKAN_STAGING_URL', 'https://data-staging.naturalcapitalproject.org')
 STAGING_API = f'{STAGING_URL}/api/3/action'
-PROD_URL = 'https://data.naturalcapitalproject.stanford.edu'
-PROD_API = f'{PROD_URL}/api/3/action'
 STAGING_API_KEY = os.environ['CKAN_STAGING_APIKEY']
+PROD_URL = os.environ.get(
+    'CKAN_PROD_URL', 'https://data.naturalcapitalproject.stanford.edu')
+PROD_API = f'{PROD_URL}/api/3/action'
 
 CUR_DIR = os.path.dirname(__file__)
+
+# Disable SSL verification if we're running on localhost.
+VERIFY=True
+if STAGING_URL.split('https://')[1].startswith('localhost'):
+    VERIFY=False
 
 # list out sources on ckan
 # clean out the sources
@@ -33,6 +53,7 @@ INVALID_GMM_PACKAGE_MSG = textwrap.dedent(
 @contextlib.contextmanager
 def http_session(api_key=None):
     session = requests.Session()
+    session.verify = VERIFY
     if api_key is not None:
         session.headers.update({'Authorization': api_key})
     yield session
@@ -65,6 +86,50 @@ def clear_datasets_on_staging(target_package_ids=None):
                 f"{api_url}/dataset_purge", json={'id': package_id})
 
 
+def update_vocabularies_on_staging(prod_vocab_json):
+    api_url = STAGING_API
+    api_key = STAGING_API_KEY
+    print(f"Updating Tag Vocabularies on staging {api_url}")
+
+    prod_vocabs = prod_vocab_json['result']
+    with http_session(api_key) as session:
+        for vocab in prod_vocabs:
+            prod_tags = vocab['tags']
+            resp_json = session.post(
+                f'{api_url}/vocabulary_show', json={'id': vocab['name']}).json()
+
+            if resp_json['success']:
+                # Vocab already exists; add missing tags
+                print(f"Updating tags in vocabulary `{vocab['name']}`")
+                vocab_info = resp_json['result']
+                staging_tags = [tag['name'] for tag in vocab_info['tags']]
+                missing_tags = list(set(tag['name'] for tag in prod_tags).difference(
+                    set(staging_tags)))
+
+                if missing_tags:
+                    all_tags = [{'name': tag} for tag in staging_tags + missing_tags]
+                    update_resp = session.post(
+                        f'{api_url}/vocabulary_update',
+                        json={'id': vocab_info['id'], 'tags': all_tags})
+                    if not update_resp.ok:
+                        raise Exception(
+                            f"Error updating vocabulary {vocab['name']}: "
+                            f"{update_resp.json()['error']}")
+            else:
+                # Vocab doesn't exist; create it and add all tags
+                print(f"Creating vocabulary `{vocab['name']}`")
+                tag_dicts = [{'name': tag['name']} for tag in prod_tags]
+                create_resp = session.post(
+                    f'{api_url}/vocabulary_create',
+                    json={'name': vocab['name'], 'tags': tag_dicts})
+                if not create_resp.ok:
+                    raise Exception(
+                        f"Error creating vocabulary {vocab['name']}: "
+                        f"{create_resp.json()['error']}")
+
+    print("Vocabularies updated successfully!")
+
+
 # https://stackoverflow.com/a/16696317
 def download_file(url, local_filename):
     with requests.get(url, stream=True) as r:
@@ -84,6 +149,9 @@ def post_prod_resources_to_staging(target_package_ids=None,
 
     # We don't need an API key to read what we need
     with http_session() as session:
+        prod_vocabs = session.get(f'{api_url}/vocabulary_list')
+        update_vocabularies_on_staging(prod_vocabs.json())
+
         for package_id in _list_datasets(session, api_url):
             info_resp = session.get(f'{api_url}/package_show?id={package_id}')
             info_json = info_resp.json()['result']
@@ -105,16 +173,16 @@ def post_prod_resources_to_staging(target_package_ids=None,
                                 CUR_DIR, 'create-or-update-dataset.py')
                             logfile_path = os.path.join(
                                 temp_dir, f'{gmm_basename}.logfile')
-                            print(f"Creating dataset on {STAGING_URL} with "
+                            print(f"Creating dataset on staging with "
                                   f"{gmm_basename}")
                             with open(logfile_path, 'w') as logfile:
                                 subprocess.run(
-                                    [sys.executable, update_script, gmm_filepath],
+                                    [sys.executable, update_script,
+                                     gmm_filepath, '--staging'],
                                     stdout=logfile,
                                     stderr=subprocess.STDOUT,
                                     check=True, env={
-                                        "CKAN_URL": STAGING_URL,
-                                        "CKAN_APIKEY": STAGING_API_KEY,
+                                        "CKAN_STAGING_APIKEY": STAGING_API_KEY,
                                     })
                         except Exception:
                             print(INVALID_GMM_PACKAGE_MSG.format(

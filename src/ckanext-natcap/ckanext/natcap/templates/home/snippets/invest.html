@@ -5,17 +5,43 @@
     </div>
     <div class="col-md-4">
       <h2>Search by InVEST® Model</h2>
-      <div>
+      <div id="invest-model-list-container">
         <div>Search datasets by InVEST model to find available input data and results for the chosen model.</div>
         <div>
-          <ul class="home-invest-model-list">
-            {% for invest_model in h.natcap_get_invest_models() %}
-              {% if invest_model.highlighted %}
-                {% snippet 'home/snippets/invest_model.html', url=invest_model.url, name=invest_model.name, slug=invest_model.slug, keywords=invest_model.keywords %}
-              {% endif %}
-            {% endfor %}
+          <ul class="nav nav-pills" id="invest-model-list-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="invest-models-featured-tab"
+                  data-bs-toggle="tab" data-bs-target="#invest-models-featured"
+                  type="button" role="tab" aria-controls="invest-models-featured"
+                  aria-selected="true">Featured models</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="invest-models-all-tab"
+                  data-bs-toggle="tab" data-bs-target="#invest-models-all"
+                  type="button" role="tab" aria-controls="invest-models-all"
+                  aria-selected="false">All InVEST models</button>
+            </li>
           </ul>
+          <div id="invest-model-lists" class="tab-content">
+            <div id="invest-models-featured" class="tab-pane fade show active"
+                role="tabpanel" aria-labelledby="invest-models-featured-tab">
+              <ul class="home-invest-model-list">
+                {% for invest_model in h.natcap_get_invest_models() %}
+                  {% if invest_model.highlighted %}
+                    {% snippet 'home/snippets/invest_model.html', url=invest_model.url, name=invest_model.name, slug=invest_model.slug, keywords=invest_model.keywords %}
+                  {% endif %}
+                {% endfor %}
+              </ul>
+            </div>
+            <div id="invest-models-all" class="tab-pane fade" role="tabpanel"
+                aria-labelledby="invest-models-all-tab">
+              <ul class="home-invest-model-list">
+                {% for invest_model in h.natcap_get_invest_models() %}
+                  {% snippet 'home/snippets/invest_model.html', url=invest_model.url, name=invest_model.name, slug=invest_model.slug, keywords=invest_model.keywords %}
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
         </div>
-      {# TODO #}
     </div>
 </div>

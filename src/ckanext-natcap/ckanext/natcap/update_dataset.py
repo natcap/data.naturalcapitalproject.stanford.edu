@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 import urllib.error
 import urllib.request
 import warnings
@@ -11,6 +12,7 @@ from datetime import timezone
 import ckan.plugins.toolkit as toolkit
 import requests
 import yaml
+from ckan.common import config
 
 LOGGER = logging.getLogger(__name__)
 TITILER_URL = os.environ.get('TITILER_URL',
@@ -26,12 +28,39 @@ def get_dataset_metadata(resources: list[dict]) -> dict:
 
     for resource in resources:
         if resource['description'] == 'Geometamaker YML':
+            resource_url = resource['url']
+
+            # Handle the case where we're on a development machine, without a
+            # globally-identifiable hostname.  In this case, santize the URL
+            # to use the correct port and not use HTTPS (served by NGINX, not
+            # CKAN, which isn't in this container)
+            if re.match('^https?://localhost', resource_url):
+                LOGGER.info(f"Resource is on localhost: {resource}")
+                resource = re.sub(
+                    '^https?://localhost:[1-9][0-9]*/', '', resource_url)
+
+                # This SHOULD be able to be configured by the CKAN
+                # configuration item ckan.site_url (CKAN_SITE_URL in the .env
+                # file), but it appears that this container always operates
+                # on port 5000, when the site itself may, in fact, be exposed
+                # on a different port via docker compose.
+                #
+                # Setting CKAN_SITE_URL correctly in the .env also affects
+                # redirects (like after logging in), so it should, in fact
+                # point to whatever port is exposed by the docker compose
+                # cluster.
+                ckan_site_url = 'http://localhost:5000'
+
+                resource_url = f'{ckan_site_url}/{resource}'
+                LOGGER.info(f"Sanitized resource to {resource_url}")
+
             try:
-                with urllib.request.urlopen(resource['url']) as response:
+                with urllib.request.urlopen(resource_url) as response:
                     text = response.read()
                     return yaml.safe_load(text)
             except urllib.error.HTTPError:
-                LOGGER.warning(f"Could not load GMM YML from {resource['url']}")
+                LOGGER.warning(
+                    f"Could not load GMM YML from {resource_url}")
 
     return None
 

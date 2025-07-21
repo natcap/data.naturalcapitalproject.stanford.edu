@@ -51,25 +51,24 @@
               </ol>
             </td>
           </tr>
-        {% endif %}
 
-        {% set placenames_str = h.get_pkg_dict_extra(pkg_dict, 'placenames') %}
-        {% if placenames_str %}
-          {% set placenames = h.natcap_parse_json(placenames_str) if placenames_str else [] %}
+          {% if pkg_dict.place %}
           <tr>
-            <th scope="row" class="dataset-label" property="rdfs:label">{{ _('Places') }}</th>
-            <td class="dataset-details" property="rdf:value">
+            <th scope="row" class="dataset-label">{{ _('Places') }}</th>
+            <td class="dataset-details" property="dc:subject">
               <ol class="additional-info-tag-list">
-                {% for placename in placenames %}
+                {% for place in pkg_dict.place %}
                   <li class="additional-info-tag">
-                    <a href="{% url_for 'dataset.search', extras_placenames=placename|lower %}" aria-label="{{ _('Search datasets with the place: {name}').format(name=placename) }}">
+                    <a href="{% url_for 'dataset.search', vocab_place=place %}" aria-label="{{ _('Search datasets with the place: {name}').format(name=place) }}">
                       <img src="/img/filters-place.png" />
-                      {{ placename }}
+                      {{ place }}
                     </a>
                   </li>
                 {% endfor %}
               </ol>
+            </td>
           </tr>
+          {% endif %}
         {% endif %}
 
         {% if pkg_dict.maintainer_email %}

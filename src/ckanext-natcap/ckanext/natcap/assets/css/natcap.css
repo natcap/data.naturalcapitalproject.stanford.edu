@@ -548,6 +548,12 @@ body {
 
 .home-invest-model-list-item a {
     color: var(--color-black);
+    display: flex;
+    align-items: center;
+}
+
+.home-invest-model-list-item a img {
+    padding-right: 5px;
 }
 
 .additional-info .table {
@@ -623,7 +629,7 @@ body {
 .site-footer {
     background: var(--color-blue);
     color: var(--color-off-white);
-    padding: 5rem;
+    padding: 4rem;
 }
 
 .site-footer .row {
@@ -645,17 +651,42 @@ body {
     justify-content: flex-end;
 }
 
+.site-footer #su-logo,
+.site-footer #natcap-logo {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+}
+
+.site-footer #su-logo a,
+.site-footer #natcap-logo a {
+    padding-right: 25px;
+}
+
+.site-footer #su-logo img,
+.site-footer #natcap-logo img {
+    width: 150px;
+    height: auto;
+}
+
+
 .site-footer img {
     max-width: min(100%, 200px);
 }
 
- .site-footer .attribution p {
+.site-footer .attribution p {
   color: #fff;
   font-size: 0.875rem;
 }
 
 .site-footer label, .site-footer small, .site-footer .small {
     color: #fff;
+}
+
+footer#footer-su {
+    background: var(--color-black);
+    padding-top: 2rem;
+    padding-bottom: 2rem;
 }
 
 .main {
@@ -1210,4 +1241,18 @@ div.logo a {
     .site-footer .row {
         gap: 2rem;
     }
+}
+
+
+/* Undo the display:none on the tab-content class elsewhere in CKAN CSS */
+div#invest-model-lists.tab-content {
+    display: block;
+}
+
+div#invest-model-list-container div {
+    margin-bottom: 0.5rem;
+}
+
+#invest-model-list-container .nav-pills .nav-link.active {
+    background-color: var(--color-blue);
 }
