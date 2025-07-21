@@ -19,6 +19,7 @@ import datetime
 import hashlib
 import json
 import logging
+import numpy
 import mimetypes
 import os
 import pprint
@@ -303,6 +304,115 @@ def _get_wgs84_bbox(config):
              [minx, maxy]]]
 
 
+def _detect_vector(gmm_yaml, path_key, data_format):
+    """Get path to vector dataset (_get_median_latlon helper function )
+
+    if dataset is not a vector, return False
+    if dataset is a vector, check to see if filepath exists
+    if dataset is a zip, assume that it contains a shapefile,
+      parse the shp path, check to see if it exists
+    """
+    dataset_path = gmm_yaml[path_key]
+    if data_format.lower() in ['geojson', 'gpkg', 'shp']:
+        if os.path.exists(dataset_path) or (
+                requests.get(dataset_path).status_code == 200):
+            return dataset_path
+
+    elif data_format.lower() == 'zip':
+        if dataset_path.endswith(".zip"):  # assume that zips contain shps
+            dirname = os.path.dirname(dataset_path)
+            try:
+                shp_name = [src for src in gmm_yaml['sources'] if src.endswith(".shp")][0]
+            except IndexError:
+                LOGGER.info(f"{dataset_path} does not contain a "
+                            "shapefile (or file naming is unexpected)")
+                return False  # center lat lon won't get computed
+
+            shp_path = os.path.join(dirname, shp_name)
+            if os.path.exists(shp_path) or (
+                    requests.get(shp_path).status_code == 200):
+                return shp_path
+            else:
+                # try removing last folder from dataset_path
+                base_path = os.path.dirname(dirname)
+                shp_path = os.path.join(base_path, shp_name)
+
+                if os.path.exists(shp_path) or (
+                        requests.get(shp_path).status_code == 200):
+                    return shp_path
+
+    return False
+
+
+def _get_median_latlon_bounds(vector_path):
+    """Compute the average lat/lon and bbox of a vector dataset.
+
+    Compute the average latitude and longitude coordinates of a vector dataset
+    and determine a bounding box that encloses ~75% of the features (centroids)
+
+    Return
+        average lat, lon, and 75% bounding box
+
+    """
+    from osgeo.osr import OAMS_TRADITIONAL_GIS_ORDER
+
+    wgs84 = gdal.osr.SpatialReference()
+    wgs84.ImportFromEPSG(4326)
+    wgs84.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER)
+
+    if vector_path.startswith("http"):  # read file from remote
+        vector_path = os.path.join("/vsicurl", vector_path)
+    driver = ogr.GetDriverByName('ESRI Shapefile')  # default
+    if vector_path.lower().endswith('.geojson'):
+        driver = ogr.GetDriverByName('GeoJSON')
+    elif vector_path.lower().endswith('.gpkg'):
+        driver = ogr.GetDriverByName('GPKG')
+
+    dataset = driver.Open(vector_path, 0)
+    if dataset is None:
+        raise RuntimeError(f"Could not open vector: {vector_path}")
+
+    layer = dataset.GetLayer()
+    source_srs = layer.GetSpatialRef()
+
+    if source_srs is None:
+        LOGGER.warning("No CRS found; assuming WGS84.")
+        coord_transform = None
+    else:
+        coord_transform = osr.CoordinateTransformation(source_srs, wgs84)
+
+    # sum_x, sum_y, count = 0.0, 0.0, 0
+    coords = []
+    for feature in layer:
+        geom = feature.GetGeometryRef()
+        if geom is None:
+            continue
+        geom_pt = geom.Centroid() if geom.GetGeometryType() != ogr.wkbPoint else geom
+        coord = (geom_pt.GetX(), geom_pt.GetY()) if geom_pt.GetGeometryType() in [ogr.wkbPoint, ogr.wkbPoint25D] else (None, None, None)
+        if coord[0] is None or coord[1] is None:
+            continue
+        if coord_transform:
+            x, y, _ = coord_transform.TransformPoint(coord[0], coord[1])
+            coord = (x, y)
+        coords.append(coord)
+
+    if not coords:
+        raise ValueError(f"No valid geometries found in {vector_path} to "
+                         "compute center lat/lon and bbox")
+
+    xs, ys = zip(*coords)
+    xs = numpy.array(xs)  # lons
+    ys = numpy.array(ys)  # lats
+
+    # Ensure that x (lon) is between -180 and 180, and y (lat) between -90 and 90
+    if numpy.min(xs) < -180 or numpy.max(x) > 180 or numpy.min(ys) < -90  or numpy.max(ys) > 90:
+        raise ValueError("Latitude/longitude outside expected range: Min x: "
+                         f"{numpy.min(xs)}, max x: {numpy.max(x)}, min y: "
+                         f"{numpy.min(ys)}, max y: {numpy.max(ys)}")
+
+    return (numpy.median(ys), numpy.median(xs))  # lat, lon, bounds
+
+
 def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
          verify_ssl=True):
     with open(gmm_yaml_path) as yaml_file:
@@ -459,6 +569,17 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
         except Exception:
             LOGGER.exception("Something happened when loading the bbox")
             pass
+
+        # Computing average lat/lon for vectors
+        vector_path = _detect_vector(gmm_yaml, path_key, resource_dict['format'])
+        avg_lat = None
+        avg_lon = None
+        if vector_path:
+            avg_lat, avg_lon = _get_median_latlon_bounds(vector_path)
+            extras.append({
+                'key': 'center_lat_lon',
+                'value': json.dumps([avg_lat, avg_lon])
+            })
 
         package_parameters = {
             'name': name,
