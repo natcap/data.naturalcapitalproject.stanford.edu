@@ -313,33 +313,22 @@ def _detect_vector(gmm_yaml, path_key, data_format):
       parse the shp path, check to see if it exists
     """
     dataset_path = gmm_yaml[path_key]
-    remote_dataset_path = f"/vsicurl/{dataset_path}"
-    if (gdal.OpenEx(remote_dataset_path, gdal.OF_VECTOR)
-            if dataset_path.startswith("http")
-            else gdal.OpenEx(dataset_path, gdal.OF_VECTOR)):
+    if dataset_path.startswith("http"):  # read file from remote
+        # gdal can't handle the storage.cloud.google.com URL
+        dataset_path = re.sub('^https://storage.cloud.google.com',
+                              'https://storage.googleapis.com', dataset_path)
+        dataset_path = f"/vsicurl/{dataset_path}"
+    if gdal.OpenEx(dataset_path, gdal.OF_VECTOR):
         return dataset_path
     elif data_format.lower() == 'zip':
-        if dataset_path.endswith(".zip"):  # assume that zips contain shps
-            dirname = os.path.dirname(dataset_path)
-            try:
-                shp_name = [src for src in gmm_yaml['sources'] if src.endswith(".shp")][0]
-            except IndexError:
-                LOGGER.info(f"{dataset_path} does not contain a "
-                            "shapefile (or file naming is unexpected)")
-                return False  # center lat lon won't get computed
-
-            shp_path = os.path.join(dirname, shp_name)
-            if os.path.exists(shp_path) or (
-                    requests.head(shp_path).status_code in [200, 302]):
-                return shp_path
-            else:
-                # try removing last folder from dataset_path
-                base_path = os.path.dirname(dirname)
-                shp_path = os.path.join(base_path, shp_name)
-
-                if os.path.exists(shp_path) or (
-                        requests.head(shp_path).status_code in [200, 302]):
-                    return shp_path
+        dataset_path = f"/vsizip/{dataset_path}"
+        for source in gmm_yaml['sources']:
+            subfile_path = f"{dataset_path}/{source}"
+            if gdal.OpenEx(subfile_path, gdal.OF_VECTOR):
+                # if file unexpectedly doesn't open, check relative path of sources
+                print("my subfilepath!", subfile_path)
+                return subfile_path
+        return False
     else:  # data is not a vector
         return False
 
@@ -360,13 +349,9 @@ def _get_median_latlon_bounds(vector_path):
     wgs84.ImportFromEPSG(4326)
     wgs84.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER)
 
-    if vector_path.startswith("http"):  # read file from remote
-        # gdal can't handle the storage.cloud.google.com URL
-        vector_path = re.sub('^https://storage.cloud.google.com',
-                             'https://storage.googleapis.com', vector_path)
-
-        vector_path = f"/vsicurl/{vector_path}"
-
+    # vector_path should look like: 
+    # /vsicurl/https://storage.googleapis.com/natcap-data-cache/my_data.. or
+    # /vsizip//vsicurl/https://storage.googleapis.com/natcap-data-cache/my_data.zip/vector.shp
     dataset = gdal.OpenEx(vector_path, gdal.OF_VECTOR)
     if dataset is None:
         raise RuntimeError(f"Could not open vector: {vector_path}")
