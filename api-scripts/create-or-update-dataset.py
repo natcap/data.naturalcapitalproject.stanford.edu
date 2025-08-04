@@ -326,7 +326,6 @@ def _detect_vector(gmm_yaml, path_key, data_format):
             subfile_path = f"{dataset_path}/{source}"
             if gdal.OpenEx(subfile_path, gdal.OF_VECTOR):
                 # if file unexpectedly doesn't open, check relative path of sources
-                print("my subfilepath!", subfile_path)
                 return subfile_path
         return False
     else:  # data is not a vector
