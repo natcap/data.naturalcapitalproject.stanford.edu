@@ -313,11 +313,11 @@ def _detect_vector(gmm_yaml, path_key, data_format):
       parse the shp path, check to see if it exists
     """
     dataset_path = gmm_yaml[path_key]
-    if data_format.lower() in ['geojson', 'gpkg', 'shp']:
-        if os.path.exists(dataset_path) or (
-                requests.get(dataset_path).status_code == 200):
-            return dataset_path
-
+    remote_dataset_path = f"/vsicurl/{dataset_path}"
+    if (gdal.OpenEx(remote_dataset_path, gdal.OF_VECTOR)
+            if dataset_path.startswith("http")
+            else gdal.OpenEx(dataset_path, gdal.OF_VECTOR)):
+        return dataset_path
     elif data_format.lower() == 'zip':
         if dataset_path.endswith(".zip"):  # assume that zips contain shps
             dirname = os.path.dirname(dataset_path)
@@ -330,7 +330,7 @@ def _detect_vector(gmm_yaml, path_key, data_format):
 
             shp_path = os.path.join(dirname, shp_name)
             if os.path.exists(shp_path) or (
-                    requests.get(shp_path).status_code == 200):
+                    requests.head(shp_path).status_code in [200, 302]):
                 return shp_path
             else:
                 # try removing last folder from dataset_path
@@ -338,10 +338,10 @@ def _detect_vector(gmm_yaml, path_key, data_format):
                 shp_path = os.path.join(base_path, shp_name)
 
                 if os.path.exists(shp_path) or (
-                        requests.get(shp_path).status_code == 200):
+                        requests.head(shp_path).status_code in [200, 302]):
                     return shp_path
-
-    return False
+    else:  # data is not a vector
+        return False
 
 
 def _get_median_latlon_bounds(vector_path):
@@ -361,14 +361,13 @@ def _get_median_latlon_bounds(vector_path):
     wgs84.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER)
 
     if vector_path.startswith("http"):  # read file from remote
-        vector_path = os.path.join("/vsicurl", vector_path)
-    driver = ogr.GetDriverByName('ESRI Shapefile')  # default
-    if vector_path.lower().endswith('.geojson'):
-        driver = ogr.GetDriverByName('GeoJSON')
-    elif vector_path.lower().endswith('.gpkg'):
-        driver = ogr.GetDriverByName('GPKG')
+        # gdal can't handle the storage.cloud.google.com URL
+        vector_path = re.sub('^https://storage.cloud.google.com',
+                             'https://storage.googleapis.com', vector_path)
 
-    dataset = driver.Open(vector_path, 0)
+        vector_path = f"/vsicurl/{vector_path}"
+
+    dataset = gdal.OpenEx(vector_path, gdal.OF_VECTOR)
     if dataset is None:
         raise RuntimeError(f"Could not open vector: {vector_path}")
 
@@ -406,7 +405,7 @@ def _get_median_latlon_bounds(vector_path):
     # Ensure that x (lon) is between -180 and 180, and y (lat) between -90 and 90
     if numpy.min(xs) < -180 or numpy.max(x) > 180 or numpy.min(ys) < -90  or numpy.max(ys) > 90:
         raise ValueError("Latitude/longitude outside expected range: Min x: "
-                         f"{numpy.min(xs)}, max x: {numpy.max(x)}, min y: "
+                         f"{numpy.min(xs)}, max x: {numpy.max(xs)}, min y: "
                          f"{numpy.min(ys)}, max y: {numpy.max(ys)}")
 
     return (numpy.median(ys), numpy.median(xs))  # lat, lon, bounds
