@@ -1,5 +1,15 @@
+"""A script used for creating the `place` Tag Vocabulary on CKAN.
+
+Includes a list of TAGS to create within the `place` vocabulary. These were
+extracted from the existing datasets' "extras" on the production Hub on 2025-07-11.
+
+Note: The initial list of extracted "placenames" included "CONUS" and
+"CONTINENTIAL US" [sic]. These two tags seemed redundant, so we elected to leave
+them out until we decided which terminology to use.
+"""
 import os
 import requests
+
 import ckanapi.errors
 from ckanapi import RemoteCKAN
 
