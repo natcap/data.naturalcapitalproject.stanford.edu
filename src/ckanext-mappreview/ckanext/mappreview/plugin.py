@@ -31,20 +31,20 @@ def parse_metadata(pkg):
 
     metadata = json.loads(mappreview['value'])
 
-    # Extract dataset-level extras
-    center_lat_lon = None
-    for extra in pkg.get('extras', []):
-        if extra['key'] == 'center_lat_lon':
-            try:
-                center_lat_lon = json.loads(extra['value'])
-            except json.JSONDecodeError:
-                pass
-
-    # Inject into each vector layer (optional: only if one layer?)
-    for layer in metadata.get('layers', []):
-        if layer.get('type') == 'vector':
-            if center_lat_lon:
-                layer['center_lat_lon'] = center_lat_lon
+    # Get center_lat_lon if mappreview has only 1 layer
+    if len(metadata.get('layers', [])) == 1:
+        # Extract dataset-level extras
+        center_lat_lon = None
+        for extra in pkg.get('extras', []):
+            if extra['key'] == 'center_lat_lon':
+                try:
+                    center_lat_lon = json.loads(extra['value'])
+                except json.JSONDecodeError:
+                    LOGGER.info("Could not decode center_lat_lon (will be None)")
+        # Inject center_lat_lon into vector layer
+        layer = metadata.get('layers')[0]
+        if layer.get('type') == 'vector' and center_lat_lon:
+            layer['center_lat_lon'] = center_lat_lon
 
     return metadata
 
