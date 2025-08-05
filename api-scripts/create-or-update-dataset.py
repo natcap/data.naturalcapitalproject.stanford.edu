@@ -309,8 +309,8 @@ def _detect_vector(gmm_yaml, path_key, data_format):
 
     if dataset is not a vector, return False
     if dataset is a vector, check to see if filepath exists
-    if dataset is a zip, assume that it contains a shapefile,
-      parse the shp path, check to see if it exists
+    if dataset is a zip, check each item in the zip and return path if item
+        is a vector
     """
     dataset_path = gmm_yaml[path_key]
     if dataset_path.startswith("http"):  # read file from remote
@@ -325,7 +325,8 @@ def _detect_vector(gmm_yaml, path_key, data_format):
         for source in gmm_yaml['sources']:
             subfile_path = f"{dataset_path}/{source}"
             if gdal.OpenEx(subfile_path, gdal.OF_VECTOR):
-                # if file unexpectedly doesn't open, check relative path of sources
+                # if file unexpectedly doesn't open, recommend checking that
+                # the path of `sources` is correct relative to `dataset_path`
                 return subfile_path
         return False
     else:  # data is not a vector
@@ -338,8 +339,8 @@ def _get_median_latlon_bounds(vector_path):
     Compute the average latitude and longitude coordinates of a vector dataset
     and determine a bounding box that encloses ~75% of the features (centroids)
 
-    Return
-        average lat, lon, and 75% bounding box
+    Returns:
+        tuple with median latitude, median longitude
 
     """
     from osgeo.osr import OAMS_TRADITIONAL_GIS_ORDER
@@ -370,7 +371,7 @@ def _get_median_latlon_bounds(vector_path):
         if geom is None:
             continue
         geom_pt = geom.Centroid() if geom.GetGeometryType() != ogr.wkbPoint else geom
-        coord = (geom_pt.GetX(), geom_pt.GetY()) if geom_pt.GetGeometryType() in [ogr.wkbPoint, ogr.wkbPoint25D] else (None, None, None)
+        coord = (geom_pt.GetX(), geom_pt.GetY()) if geom_pt.GetGeometryType() in [ogr.wkbPoint, ogr.wkbPoint25D] else (None, None)
         if coord[0] is None or coord[1] is None:
             continue
         if coord_transform:
