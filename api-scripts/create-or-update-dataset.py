@@ -324,10 +324,9 @@ def _detect_vector(gmm_yaml, path_key, data_format):
         dataset_path = f"/vsizip/{dataset_path}"
         for source in gmm_yaml['sources']:
             subfile_path = f"{dataset_path}/{source}"
-            if gdal.OpenEx(subfile_path, gdal.OF_VECTOR):
-                # if file unexpectedly doesn't open, recommend checking that
-                # the path of `sources` is correct relative to `dataset_path`
-                return subfile_path
+            if not (subfile_path.endswith(".dbf") or subfile_path.endswith(".csv")):
+                if gdal.OpenEx(subfile_path, gdal.OF_VECTOR):
+                    return subfile_path
         return False
     else:  # data is not a vector
         return False
