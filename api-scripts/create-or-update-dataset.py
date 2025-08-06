@@ -19,6 +19,7 @@ import datetime
 import hashlib
 import json
 import logging
+import numpy
 import mimetypes
 import os
 import pprint
@@ -303,6 +304,97 @@ def _get_wgs84_bbox(config):
              [minx, maxy]]]
 
 
+def _detect_vector(gmm_yaml, path_key, data_format):
+    """Get path to vector dataset (_get_median_latlon helper function )
+
+    if dataset is not a vector, return False
+    if dataset is a vector, check to see if filepath exists
+    if dataset is a zip, check each item in the zip and return path if item
+        is a vector
+    """
+    dataset_path = gmm_yaml[path_key]
+    if dataset_path.startswith("http"):  # read file from remote
+        # gdal can't handle the storage.cloud.google.com URL
+        dataset_path = re.sub('^https://storage.cloud.google.com',
+                              'https://storage.googleapis.com', dataset_path)
+        dataset_path = f"/vsicurl/{dataset_path}"
+    if gdal.OpenEx(dataset_path, gdal.OF_VECTOR):
+        return dataset_path
+    elif data_format.lower() == 'zip':
+        dataset_path = f"/vsizip/{dataset_path}"
+        for source in gmm_yaml['sources']:
+            subfile_path = f"{dataset_path}/{source}"
+            if not (subfile_path.endswith(".dbf") or subfile_path.endswith(".csv")):
+                if gdal.OpenEx(subfile_path, gdal.OF_VECTOR):
+                    return subfile_path
+        return False
+    else:  # data is not a vector
+        return False
+
+
+def _get_median_latlon_bounds(vector_path):
+    """Compute the average lat/lon and bbox of a vector dataset.
+
+    Compute the average latitude and longitude coordinates of a vector dataset
+    and determine a bounding box that encloses ~75% of the features (centroids)
+
+    Returns:
+        tuple with median latitude, median longitude
+
+    """
+    from osgeo.osr import OAMS_TRADITIONAL_GIS_ORDER
+
+    wgs84 = gdal.osr.SpatialReference()
+    wgs84.ImportFromEPSG(4326)
+    wgs84.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER)
+
+    # vector_path should look like: 
+    # /vsicurl/https://storage.googleapis.com/natcap-data-cache/my_data.. or
+    # /vsizip//vsicurl/https://storage.googleapis.com/natcap-data-cache/my_data.zip/vector.shp
+    dataset = gdal.OpenEx(vector_path, gdal.OF_VECTOR)
+    if dataset is None:
+        raise RuntimeError(f"Could not open vector: {vector_path}")
+
+    layer = dataset.GetLayer()
+    source_srs = layer.GetSpatialRef()
+
+    if source_srs is None:
+        LOGGER.warning("No CRS found; assuming WGS84.")
+        coord_transform = None
+    else:
+        coord_transform = osr.CoordinateTransformation(source_srs, wgs84)
+
+    coords = []
+    for feature in layer:
+        geom = feature.GetGeometryRef()
+        if geom is None:
+            continue
+        geom_pt = geom.Centroid() if geom.GetGeometryType() != ogr.wkbPoint else geom
+        coord = (geom_pt.GetX(), geom_pt.GetY()) if geom_pt.GetGeometryType() in [ogr.wkbPoint, ogr.wkbPoint25D] else (None, None)
+        if coord[0] is None or coord[1] is None:
+            continue
+        if coord_transform:
+            x, y, _ = coord_transform.TransformPoint(coord[0], coord[1])
+            coord = (x, y)
+        coords.append(coord)
+
+    if not coords:
+        raise ValueError(f"No valid geometries found in {vector_path} to "
+                         "compute center lat/lon and bbox")
+
+    xs, ys = zip(*coords)
+    xs = numpy.array(xs)  # lons
+    ys = numpy.array(ys)  # lats
+
+    # Ensure that x (lon) is between -180 and 180, and y (lat) between -90 and 90
+    if numpy.min(xs) < -180 or numpy.max(x) > 180 or numpy.min(ys) < -90  or numpy.max(ys) > 90:
+        raise ValueError("Latitude/longitude outside expected range: Min x: "
+                         f"{numpy.min(xs)}, max x: {numpy.max(xs)}, min y: "
+                         f"{numpy.min(ys)}, max y: {numpy.max(ys)}")
+
+    return (numpy.median(ys), numpy.median(xs))  # lat, lon, bounds
+
+
 def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
          verify_ssl=True):
     with open(gmm_yaml_path) as yaml_file:
@@ -459,6 +551,17 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
         except Exception:
             LOGGER.exception("Something happened when loading the bbox")
             pass
+
+        # Computing average lat/lon for vectors
+        vector_path = _detect_vector(gmm_yaml, path_key, resource_dict['format'])
+        avg_lat = None
+        avg_lon = None
+        if vector_path:
+            avg_lat, avg_lon = _get_median_latlon_bounds(vector_path)
+            extras.append({
+                'key': 'center_lat_lon',
+                'value': json.dumps([avg_lat, avg_lon])
+            })
 
         package_parameters = {
             'name': name,
