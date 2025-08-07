@@ -24,20 +24,22 @@ from osgeo import gdal
 from osgeo import osr
 
 app = flask.Flask(__name__, template_folder='templates')
+
+cors_origins = [
+    'https://data-staging.naturalcapitalproject.org',
+    'https://data.naturalcapitalproject.stanford.edu'
+]
+
+if os.environ.get("DEV_MODE"):
+    cors_origins.append("https://localhost:*")
+
 CORS(app, resources={
     '/*': {
-        'origins': [
-            # Only use localhost for local development.
-            # 'http://localhost:*',
-            # 'https://localhost:*',
-            # 'http://127.0.0.1:*',
-            'https://data-staging.naturalcapitalproject.org',
-            'https://data.naturalcapitalproject.stanford.edu',
-        ]
+        'origins': cors_origins
     }
 })
-logging.basicConfig(level=logging.DEBUG)
 
+logging.basicConfig(level=logging.DEBUG)
 
 # PLAN: write a logging handler to listen for progress messages and send those
 # to the client.
