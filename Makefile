@@ -1,4 +1,4 @@
-.PHONY: deploy deploy-staging sync-on-prod fetch-nginx-config
+.PHONY: deploy deploy-staging sync-on-prod fetch-nginx-config clipping-service
 
 GIT_DIR := /opt/ckan-catalog/data.naturalcapitalproject.stanford.edu
 CKAN_PROD_URL := https://data.naturalcapitalproject.stanford.edu
@@ -24,3 +24,18 @@ fetch-nginx-config:
 	gcloud compute scp $(GCLOUD_COMMON_ARGS) $(PROD_VM_NAME):/etc/nginx/sites-enabled/ckan  host-nginx/etc.nginx.sites-available.ckan
 	gcloud compute scp $(GCLOUD_COMMON_ARGS) $(PROD_VM_NAME):/etc/nginx/nginx.conf          host-nginx/etc.nginx.nginx.conf
 	gcloud compute scp $(GCLOUD_COMMON_ARGS) $(PROD_VM_NAME):/etc/nginx/throttle-bots.conf  host-nginx/etc.nginx.throttle-bots.conf
+
+
+# Targets for local development:
+CLIP_ENV := clipenv
+
+env-clip:
+	conda create -n $(CLIP_ENV) -y -c conda-forge python=3.12
+	conda env update -n $(CLIP_ENV) --file ./clipping-service/app/requirements.txt
+	conda env config vars set -n $(CLIP_ENV) DEV_MODE=True
+	@echo "To activate the environment and run the clipping service:"
+	@echo ">> conda activate $(CLIP_ENV)"
+	@echo ">> make clipping-service"
+
+clipping-service:
+	python -m gunicorn --chdir ./clipping-service/app app:app --reload
