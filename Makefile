@@ -39,3 +39,7 @@ env-clip:
 
 clipping-service:
 	python -m gunicorn --chdir ./clipping-service/app app:app --reload
+
+ckan-dev:
+	docker compose -f docker-compose.dev.yml build
+	docker compose -f docker-compose.dev.yml up --watch
