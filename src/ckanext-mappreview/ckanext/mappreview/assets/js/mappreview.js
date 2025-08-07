@@ -152,6 +152,7 @@ ckan.module("mappreview", function ($, _) {
 
       const config = JSON.parse(this.options.config.replace(/'/g, '"'));
       const globalConfig = this._getGlobalConfig();
+      const clipping_service_url = this._getGlobalConfig().clipping_service_url;
 
       mapboxgl.accessToken = globalConfig.mapbox_api_key;
       const map = new mapboxgl.Map({
@@ -909,7 +910,6 @@ ckan.module("mappreview", function ($, _) {
             clipping_options['target_cellsize'] = [target_pixel_size, -target_pixel_size];
           }
 
-          const clipping_service_url = 'https://clipping-service-897938321824.us-west1.run.app';
           fetch(`${clipping_service_url}/clip`, {
             method: "POST",
             body: JSON.stringify(clipping_options),
@@ -987,12 +987,9 @@ ckan.module("mappreview", function ($, _) {
               document.getElementById('natcap-clip-submit-button').innerHTML = submit_text;
       });
 
-      const clipping_endpoint = 'https://clipping-service-897938321824.us-west1.run.app'
-
-
       function _setEPSGItems(epsg_code) {
         console.log(`Updating SRS info for ${epsg_code}`);
-        fetch(`${clipping_endpoint}/epsg_info?epsg_code=${epsg_code}`, {
+        fetch(`${clipping_service_url}/epsg_info?epsg_code=${epsg_code}`, {
           method: "GET",
         }).then(epsg_response => {
           if (epsg_response.ok) {
@@ -1028,7 +1025,7 @@ ckan.module("mappreview", function ($, _) {
           console.log('updating source raster from cog ' + cog);
 
           var epsg_input = document.getElementById('natcapClipSettingEPSGCode');
-          var cog_stats_url = `${clipping_endpoint}/info?cog_url=${encodeURIComponent(cog)}`;;
+          var cog_stats_url = `${clipping_service_url}/info?cog_url=${encodeURIComponent(cog)}`;
           fetch(cog_stats_url).then(response => {
             if (response.ok) {
               return response.json();
