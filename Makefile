@@ -1,4 +1,4 @@
-.PHONY: deploy deploy-staging sync-on-prod fetch-nginx-config clipping-service
+.PHONY: deploy deploy-staging sync-on-prod fetch-nginx-config clipping-service env-clip ckan-dev
 
 GIT_DIR := /opt/ckan-catalog/data.naturalcapitalproject.stanford.edu
 CKAN_PROD_URL := https://data.naturalcapitalproject.stanford.edu
