@@ -293,7 +293,7 @@ def _get_wgs84_bbox(config):
 
     try:
         minx, miny, maxx, maxy = pygeoprocessing.transform_bounding_box(
-            [minx, maxx, miny, maxy], source_srs_wkt, dest_srs_wkt)
+            [minx, miny, maxx, maxy], source_srs_wkt, dest_srs_wkt)
     except (ValueError, RuntimeError):
         LOGGER.error(
             f"Failed to transform bounding box from {source_srs_wkt} "
