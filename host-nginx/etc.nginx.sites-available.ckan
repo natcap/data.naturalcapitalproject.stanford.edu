@@ -38,11 +38,9 @@ server {
 	}
 	location = /organization/natcap/ {
 		include /etc/nginx/throttle-bots.conf;
-		include /etc/nginx/ckan-proxy.conf;
 	}
 	location = /organization/48bdf034-675f-4017-970f-738a5b7869ce {
 		include /etc/nginx/throttle-bots.conf;
-		include /etc/nginx/ckan-proxy.conf;
 	}
 
 	# Need this here for the homepage and any resources accessible off of the home page.
