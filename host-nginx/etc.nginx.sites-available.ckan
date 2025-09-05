@@ -36,7 +36,7 @@ server {
 		include /etc/nginx/throttle-bots.conf;
 		include /etc/nginx/ckan-proxy.conf;
 	}
-	location = /organization/natcap/ {
+	location = /organization/natcap {
 		include /etc/nginx/throttle-bots.conf;
 		include /etc/nginx/ckan-proxy.conf;
 	}
