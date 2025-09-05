@@ -340,7 +340,8 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
         # the existing facets provided.
         # Handling organization facets due to https://github.com/natcap/data.naturalcapitalproject.stanford.edu/issues/59
         # See interface prototype at https://github.com/ckan/ckan/blob/042f6ffd3662e3a41e63a41b9b0c7079decb3b29/ckan/plugins/interfaces.py#L1659
-        return facets_dict
+        # To add facets (tags/groups) to organization page, return facets_dict
+        return {}
 
     def before_dataset_search(self, search_params: dict[str, Any]):
         # Check for topic facet and add tags if found
