@@ -1,0 +1,4 @@
+global-dataset-cache\Public_DataHub\global\NLCD\LandCover\MRLC_Annual_NLCD_LndCov_2022_c1v1.tif.yml
+global-dataset-cache\Public_DataHub\global\NLCD\LandCover\MRLC_Annual_NLCD_LndCov_2023_c1v1.tif.yml
+global-dataset-cache\Public_DataHub\global\NLCD\LandCover\MRLC_Annual_NLCD_LndCov_2024_c1v1.tif.yml
+global-dataset-cache\Public_DataHub\global\noaa-us-shorelines\noaa_us_shorelines.zip.yml
