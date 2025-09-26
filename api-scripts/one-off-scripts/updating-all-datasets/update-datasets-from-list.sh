@@ -3,7 +3,8 @@
 # How To Run:
 # 1. Make sure you have all relevant files in your textfile.
 # Paths can be placed in the textfile via "list-datasets.py"
-# 2. To use, run: sh update-datasets-from-list.sh --textfilename
+# 2. To use: cd into api-scripts/one-off-scripts/updating-all-datasets
+# run: sh update-datasets-from-list.sh --textfilename
 # textfile name should be: all-paths.txt, global-paths.txt, 
 # or regional-paths.txt
 

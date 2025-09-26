@@ -31,18 +31,18 @@ def extract_paths(hub_dir):
     """
 
     hub_dir = os.path.abspath(hub_dir)
-    tiffiles = []
-    for tif in glob.glob(os.path.join(hub_dir, "*/*.yml"), recursive=True):
-        if tif.endswith("_cog.tif.yml"):
+    yamlfiles = []
+    for yml in glob.glob(os.path.join(hub_dir, "*/*.yml"), recursive=True):
+        if yml.endswith("_cog.tif.yml"):
             pass  # these are unfinished or test files
-        elif tif.endswith("initial.tif.yml"):
+        elif yml.endswith("initial.tif.yml"):
             pass  # these are archived files
         else:
-            tif = os.path.abspath(tif)
+            yml = os.path.abspath(yml)
             # remove Drive prefix for relative path
-            tif_path_noprefix = tif.split("\\", 1)[1]
-            tiffiles.append(tif_path_noprefix)
-    print(*tiffiles, sep='\n')
+            yml_path_noprefix = yml.split("\\", 1)[1]
+            yamlfiles.append(yml_path_noprefix)
+    print(*yamlfiles, sep='\n')
 
 
 if __name__ == '__main__':
