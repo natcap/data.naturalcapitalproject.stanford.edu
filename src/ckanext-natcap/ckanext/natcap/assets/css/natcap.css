@@ -275,7 +275,7 @@ body {
     border-top: 1px solid var(--color-gray);
 }
 
-.resources .nested-source-list li {
+.resources .nested-source-list {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -283,13 +283,22 @@ body {
     flex-direction: column;
 }
 
-.resources .nested-source-list.indent-0 .resource-item-description {
-    padding-left: calc(2 * var(--resource-item-padding));
+
+.resources .nested-source-list {
+--step: 16px;                         /* per-level indent */
+--base: calc(2 * var(--resource-item-padding));  /* baseline padding used before */
 }
 
-.resources .nested-source-list.indent-1 .resource-item-description {
-    padding-left: calc(4 * var(--resource-item-padding));
-}
+/* depth variables */
+.resources .nested-source-list.indent-0 { --level: 0; }
+.resources .nested-source-list.indent-1 { --level: 1; }
+
+
+/* Apply indent to the entire row so caret + icon + name move together */
+.resources .nested-source-list > li > .src-acc > .src-summary,
+.resources .nested-source-list > li.src-file > a.heading {
+padding-left: calc(var(--base) + var(--level) * var(--step));
+} 
 
 .resources .nested-source-item {
     display: flex;
@@ -1263,14 +1272,11 @@ div#invest-model-list-container div {
 .src-acc > summary { list-style: none; }
 
 /* Folder headers (nested) */
-.src-summary,
-.src-summary--root {
+.src-summary {
   display: flex; align-items: center; gap: 8px;
-  padding: 6px 8px; margin: 6px 0;
-  /* background: #f7f7f7; border: 1px solid #e6e6e6; border-radius: 8px; */
+  padding: 6px 8px; margin: 2px 0;
   cursor: pointer; user-select: none;
 }
-.src-summary--root { cursor: default; } /* top-level is open, not clickable */
 
 .src-caret {
   width: 0; height: 0;
