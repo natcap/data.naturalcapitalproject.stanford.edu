@@ -1,16 +1,18 @@
-{# All directories are collapsible (closed by default), files are normal rows. #}
+{# All directories are collapsible (closed by default); files are normal rows. #}
 
 <ol class="nested-source-list indent-{{ indent }}">
   {% for source in sources %}
     {% set name = source.name or '' %}
-    {% set parts = name.split('.') %}
     {% set children = source.children if source.children is defined else [] %}
     {% set is_dir = (children|length > 0) or (source.type == 'directory') or (name.endswith('/')) %}
 
-    {# Keep your filtering for displayable files #}
+    {% if is_dir %}
+      {% set label = name.rstrip('/').rsplit('/', 1)[-1] %}
+    {% else %}
+      {% set label = name.rsplit('/', 1)[-1].rsplit('.', 1)[0] %}
+    {% endif %}
+   
     {% if is_dir or h.natcap_show_resource(name) %}
-
-      {# ----------------- FOLDER (always collapsible) ----------------- #}
       {% if is_dir %}
         <li class="nested-source-item src-folder" data-level="{{ indent }}">
           <details class="src-acc">
@@ -20,19 +22,15 @@
                 <div class="resource-item-type">
                   <img src="/img/icon-filetype-directory.png" alt="" />
                 </div>
-                <div class="resource-item-name">
-                  {{ (parts[0] if parts else name).rstrip('/') }}/
-                </div>
+                <div class="resource-item-name">{{ label }}</div>
+
               </div>
             </summary>
-
             <div class="resource-directory-contents">
               {% snippet 'package/snippets/sources_list.html', sources=children, indent=indent+1 %}
             </div>
           </details>
         </li>
-
-      {# ----------------- FILE ----------------- #}
       {% else %}
         <li class="nested-source-item src-file" data-level="{{ indent }}">
           <a class="heading" href="{{ source.url }}" aria-label="{{ _('Download resource: {fn}').format(fn=name) }}">
@@ -43,15 +41,12 @@
                   {{ h.natcap_get_ext(name) }}
                 </div>
               {% endif %}
-              <div class="resource-item-name">
-                {{ parts[0] }}
-              </div>
+              <div class="resource-item-name">{{ label }}</div>
             </div>
             <div class="icon-button icon-button-download"></div>
           </a>
         </li>
       {% endif %}
-
     {% endif %}
   {% endfor %}
 </ol>
