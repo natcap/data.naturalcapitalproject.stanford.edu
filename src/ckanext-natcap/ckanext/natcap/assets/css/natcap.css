@@ -1256,3 +1256,31 @@ div#invest-model-list-container div {
 #invest-model-list-container .nav-pills .nav-link.active {
     background-color: var(--color-blue);
 }
+
+
+/* Hide native marker; use custom caret */
+.src-acc > summary::-webkit-details-marker { display: none; }
+.src-acc > summary { list-style: none; }
+
+/* Folder headers (nested) */
+.src-summary,
+.src-summary--root {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; margin: 6px 0;
+  /* background: #f7f7f7; border: 1px solid #e6e6e6; border-radius: 8px; */
+  cursor: pointer; user-select: none;
+}
+.src-summary--root { cursor: default; } /* top-level is open, not clickable */
+
+.src-caret {
+  width: 0; height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 6px solid currentColor;
+  transition: transform .15s ease;
+}
+.src-acc[open] > .src-summary .src-caret { transform: rotate(90deg); }
+
+/* Indentation for children */
+.resource-directory-contents { margin-left: 16px; }
+
