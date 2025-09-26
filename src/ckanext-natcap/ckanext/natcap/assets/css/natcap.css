@@ -275,7 +275,7 @@ body {
     border-top: 1px solid var(--color-gray);
 }
 
-.resources .nested-source-list {
+.resources .nested-source-list li {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -285,19 +285,21 @@ body {
 
 
 .resources .nested-source-list {
---step: 16px;                         /* per-level indent */
---base: calc(2 * var(--resource-item-padding));  /* baseline padding used before */
+    --step: 16px;                         /* per-level indent */
+    --base: calc(2 * var(--resource-item-padding));  /* baseline padding used before */
 }
 
 /* depth variables */
 .resources .nested-source-list.indent-0 { --level: 0; }
 .resources .nested-source-list.indent-1 { --level: 1; }
+.resources .nested-source-list.indent-2 { --level: 2; }
+.resources .nested-source-list.indent-2 { --level: 3; }
 
 
 /* Apply indent to the entire row so caret + icon + name move together */
 .resources .nested-source-list > li > .src-acc > .src-summary,
 .resources .nested-source-list > li.src-file > a.heading {
-padding-left: calc(var(--base) + var(--level) * var(--step));
+    padding-left: calc(var(--base) + var(--level) * var(--step));
 } 
 
 .resources .nested-source-item {
@@ -1287,6 +1289,4 @@ div#invest-model-list-container div {
 }
 .src-acc[open] > .src-summary .src-caret { transform: rotate(90deg); }
 
-/* Indentation for children */
-.resource-directory-contents { margin-left: 16px; }
 
