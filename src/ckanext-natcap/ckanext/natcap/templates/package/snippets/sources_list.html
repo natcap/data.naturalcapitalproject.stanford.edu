@@ -4,8 +4,7 @@
   {% for source in sources %}
     {% set name = source.name or '' %}
     {% set children = source.children if source.children is defined else [] %}
-    {% set is_dir = (children|length > 0) or (source.type == 'directory') or (name.endswith('/')) %}
-
+    {% set is_dir = source.type == 'directory' %}
     {% if is_dir %}
       {% set label = name.rstrip('/').rsplit('/', 1)[-1] %}
     {% else %}
