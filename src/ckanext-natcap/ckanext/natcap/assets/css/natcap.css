@@ -283,13 +283,24 @@ body {
     flex-direction: column;
 }
 
-.resources .nested-source-list.indent-0 .resource-item-description {
-    padding-left: calc(2 * var(--resource-item-padding));
+
+.resources .nested-source-list {
+    --step: 16px;                         /* per-level indent */
+    --base: calc(2 * var(--resource-item-padding));  /* baseline padding used before */
 }
 
-.resources .nested-source-list.indent-1 .resource-item-description {
-    padding-left: calc(4 * var(--resource-item-padding));
-}
+/* depth variables */
+.resources .nested-source-list.indent-0 { --level: 0; }
+.resources .nested-source-list.indent-1 { --level: 1; }
+.resources .nested-source-list.indent-2 { --level: 2; }
+.resources .nested-source-list.indent-2 { --level: 3; }
+
+
+/* Apply indent to the entire row so caret + icon + name move together */
+.resources .nested-source-list > li > .src-acc > .src-summary,
+.resources .nested-source-list > li.src-file > a.heading {
+    padding-left: calc(var(--base) + var(--level) * var(--step));
+} 
 
 .resources .nested-source-item {
     display: flex;
@@ -1256,3 +1267,26 @@ div#invest-model-list-container div {
 #invest-model-list-container .nav-pills .nav-link.active {
     background-color: var(--color-blue);
 }
+
+
+/* Hide native marker; use custom caret */
+.src-acc > summary::-webkit-details-marker { display: none; }
+.src-acc > summary { list-style: none; }
+
+/* Folder headers (nested) */
+.src-summary {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; margin: 2px 0;
+  cursor: pointer; user-select: none;
+}
+
+.src-caret {
+  width: 0; height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 6px solid currentColor;
+  transition: transform .15s ease;
+}
+.src-acc[open] > .src-summary .src-caret { transform: rotate(90deg); }
+
+
