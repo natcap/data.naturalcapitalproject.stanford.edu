@@ -31,18 +31,33 @@
         </li>
       {% else %}
         <li class="nested-source-item src-file" data-level="{{ indent }}">
-          <a class="heading" href="{{ source.url }}" aria-label="{{ _('Download resource: {fn}').format(fn=name) }}">
-            <div class="resource-item-description">
-              {% if h.natcap_show_icon(name) %}
-                <div class="resource-item-type">
-                  <img src="/img/icon-filetype-{{ h.natcap_get_resource_type_icon_slug(name) }}.png" alt="" />
-                  {{ h.natcap_get_ext(name) }}
-                </div>
-              {% endif %}
-              <div class="resource-item-name">{{ label }}</div>
+          {% set gate = h.natcap_can_download_source(c.pkg_dict, source) | default({'allowed': True}, true) %}
+          {% if gate.allowed %}
+            <a class="heading" href="{{ source.url }}" aria-label="{{ _('Download resource: {fn}').format(fn=name) }}">
+              <div class="resource-item-description">
+                {% if h.natcap_show_icon(name) %}
+                  <div class="resource-item-type">
+                    <img src="/img/icon-filetype-{{ h.natcap_get_resource_type_icon_slug(name) }}.png" alt="" />
+                    {{ h.natcap_get_ext(name) }}
+                  </div>
+                {% endif %}
+                <div class="resource-item-name">{{ label }}</div>
+              </div>
+              <div class="icon-button icon-button-download"></div>
+            </a>
+          {% else %}
+            <div class="heading is-disabled" title="{{ gate.reason or _('Download not permitted') }}">
+              <div class="resource-item-description">
+                {% if h.natcap_show_icon(name) %}
+                  <div class="resource-item-type">
+                    <img src="/img/icon-filetype-{{ h.natcap_get_resource_type_icon_slug(name) }}.png" alt="" />
+                    {{ h.natcap_get_ext(name) }}
+                  </div>
+                {% endif %}
+                <div class="resource-item-name">{{ label }}</div>
+              </div>
             </div>
-            <div class="icon-button icon-button-download"></div>
-          </a>
+          {% endif %}
         </li>
       {% endif %}
     {% endif %}

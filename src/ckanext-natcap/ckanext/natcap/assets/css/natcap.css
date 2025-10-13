@@ -1289,4 +1289,10 @@ div#invest-model-list-container div {
 }
 .src-acc[open] > .src-summary .src-caret { transform: rotate(90deg); }
 
-
+.heading.is-disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+    text-decoration: none;
+    pointer-events: none; /* keeps it inert if someone wraps it with <a> by mistake */
+    padding-left: calc(var(--base) + var(--level) * var(--step));
+  }

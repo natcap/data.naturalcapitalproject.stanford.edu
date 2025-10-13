@@ -1,11 +1,14 @@
 # encoding=utf-8
 from __future__ import annotations
 
+import fnmatch
 import json
 import logging
 from collections import OrderedDict
 from os import path
+import re
 from typing import Any
+import yaml
 
 import ckan.logic as logic
 import ckan.model as model
@@ -240,6 +243,41 @@ def natcap_update_mappreview(context, package):
     #NatcapPlugin._after_dataset_update(context, package_data)
 
 
+def _apply_rule_list(rule_list, relpath, base, ext, size_mb):
+    """Evaluate first-match-wins; return {'allowed': bool, 'reason': str} or None if none match."""
+    for rule in rule_list:
+        m = (rule.get('match') or {})
+        if _match_rule(m, relpath, base, ext, size_mb):
+            return {'allowed': bool(rule.get('allow', True)),
+                    'reason': rule.get('reason', '')}
+    return None
+
+
+def _match_rule(m, relpath, base, ext, size_mb):
+    # path_glob
+    pg = m.get('path_glob')
+    if pg and not fnmatch.fnmatch(relpath, pg):
+        return False
+    # name_regex
+    rx = m.get('name_regex')
+    if rx:
+        try:
+            if not re.search(rx, base):
+                return False
+        except re.error:
+            return False
+    # ext_any
+    ex = m.get('ext_any')
+    if ex and ext.lower() not in [e.lower() for e in ex]:
+        return False
+    # size threshold
+    sgt = m.get('size_mb_gt')
+    if sgt is not None:
+        if size_mb is None or not (size_mb > float(sgt)):
+            return False
+    return True
+
+
 class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
     plugins.implements(plugins.IConfigurer)
     plugins.implements(plugins.IDatasetForm)
@@ -248,6 +286,8 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
     plugins.implements(plugins.ITemplateHelpers)
     plugins.implements(plugins.IActions)
     plugins.implements(plugins.IValidators)
+
+    _download_rules = None  # cache
 
     # IConfigurer
 
@@ -261,6 +301,20 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
         toolkit.add_template_directory(config_, "templates")
         toolkit.add_public_directory(config_, "public")
         toolkit.add_resource("assets", "natcap")
+
+        # Load download rules once (from .ini or bundled file)
+        rules_path = config_.get('ckanext.natcap.download_rules_file')
+        if not rules_path:
+            # fallback to extension’s default file
+            rules_path = path.join(path.dirname(__file__),
+                                   'download_config.yml')
+        try:
+            with open(rules_path, 'r') as f:
+                self._download_rules = yaml.safe_load(f) or {}
+        except Exception:
+            LOGGER.exception("Could not load download rules from %s",
+                             rules_path)
+            self._download_rules = {}
 
     def _modify_package_schema(self, schema):
         schema.update({
@@ -328,6 +382,7 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
             'natcap_show_resource': show_resource,
             'natcap_parse_json': parse_json,
             'natcap_convert_list_to_string': convert_list_to_string,
+            'natcap_can_download_source': self.natcap_can_download_source,
         }
 
     def dataset_facets(self, facets_dict, package_type):
@@ -370,6 +425,80 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
     # doesn't use self.
     def after_dataset_update(self, context, package):
         NatcapPlugin._after_dataset_update(context, package)
+
+    def natcap_can_download_source(self, pkg, source): 
+        #TODO move this func out of the class and register it as a module-level helper?
+        """
+        Check if a 'source' (file/dir in sources_list.html) is downloadable.
+
+        Returns:
+            dict: {'allowed': bool, 'reason': '...'}
+        """
+        rules = self._download_rules or {}
+
+        allowed_default = bool(((rules.get('defaults') or {}).get('allow',
+                                                                  True)))
+
+        # Privileged bypasses
+        # try:
+        #     user = toolkit.c.user  # current user name or None
+        #     context = {'user': user} if user else {}
+        #     is_sysadmin = bool(toolkit.check_access('sysadmin', context) if user else False)
+        # except Exception:
+        #     is_sysadmin = False
+
+        # if (rules.get('privileged') or {}).get('allow_if_sysadmin') and is_sysadmin:
+        #     return {'allowed': True, 'reason': 'sysadmin'}
+
+        # If user can edit the package, treat as privileged (optional)
+        # allow_if_can_edit = (rules.get('privileged') or {}).get(
+        #     'allow_if_can_edit_package')
+        # if allow_if_can_edit:
+        #     try:
+        #         can_edit = toolkit.check_access('package_update', {'user': user}, {'id': pkg['id']})
+        #         if can_edit:
+        #             return {'allowed': True, 'reason': 'package editor'}
+        #     except Exception:
+        #         pass
+
+        # Extract fields to match on
+        name = (source.get('name') if isinstance(source, dict) else getattr(
+            source, 'name', '')) or ''
+        # url  = (source.get('url')  if isinstance(source, dict) else getattr(
+        #   source, 'url',  '')) or ''
+        # Prefer a relative path if your source nodes have one; else fall back to name
+        relpath = name  # customize if you store a canonical relpath separately
+        base = name.rstrip('/').rsplit('/', 1)[-1]
+        ext = ''
+        if '.' in base and not base.endswith('.'):
+            ext = '.' + base.rsplit('.', 1)[-1]
+        ext = ext.lower()
+
+        size_mb = None
+        for key in ('size', 'bytes', 'length', 'content_length'):
+            if key in (source or {}):
+                try:
+                    size_mb = float(source[key]) / (1024 * 1024)
+                    break
+                except Exception:
+                    pass
+
+        # Dataset-specific overrides first
+        ds_overrides = (((rules.get('overrides') or {}).get('datasets')) or {}).get(pkg.get('name')) \
+                    or (((rules.get('overrides') or {}).get('datasets')) or {}).get(pkg.get('title'))
+        if ds_overrides:
+            verdict = _apply_rule_list(ds_overrides, relpath, base,
+                                       ext, size_mb)
+            if verdict is not None:
+                return verdict
+
+        # Global rules
+        verdict = _apply_rule_list((rules.get('rules') or []), relpath, base,
+                                   ext, size_mb)
+        if verdict is not None:
+            return verdict
+
+        return {'allowed': allowed_default, 'reason': 'default'}
 
     @staticmethod
     def _after_dataset_update(context, package):
