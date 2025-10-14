@@ -2,13 +2,6 @@
 defaults:
   allow: true
 
-# Global allow-list bypass for privileged users
-# privileged:
-  # any user with package_update access on the dataset gets through
-  # allow_if_can_edit_package: true
-  # # site admins (sysadmin) always allowed
-  # allow_if_sysadmin: true
-
 # Rule list evaluated top-to-bottom; first match wins
 rules:
   # EXAMPLE: block everything under folder 'precipMonthly_corrected'
@@ -17,22 +10,11 @@ rules:
     allow: false
     reason: "Monthly folders are not downloadable"
 
-  # allow only certain extensions
-  # - match:
-  #     ext_any: [".csv", ".tif", ".geojson", ".gpkg"]
-  #   allow: true
-
   # block specific filenames
   - match:
       name_regex: "(?i).*_ET0_.*" #"(?i)^.*(password|secret|credentials).*"
     allow: false
     reason: "Monthly files are not downloadable"
-
-  # block very large files (if size available)
-  # - match:
-  #     size_mb_gt: 500
-  #   allow: false
-  #   reason: "Over 500MB"
 
 # Per-dataset overrides (by name or id)
 overrides:
@@ -41,10 +23,6 @@ overrides:
       - match:
           path_glob: "**/2_model_outputs/seasonal_water_yield_out/**"
         allow: false
-        reason: "Outputs embargoed for this package"
-    "Ecosystem Services Footprinting Tool Ecosystem Services Layers and Sample Data":
-      - match:
-          path_glob: "**/nature_access_service/**"
-        allow: false
-        reason: "TODO testing"
+        reason: "testing for 3ps"
+    
       
