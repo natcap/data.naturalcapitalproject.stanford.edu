@@ -31,7 +31,7 @@
         </li>
       {% else %}
         <li class="nested-source-item src-file" data-level="{{ indent }}">
-          {% set gate = h.natcap_can_download_source(c.pkg_dict, source) | default({'allowed': True}, true) %}
+          {% set gate = h.natcap_get_file_downloadability(c.pkg_dict, source) | default({'allowed': True}, true) %}
           {% if gate.allowed %}
             <a class="heading" href="{{ source.url }}" aria-label="{{ _('Download resource: {fn}').format(fn=name) }}">
               <div class="resource-item-description">
