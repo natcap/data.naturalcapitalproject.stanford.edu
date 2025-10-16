@@ -9,12 +9,16 @@ rules:
       path_glob: "**/precipMonthly_corrected/**"
     allow: false
     reason: "Monthly folders are not downloadable"
-
   # block specific filenames
   - match:
       name_regex: "(?i).*_ET0_.*" #"(?i)^.*(password|secret|credentials).*"
     allow: false
     reason: "Monthly files are not downloadable"
+
+  # prevent certain extensions
+  - match:
+      ext_any: [".zip"]
+    allow: false
 
 # Per-dataset overrides (by name or id)
 overrides:
