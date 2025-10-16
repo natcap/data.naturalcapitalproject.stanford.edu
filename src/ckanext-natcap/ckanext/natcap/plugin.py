@@ -265,25 +265,24 @@ def _load_download_rules():
     return DOWNLOAD_RULES
 
 
-def _apply_rule_list(rule_list, relpath, base, ext, size_mb):
+def _apply_rule_list(rule_list, relpath, base, ext, url):
     """Evaluate first-match-wins
 
     Returns:
         dict: {'allowed': bool, 'reason': str} or None if none match."""
     for rule in rule_list:
         m = (rule.get('match') or {})
-        if _match_rule(m, relpath, base, ext, size_mb):
+        if _match_rule(m, relpath, base, ext):
             return {'allowed': bool(rule.get('allow', True)),
-                    'reason': rule.get('reason', '')}
+                    'reason': rule.get('reason', ''),
+                    'url': url}
     return None
 
 
-def _match_rule(m, relpath, base, ext, size_mb):
-    # path_glob
+def _match_rule(m, relpath, base, ext):
     pg = m.get('path_glob')
     if pg and not fnmatch.fnmatch(relpath, pg):
         return False
-    # name_regex
     rx = m.get('name_regex')
     if rx:
         try:
@@ -295,11 +294,6 @@ def _match_rule(m, relpath, base, ext, size_mb):
     ex = m.get('ext_any')
     if ex and ext.lower() not in [e.lower() for e in ex]:
         return False
-    # size threshold
-    sgt = m.get('size_mb_gt')
-    if sgt is not None:
-        if size_mb is None or not (size_mb > float(sgt)):
-            return False
     return True
 
 
@@ -318,6 +312,12 @@ def get_file_downloadability(pkg, source):
     # Extract fields to match on
     name = (source.get('name') if isinstance(source, dict) else getattr(
         source, 'name', '')) or ''
+    url = (source.get('url') if isinstance(source, dict) else getattr(
+        source, 'url',  '')) or ''
+    if url == '':
+        # try to see if there is a zip archive?
+        url = source.get("path")
+        url = 'https://storage.googleapis.com/natcap-data-cache/natcap-projects/PeoplePlanetProsperity_Country_Data/Colombia/Colombia_3Ps_data_pkg/1_model_inputs/Col_K_fill_dh.tif'
     # Prefer a relative path if source nodes have one; else fall back to name
     relpath = name
     base = name.rstrip('/').rsplit('/', 1)[-1]
@@ -326,32 +326,22 @@ def get_file_downloadability(pkg, source):
         ext = '.' + base.rsplit('.', 1)[-1]
     ext = ext.lower()
 
-    size_mb = None
-    for key in ('size', 'bytes', 'length', 'content_length'):
-        if key in (source or {}):
-            try:
-                size_mb = float(source[key]) / (1024 * 1024)
-                break
-            except Exception:
-                pass
-
     # Dataset-specific overrides first
     ds_overrides = (((rules.get('overrides') or {}).get(
         'datasets')) or {}).get(pkg.get('name')) or (((rules.get(
             'overrides') or {}).get('datasets')) or {}).get(pkg.get('title'))
     if ds_overrides:
-        verdict = _apply_rule_list(ds_overrides, relpath, base,
-                                   ext, size_mb)
+        verdict = _apply_rule_list(ds_overrides, relpath, base, ext, url)
         if verdict is not None:
             return verdict
 
     # Global rules
-    verdict = _apply_rule_list((rules.get('rules') or []), relpath, base,
-                               ext, size_mb)
+    verdict = _apply_rule_list((rules.get('rules') or []),
+                               relpath, base, ext, url)
     if verdict is not None:
         return verdict
 
-    return {'allowed': allowed_default, 'reason': 'default'}
+    return {'allowed': allowed_default, 'reason': 'default', 'url': url}
 
 
 class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
