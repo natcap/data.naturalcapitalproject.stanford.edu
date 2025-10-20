@@ -213,33 +213,6 @@ def natcap_convert_to_tags(vocab):
     return func
 
 
-@toolkit.auth_disallow_anonymous_access
-def natcap_update_mappreview(context, package):
-    LOGGER.info(f"package: {package}")
-    LOGGER.info(f"context: {context}")
-    LOGGER.info(f"Attempting to force the update of {package['id']}")
-
-    # make sure we have complete package data
-    package_data = toolkit.get_action('package_show')(
-        context, {'id': package['id']})
-
-    # Delete the natcap_last_updated extra to force a mappreview reload.
-    filtered_extras = [e for e in package_data['extras']
-                      if e['key'] != 'natcap_last_updated']
-    try:
-        assert len([e for e in filtered_extras if e['key'] ==
-                    'natcap_last_updated']) == 0
-    except AssertionError:
-        LOGGER.debug(filtered_extras)
-        raise
-    package_data['extras'] = filtered_extras
-    LOGGER.info(
-        f"Has natcap_last_updated been removed from extras? {package_data}")
-
-    toolkit.get_action('package_update')(context, package_data)
-    #NatcapPlugin._after_dataset_update(context, package_data)
-
-
 class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
     plugins.implements(plugins.IConfigurer)
     plugins.implements(plugins.IDatasetForm)
@@ -253,9 +226,7 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
 
     # This is how we define new API endpoints.
     def get_actions(self):
-        return {
-            'natcap_update_mappreview': natcap_update_mappreview,
-        }
+        return {}
 
     def update_config(self, config_):
         toolkit.add_template_directory(config_, "templates")

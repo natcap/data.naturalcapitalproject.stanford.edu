@@ -73,7 +73,8 @@
 }
 
 .mappreview .mapboxgl-legend-list {
-  overflow-y: auto;
+  overflow-y: scroll;
+  max-height: 400px;
 }
 
 .mappreview .mapboxgl-legend-onlyRendered-checkbox,

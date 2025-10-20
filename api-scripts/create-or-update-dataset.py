@@ -36,6 +36,8 @@ from osgeo import gdal
 from osgeo import ogr
 from osgeo import osr
 
+from construct_mappreview import get_mappreview_metadata
+
 logging.basicConfig(level=logging.DEBUG)
 LOGGER = logging.getLogger(os.path.basename(__file__))
 CKAN_HOSTS = {
@@ -395,11 +397,27 @@ def _get_median_latlon_bounds(vector_path):
     return (numpy.median(ys), numpy.median(xs))  # lat, lon, bounds
 
 
-def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
-         verify_ssl=True):
+def main(ckan_url, ckan_apikey, gmm_yaml_path, config_yaml_path=None, private=False,
+         group=None, verify_ssl=True):
     with open(gmm_yaml_path) as yaml_file:
         LOGGER.debug(f"Loading geometamaker yaml from {gmm_yaml_path}")
         gmm_yaml = yaml.load(yaml_file.read(), Loader=yaml.Loader)
+
+    config_yaml = {}
+    if config_yaml_path:
+        with open(config_yaml_path) as yaml_file:
+            LOGGER.debug(f"Loading config yaml from {config_yaml_path}")
+            config_yaml = yaml.load(yaml_file.read(), Loader=yaml.Loader)
+
+        # If config includes `layers_to_preview`, verify that the sources all
+        # appear in the gmm_yaml
+        if config_yaml.get('layers_to_preview'):
+            missing_sources = [path for path in config_yaml.get('layers_to_preview')
+                               if path not in gmm_yaml['sources']]
+            if missing_sources:
+                raise ValueError("Sources were included in the config file that "
+                                 "are not included in the Geometamaker YAML 'sources': "
+                                 f"{missing_sources}")
 
     session = requests.Session()
     session.headers.update({'Authorization': ckan_apikey})
@@ -536,9 +554,20 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
                 resources.append(_create_resource_dict_from_file(
                     source_path, label, upload=True))
 
+        extras = []
+
+        # Construct the mappreview extra. If a config file was passed and includes
+        # `layers_to_preview`, only include those layers
+        mappreview_layers_meta = get_mappreview_metadata(
+            resources, gmm_yaml['sources'], config_yaml.get('layers_to_preview'))
+        if mappreview_layers_meta:
+            extras.append({
+                'key': 'mappreview',
+                'value': json.dumps(mappreview_layers_meta)
+            })
+
         # We can define the bbox as a polygon using
         # ckanext-spatial's spatial extra
-        extras = []
         try:
             if get_from_config(gmm_yaml, 'spatial.bounding_box'):
                 extras.append({
@@ -636,6 +665,7 @@ def _ui(args=None):
             * host_url (str): The url of the CKAN host selected.
             * apikey (str): The API key selected
             * gmm_path (str): The geometamaker yml filepath
+            * config_path (str): The config yml filepath, if provided
     """
     parser = argparse.ArgumentParser(
         prog=os.path.basename(__file__),
@@ -644,6 +674,9 @@ def _ui(args=None):
     )
     parser.add_argument('geometamaker_yml', help=(
         "The local path to a geometamaker yml file."))
+
+    parser.add_argument('-c', '--config', help=(
+        "The local path to a config yml file. Optional."))
 
     # Allow a user to select the host they want.
     # If no host is explicitly defined, assume prod.
@@ -683,12 +716,12 @@ def _ui(args=None):
         apikey = args.apikey
 
     return (
-        host_url, apikey, args.geometamaker_yml
+        host_url, apikey, args.geometamaker_yml, args.config
     )
 
 
 if __name__ == '__main__':
-    host, apikey, gmm_path = _ui()
+    host, apikey, gmm_path, config_path = _ui()
 
     is_localhost = host.split('https://')[1].startswith('localhost')
-    main(host, apikey, gmm_path, verify_ssl=(not is_localhost))
+    main(host, apikey, gmm_path, config_path, verify_ssl=(not is_localhost))
