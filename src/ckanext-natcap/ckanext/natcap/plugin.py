@@ -297,6 +297,37 @@ def _match_rule(m, relpath, base, ext):
     return True
 
 
+# def check_gcs_file_exists(filepath, bucket_name="natcap-data-cache"):
+#     """Check if file in google cloud storage exists"""
+#     storage_client = storage.Client()
+#     bucket = storage_client.bucket(bucket_name)
+#     stats = storage.Blob(bucket=bucket, name=filepath).exists(storage_client)
+#     return stats
+
+
+def get_directory_url(node, target_name):
+    """Infer the URL of a zipfile of a directory"""
+    if node["type"] == "directory":
+        if node["name"] == target_name:
+            # infer URL from first child's URL
+            for child in node.get("children", []):
+                if "url" in child:
+                    # Drop the filename and change dir path to zip path
+                    return "/".join(child["url"].split("/")[:-1])+".zip"
+                    # Remove everything before and including the bucket name
+                    # if "natcap-data-cache/" in full_url:
+                        # part_url = full_url.split("natcap-data-cache/", 1)[1]
+                        # if check_gcs_file_exists(part_url):
+                        #     return full_url
+                    # return None
+        # recurse into children
+        for child in node.get("children", []):
+            result = get_directory_url(child, target_name)
+            if result:
+                return result
+    return None
+
+
 def get_file_downloadability(pkg, source):
     """
     Check if a 'source' (file/dir in sources_list.html) is downloadable.
@@ -313,31 +344,23 @@ def get_file_downloadability(pkg, source):
     name = (source.get('name') if isinstance(source, dict) else getattr(
         source, 'name', '')) or ''
     url = (source.get('url') if isinstance(source, dict) else getattr(
-        source, 'url',  '')) or ''
-    if url == '':
-        # try to see if there is a zip archive?
-        url = source.get("path")
-        url = 'https://storage.googleapis.com/natcap-data-cache/natcap-projects/PeoplePlanetProsperity_Country_Data/Colombia/Colombia_3Ps_data_pkg/1_model_inputs/Col_K_fill_dh.tif'
-    # Prefer a relative path if source nodes have one; else fall back to name
-    relpath = name
+            source, 'url',  '')) or ''
+    filetype = (source.get('type') if isinstance(source, dict) else getattr(
+            source, 'type',  '')) or ''
+
     base = name.rstrip('/').rsplit('/', 1)[-1]
     ext = ''
     if '.' in base and not base.endswith('.'):
         ext = '.' + base.rsplit('.', 1)[-1]
     ext = ext.lower()
 
-    # Dataset-specific overrides first
-    ds_overrides = (((rules.get('overrides') or {}).get(
-        'datasets')) or {}).get(pkg.get('name')) or (((rules.get(
-            'overrides') or {}).get('datasets')) or {}).get(pkg.get('title'))
-    if ds_overrides:
-        verdict = _apply_rule_list(ds_overrides, relpath, base, ext, url)
-        if verdict is not None:
-            return verdict
-
-    # Global rules
     verdict = _apply_rule_list((rules.get('rules') or []),
-                               relpath, base, ext, url)
+                               name, base, ext, url)
+    if verdict is not None:
+        if verdict['allowed'] and filetype == 'directory':
+            verdict['url'] = get_directory_url(source, name)
+        return verdict
+
     if verdict is not None:
         return verdict
 

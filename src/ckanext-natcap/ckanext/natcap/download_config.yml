@@ -4,29 +4,27 @@ defaults:
 
 # Rule list evaluated top-to-bottom; first match wins
 rules:
-  # EXAMPLE: block everything under folder 'precipMonthly_corrected'
+  # block everything under folder 'precipMonthly_corrected' but allow the folder itself to be downloaded
   - match:
-      path_glob: "**/precipMonthly_corrected/**"
-    allow: false
-    reason: "Monthly folders are not downloadable"
+      path_glob: "precipMonthly_corrected"
+    allow: true
+    reason: "allow precip zip to be downloaded"
+
   # block specific filenames
   - match:
-      name_regex: "(?i).*_ET0_.*" #"(?i)^.*(password|secret|credentials).*"
+      name_regex: "(?i).*_ET0_.*"
     allow: false
-    reason: "Monthly files are not downloadable"
+    reason: "Monthly ET files are not downloadable"
+
+  - match:
+      name_regex: "(?i).*p_EPSG32618_monthly.*"
+    allow: false
+    reason: "Monthly precip files are not downloadable"
 
   # prevent certain extensions
-  - match:
-      ext_any: [".zip"]
-    allow: false
+  # - match:
+  #     ext_any: [".zip"]
+  #   allow: false
+  #   reason: "no zipfiles"
 
-# Per-dataset overrides (by name or id)
-overrides:
-  datasets:
-    "People, Planet, Prosperity Pilot Country Data Package - Colombia (Version3)":
-      - match:
-          path_glob: "**/2_model_outputs/seasonal_water_yield_out/**"
-        allow: false
-        reason: "testing for 3ps"
-    
       
