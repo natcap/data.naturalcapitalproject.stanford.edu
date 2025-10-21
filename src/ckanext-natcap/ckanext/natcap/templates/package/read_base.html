@@ -1,6 +1,7 @@
 {% ckan_extends %}
 
 {% block content_action %}
+    {% snippet "package/snippets/view_api_data.html", pkg=pkg %}
     {{ super() }}
 {% endblock %}
 

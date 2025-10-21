@@ -1,0 +1,8 @@
+{% if h.check_access('package_update', {'id': pkg.id}) %}
+    <a class="btn btn-default"
+       target="_blank"
+       href="{{ h.url_for('api.action', ver=3, logic_function='package_show', id=pkg.name) }}">
+        <i class="fa-solid fa-code"></i>
+        View CKAN API data
+    </a>
+{% endif %}
