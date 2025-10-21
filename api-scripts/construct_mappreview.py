@@ -14,21 +14,22 @@ logging.basicConfig(level=logging.DEBUG)
 LOGGER = logging.getLogger(os.path.basename(__file__))
 
 
-def get_map_settings(layers):
+def get_map_settings(layers: list[dict]) -> dict:
+    """Get map default minzoom, maxzoom, and bounds based on layers to display"""
     minzoom = 1
     try:
         minzoom = min(filter(None, [l.get('minzoom') for l in layers]))
     except Exception as e:
         LOGGER.debug(f"exception with minzoom: {e}")
         pass
-            
+
     maxzoom = 16
     try:
         maxzoom = max(filter(None, [l.get('maxzoom') for l in layers]))
     except Exception as e:
         LOGGER.debug(f"exception with maxzoom: {e}")
         pass
-    
+
     bounds = [-180, -90, 180, 90]
     try:
         bounds = [
@@ -40,7 +41,7 @@ def get_map_settings(layers):
     except Exception as e:
         LOGGER.error(f"exception with bounds: {e}")
         pass
-    
+
     return {
         'minzoom': minzoom,
         'maxzoom': maxzoom,
@@ -48,7 +49,11 @@ def get_map_settings(layers):
     }
 
 
-def get_wgs84_bbox(bbox, crs_link):
+def get_wgs84_bbox(bbox: list[float], crs_link: str) -> list[float]:
+    """Transform bounding box to WGS 84, if necessary
+
+    Uses EPSG:4326, the same CRS as ``create-or-update-dataset.py``
+    """
     if crs_link.endswith('4326'):
         return bbox
 
@@ -60,7 +65,7 @@ def get_wgs84_bbox(bbox, crs_link):
     source_srs_wkt = source_srs.ExportToWkt()
 
     dest_srs = osr.SpatialReference()
-    dest_srs.ImportFromEPSG(4326)  # Assume lat/lon for dest.
+    dest_srs.ImportFromEPSG(4326)
     dest_srs_wkt = dest_srs.ExportToWkt()
 
     try:
@@ -75,7 +80,8 @@ def get_wgs84_bbox(bbox, crs_link):
     return wgs84_bbox
 
 
-def bounds_valid(bounds):
+def bounds_valid(bounds: list[float]) -> bool:
+    """Confirm that extents fall within expected WGS84 bounds"""
     return (
         abs(bounds[0]) <= 180 and
         abs(bounds[2]) <= 180 and
@@ -84,7 +90,8 @@ def bounds_valid(bounds):
     )
 
 
-def get_raster_info(url):
+def get_raster_info(url: str) -> dict:
+    """Get raster info via rio-tiler"""
     with Reader(url) as src:
         info = src.info()
         min_zoom = src.minzoom
@@ -119,11 +126,12 @@ def get_raster_info(url):
     return info_stats
 
 
-def get_raster_statistics(url, nodata=None, pixel_range=None):
-    percentiles = [2, 20, 40, 60, 80, 98]  
+def get_raster_statistics(url: str, nodata=None, pixel_range=None) -> dict:
+    """Get raster statistics via rio-tiler"""
+    percentiles = [2, 20, 40, 60, 80, 98]
 
     statistics_options = {'percentiles': percentiles}
-    
+
     if nodata is not None:
         statistics_options['nodata'] = nodata
 
@@ -135,7 +143,7 @@ def get_raster_statistics(url, nodata=None, pixel_range=None):
         all_stats = src.statistics(**statistics_options)
 
     stats = all_stats['b1'].dict()
-    
+
     return {
         'pixel_min_value': stats['min'],
         'pixel_max_value': stats['max'],
@@ -143,39 +151,46 @@ def get_raster_statistics(url, nodata=None, pixel_range=None):
     }
 
 
-def get_raster_layer_metadata(raster_resource):
+def get_raster_layer_metadata(raster_resource: dict) -> dict:
+    """Get metadata needed to display a raster layer in the map"""
     url = raster_resource['url']
-    LOGGER.debug(f"Getting raster info for {url}")
+    LOGGER.info(f"Getting raster info for {url}")
 
-    info = get_raster_info(url)
+    # Avoid redirect from 'storage.cloud.google.com'
+    if url.startswith('https://storage.cloud.google.com/'):
+        url = url.replace('https://storage.cloud.google.com/',
+                          'https://storage.googleapis.com/')
+
     try:
-        range_ = info['range']
-    except KeyError:
-        range_ = None
+        info = get_raster_info(url)
 
-    stats = get_raster_statistics(
-        url,
-        nodata=info['nodata'],
-        pixel_range=range_,
-    )
+        stats = get_raster_statistics(
+            url,
+            nodata=info.get('nodata'),
+            pixel_range=info.get('range'),
+        )
 
-    return {
-        'name': raster_resource['name'],
-        'type': 'raster',
-        'url': url,
-        'bounds': info['bounds'],
-        'minzoom': info['minzoom'],
-        'maxzoom': info['maxzoom'],
-        **stats,
-    }
+        return {
+            'name': raster_resource['name'],
+            'type': 'raster',
+            'url': url,
+            'bounds': info['bounds'],
+            'minzoom': info['minzoom'],
+            'maxzoom': info['maxzoom'],
+            **stats,
+        }
+    except Exception as e:
+        LOGGER.exception(f"Failed to access GeoTIFF ({url}) metadata")
+        return None
 
 
-def get_raster_layers_metadata(raster_resources):
+def get_raster_layers_metadata(raster_resources: list[dict]) -> list[dict]:
     return filter(None, [get_raster_layer_metadata(r) for r in raster_resources])
 
 
 def get_vector_layer_metadata(vector_resource: dict) -> dict:
     url = vector_resource['url']
+    LOGGER.info(f"Getting vector info for {url}")
 
     if url.endswith('.mvt'):
         return get_mvt_layer_metadata(vector_resource)
@@ -264,7 +279,7 @@ def get_vector_layers_metadata(vector_resources):
         if not vector_layer:
             continue
         vector_layers.append(get_vector_layer_metadata(vector_layer))
-    return vector_layers
+    return filter(None, vector_layers)
 
 
 def get_mappreview_metadata(resources, source_files, mappreview_sources=[]):
@@ -337,13 +352,10 @@ def get_mappreview_metadata(resources, source_files, mappreview_sources=[]):
                 'url': url,
             })
 
-    LOGGER.debug("##############")
-    LOGGER.debug(raster_resources)
     layers += get_raster_layers_metadata(raster_resources)
     layers += get_vector_layers_metadata(vector_resources)
 
     if len(layers) > 0:
-        LOGGER.debug("Many layers!")
         return {
             'map': get_map_settings(layers),
             'layers': layers,
