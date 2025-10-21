@@ -23,7 +23,6 @@ from ckan.types import Schema
 from .update_dataset import update_dataset
 
 LOGGER = logging.getLogger(__name__)
-DOWNLOAD_RULES = None
 
 invest_keywords = []
 topic_keywords = []
@@ -244,25 +243,33 @@ def natcap_update_mappreview(context, package):
     #NatcapPlugin._after_dataset_update(context, package_data)
 
 
-def _load_download_rules():
-    """
-    Read rules from download_config.yml next to this file.
-    Cached in DOWNLOAD_RULES.
-    """
-    global DOWNLOAD_RULES
-    if DOWNLOAD_RULES is not None:
-        return DOWNLOAD_RULES
+def _load_download_rules_for(pkg):
+    """Try to get dataset-specific rules (first by title, then name)"""
+    rules_dir = path.join(
+        path.dirname(__file__), 'dataset_configs'
+    )
+    if not path.isdir(rules_dir):
+        LOGGER.debug(f"dataset_configs not found at: {rules_dir}")
 
-    rules_path = path.join(path.dirname(__file__), 'download_config.yml')
+    candidates = []
+    if pkg:
+        if pkg.get('title'):
+            candidates.append(path.join(rules_dir, f"{pkg['title']}.yml"))
+        if pkg.get('name'):
+            candidates.append(path.join(rules_dir, f"{pkg['name']}.yml"))
+            # name will be like: sts-12a3b4567 etc.
 
-    try:
-        with open(rules_path, 'r') as f:
-            DOWNLOAD_RULES = yaml.safe_load(f)
-    except Exception:
-        LOGGER.exception("Could not load download rules from %s", rules_path)
-        DOWNLOAD_RULES = {}
+    for fp in candidates:
+        try:
+            if path.exists(fp):
+                with open(fp, 'r') as f:
+                    data = yaml.safe_load(f) or {}
+                    LOGGER.info(f"Loaded per-dataset rules: {fp}")
+                    return data
+        except Exception:
+            LOGGER.exception(f"Failed loading per-dataset rules from {fp}")
 
-    return DOWNLOAD_RULES
+    return {}
 
 
 def _apply_rule_list(rule_list, relpath, base, ext, url):
@@ -297,14 +304,6 @@ def _match_rule(m, relpath, base, ext):
     return True
 
 
-# def check_gcs_file_exists(filepath, bucket_name="natcap-data-cache"):
-#     """Check if file in google cloud storage exists"""
-#     storage_client = storage.Client()
-#     bucket = storage_client.bucket(bucket_name)
-#     stats = storage.Blob(bucket=bucket, name=filepath).exists(storage_client)
-#     return stats
-
-
 def get_directory_url(node, target_name):
     """Infer the URL of a zipfile of a directory"""
     if node["type"] == "directory":
@@ -335,7 +334,7 @@ def get_file_downloadability(pkg, source):
     Returns:
         dict: {'allowed': bool, 'reason': '...'}
     """
-    rules = _load_download_rules() or {}
+    rules = _load_download_rules_for(pkg) or {}
 
     allowed_default = bool(((rules.get('defaults') or {}).get('allow',
                                                               True)))
@@ -359,9 +358,6 @@ def get_file_downloadability(pkg, source):
     if verdict is not None:
         if verdict['allowed'] and filetype == 'directory':
             verdict['url'] = get_directory_url(source, name)
-        return verdict
-
-    if verdict is not None:
         return verdict
 
     return {'allowed': allowed_default, 'reason': 'default', 'url': url}
@@ -390,15 +386,6 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
         toolkit.add_template_directory(config_, "templates")
         toolkit.add_public_directory(config_, "public")
         toolkit.add_resource("assets", "natcap")
-
-        rules_path = path.join(path.dirname(__file__), 'download_config.yml')
-        try:
-            with open(rules_path, 'r') as f:
-                self._download_rules = yaml.safe_load(f) or {}
-        except Exception:
-            LOGGER.exception("Could not load download rules from %s",
-                             rules_path)
-            self._download_rules = {}
 
     def _modify_package_schema(self, schema):
         schema.update({
