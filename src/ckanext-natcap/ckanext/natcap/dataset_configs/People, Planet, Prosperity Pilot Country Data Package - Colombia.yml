@@ -1,6 +1,7 @@
 # Default policy if no rule matches
 defaults:
   allow: true
+  # Note: folders are now downloadable by default (assumes no zipfile created)
 
 # Rule list evaluated top-to-bottom; first match wins
 rules:
@@ -8,7 +9,7 @@ rules:
   - match:
       path_glob: "precipMonthly_corrected"
     allow: true
-    reason: "allow precip zip to be downloaded"
+    reason: "Allow precip zip to be downloaded" # assumption is filepath to zip is same as folder
 
   # block specific filenames
   - match:
