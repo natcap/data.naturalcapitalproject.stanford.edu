@@ -297,7 +297,7 @@ def _match_rule(m, relpath, base, ext):
                 return False
         except re.error:
             return False
-    # ext_any
+
     ex = m.get('ext_any')
     if ex and ext.lower() not in [e.lower() for e in ex]:
         return False
@@ -313,12 +313,7 @@ def get_directory_url(node, target_name):
                 if "url" in child:
                     # Drop the filename and change dir path to zip path
                     return "/".join(child["url"].split("/")[:-1])+".zip"
-                    # Remove everything before and including the bucket name
-                    # if "natcap-data-cache/" in full_url:
-                        # part_url = full_url.split("natcap-data-cache/", 1)[1]
-                        # if check_gcs_file_exists(part_url):
-                        #     return full_url
-                    # return None
+
         # recurse into children
         for child in node.get("children", []):
             result = get_directory_url(child, target_name)
@@ -371,8 +366,6 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
     plugins.implements(plugins.ITemplateHelpers)
     plugins.implements(plugins.IActions)
     plugins.implements(plugins.IValidators)
-
-    _download_rules = None  # cache
 
     # IConfigurer
 

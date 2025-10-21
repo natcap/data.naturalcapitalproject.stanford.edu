@@ -1,7 +1,7 @@
 # Default policy if no rule matches
 defaults:
   allow: true
-  # Note: folders are now downloadable by default (assumes no zipfile created)
+  # Note: folders are _not_ downloadable by default (assumes no zipfile created)
 
 # Rule list evaluated top-to-bottom; first match wins
 rules:
