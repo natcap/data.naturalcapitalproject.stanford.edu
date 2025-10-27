@@ -1,8 +1,11 @@
 import json
 import logging
 import os
+import urllib.error
+import urllib.request
 import requests
 import warnings
+import yaml
 
 import pygeoprocessing  # mamba install pygeoprocessing
 from osgeo import ogr
@@ -306,7 +309,7 @@ def get_mappreview_metadata(resources, source_files, mappreview_sources=[]):
             base = base.replace('https://storage.cloud.google.com/',
                                 'https://storage.googleapis.com/')
 
-            # Identify a .mbtiles (preferred) or .geojson layer version of the
+            # Identify a .mvt (preferred) or .geojson layer version of the
             # vector for mapping onto the globe.
             url = None
             for extension in ('.mvt', '.geojson'):
