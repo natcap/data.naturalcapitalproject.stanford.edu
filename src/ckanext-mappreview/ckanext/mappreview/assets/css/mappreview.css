@@ -43,6 +43,7 @@
 .mappreview .mapboxgl-ctrl-group .mapboxgl-legend-list button {
   font-size: 0;
   color: transparent;
+  z-index: 1;
 }
 
 .mappreview .mapboxgl-legend-close-button:after {
