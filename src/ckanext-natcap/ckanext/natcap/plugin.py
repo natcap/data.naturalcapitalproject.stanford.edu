@@ -244,51 +244,87 @@ def natcap_update_mappreview(context, package):
 
 
 def _load_download_rules_for(pkg):
-    """Try to get dataset-specific rules (first by title, then name)"""
+    """Try to get dataset-specific rules (first by title, then name)
+
+    Looks in dataset_configs folder for a file named after the dataset.
+
+    Args:
+        pkg (dict): CKAN package dictionary of metadata
+
+    Returns:
+        dict of parsed rules configuration or an empty dict if no
+        per-dataset config exists or loading fails.
+
+    """
     rules_dir = path.join(
         path.dirname(__file__), 'dataset_configs'
     )
     if not path.isdir(rules_dir):
         LOGGER.debug(f"dataset_configs not found at: {rules_dir}")
 
-    candidates = []
-    if pkg:
-        if pkg.get('title'):
-            candidates.append(path.join(rules_dir, f"{pkg['title']}.yml"))
-        if pkg.get('name'):
-            candidates.append(path.join(rules_dir, f"{pkg['name']}.yml"))
-            # name will be like: sts-12a3b4567 etc.
-
-    for fp in candidates:
-        try:
-            if path.exists(fp):
-                with open(fp, 'r') as f:
-                    data = yaml.safe_load(f) or {}
-                    LOGGER.info(f"Loaded per-dataset rules: {fp}")
-                    return data
-        except Exception:
-            LOGGER.exception(f"Failed loading per-dataset rules from {fp}")
+    potential_config_path = path.join(rules_dir, f"{pkg.get('title')}.yml")
+    try:
+        if path.exists(potential_config_path):
+            with open(potential_config_path, 'r') as f:
+                data = yaml.safe_load(f) or {}
+                LOGGER.info(f"Loaded rules for: {potential_config_path}")
+                return data
+    except Exception:
+        LOGGER.exception(f"Failed loading rules from {potential_config_path}")
 
     return {}
 
 
-def _apply_rule_list(rule_list, relpath, base, ext, url):
+def _apply_rule_list(rule_list, base, ext, url):
     """Evaluate first-match-wins
 
+    Args:
+        rule_list (list[dict]): list of rules read from config if config yaml
+            for the datapackage exists, otherwise will be empty list. List will
+            contain dictionaries of rules like:
+            {'match': {'path_glob': 'some_path'},
+             'allow': True, 'reason': 'some reason'}
+        base (str): basename of source (file or folder), e.g., 'foo.tif'
+            or 'my_dir'
+        ext (str): file extension (e.g., '.tif') (could be empty if directory)
+        url (str): original download url to where source file lives. Will
+            be empty if source is a directory and url inferred via
+            ``get_directory_url``.
+
     Returns:
-        dict: {'allowed': bool, 'reason': str} or None if none match."""
+        dict: {'allowed': bool, 'reason': str} or None
+
+    """
     for rule in rule_list:
         m = (rule.get('match') or {})
-        if _match_rule(m, relpath, base, ext):
+        if _match_rule(m, base, ext):
             return {'allowed': bool(rule.get('allow', True)),
                     'reason': rule.get('reason', ''),
                     'url': url}
     return None
 
 
-def _match_rule(m, relpath, base, ext):
+def _match_rule(m, base, ext):
+    """Check whether a single rule's match clause applies.
+
+    ``m`` can have any of these keys:
+      - ``path_glob``: fnmatch pattern tested against ``base`` (used
+        for directory names or simple file patterns).
+      - ``name_regex``: Python regex tested against ``base``. Note that
+            invalid regex patterns are treated as non-matches (return False)
+      - ``ext_any``: list of extensions (with dots) that must contain ``ext``.
+
+    Args:
+        m (dict): Match clause from a rule (may be empty).
+        base (str): Basename of the source (file or directory).
+        ext (str): File extension including dot, or empty for directories.
+
+    Returns:
+        bool: ``True`` if the rule matches; ``False`` otherwise.
+
+    """
     pg = m.get('path_glob')
-    if pg and not fnmatch.fnmatch(relpath, pg):
+    if pg and not fnmatch.fnmatch(base, pg):
         return False
     rx = m.get('name_regex')
     if rx:
@@ -305,7 +341,25 @@ def _match_rule(m, relpath, base, ext):
 
 
 def get_directory_url(node, target_name):
-    """Infer the URL of a zipfile of a directory"""
+    """Infer a folder ZIP URL from a directory node in the sources tree.
+
+    If ``node`` (or any of its descendants) is a directory whose ``name``
+    equals ``target_name``, we try to infer a `.zip` URL by:
+      1) taking the first child's ``url``,
+      2) stripping the final path segment (child filename),
+      3) appending `.zip`.
+
+    This ultimately allows us to click the "Download" icon for a folder and
+    have it point to a pre-zipped archive published at the same path.
+
+    Args:
+        node (dict): Source tree node, e.g. the object passed from the Jinja
+            template (must include ``type``, ``name``, optional ``children``).
+        target_name (str): Basename of directory to find (not full path).
+
+    Returns:
+        Inferred ZIP URL if derivable; otherwise ``None``.
+    """
     if node["type"] == "directory":
         if node["name"] == target_name:
             # infer URL from first child's URL
@@ -326,30 +380,43 @@ def get_file_downloadability(pkg, source):
     """
     Check if a 'source' (file/dir in sources_list.html) is downloadable.
 
+    Loads per-dataset rules for pkg via `_load_download_rules_for`
+    and evaluates them with `_apply_rule_list`. If a folder is allowed,
+    this will also attempt to populate `url` with an inferred folder
+    ZIP URL via `get_directory_url`. If no per-dataset config is found,
+    uses ``defaults.allow`` (evaluates to `True` when absent).
+
+    Args:
+        pkg (dict): CKAN package dictionary
+        source (dict | object): source node (as passed from Jinja template).
+            Should have keys/attributes `name`, `url`, and `type`.
+
     Returns:
-        dict: {'allowed': bool, 'reason': '...'}
+        dict: {'allowed': bool, 'reason': '...'} which specified whether and
+            why an item can be downloaded and if so, what url to use.
+
     """
     rules = _load_download_rules_for(pkg) or {}
 
-    allowed_default = bool(((rules.get('defaults') or {}).get('allow',
-                                                              True)))
+    try:
+        allowed_default = bool(rules['defaults']['allow'])
+    except KeyError:
+        allowed_default = True
+    except TypeError:
+        allowed_default = bool(rules['defaults'])
 
     # Extract fields to match on
-    name = (source.get('name') if isinstance(source, dict) else getattr(
-        source, 'name', '')) or ''
-    url = (source.get('url') if isinstance(source, dict) else getattr(
-            source, 'url',  '')) or ''
-    filetype = (source.get('type') if isinstance(source, dict) else getattr(
-            source, 'type',  '')) or ''
+    if isinstance(source, dict):
+        name = source.get('name')
+        url = source.get('url')
+        filetype = source.get('type')
+    else:
+        raise Exception('Invalid configuration; source is not a dict')
 
-    base = name.rstrip('/').rsplit('/', 1)[-1]
-    ext = ''
-    if '.' in base and not base.endswith('.'):
-        ext = '.' + base.rsplit('.', 1)[-1]
-    ext = ext.lower()
+    ext = path.splitext(name)[1].lower()
+    base = path.basename(name)
 
-    verdict = _apply_rule_list((rules.get('rules') or []),
-                               name, base, ext, url)
+    verdict = _apply_rule_list((rules.get('rules') or []), base, ext, url)
     if verdict is not None:
         if verdict['allowed'] and filetype == 'directory':
             verdict['url'] = get_directory_url(source, name)
