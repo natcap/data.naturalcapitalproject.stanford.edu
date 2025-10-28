@@ -11,16 +11,27 @@ rules:
     allow: true
     reason: "Allow precip zip to be downloaded" # assumption is filepath to zip is same as folder
 
+  - match:
+      path_glob: "ET0"
+    allow: true
+    reason: "Allow ET zip to be downloaded" # assumption is filepath to zip is same as folder
+
+  - match:
+      path_glob: "*/precipMonthly_corrected/*"
+    allow: false
+    reason: "Don't allow files in precip zip to be downloaded"
+
   # block specific filenames
   - match:
-      name_regex: "(?i).*_ET0_.*"
+      name_regex: "(?i).*_ET0_.*" # this could also be done similarly to precip files above
     allow: false
     reason: "Monthly ET files are not downloadable"
 
-  - match:
-      name_regex: "(?i).*p_EPSG32618_monthly.*"
-    allow: false
-    reason: "Monthly precip files are not downloadable"
+  # This blocks the same files as "*/precipMonthly_corrected/*" above
+  # - match:
+  #     name_regex: "(?i).*p_EPSG32618_monthly.*"
+  #   allow: false
+  #   reason: "Monthly precip files are not downloadable"
 
   # prevent certain extensions
   # - match:
