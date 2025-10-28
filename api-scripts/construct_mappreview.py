@@ -36,10 +36,10 @@ def get_map_settings(layers: list[dict]) -> dict:
     bounds = [-180, -90, 180, 90]
     try:
         bounds = [
-            min(filter(None, [l.get('bounds')[0] for l in layers])),
-            min(filter(None, [l.get('bounds')[1] for l in layers])),
-            max(filter(None, [l.get('bounds')[2] for l in layers])),
-            max(filter(None, [l.get('bounds')[3] for l in layers])),
+            min([l.get('bounds')[0] for l in layers]),
+            min([l.get('bounds')[1] for l in layers]),
+            max([l.get('bounds')[2] for l in layers]),
+            max([l.get('bounds')[3] for l in layers]),
         ]
     except Exception as e:
         LOGGER.error(f"exception with bounds: {e}")
