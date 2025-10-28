@@ -297,14 +297,14 @@ def _apply_rule_list(rule_list, base, ext, url):
     """
     for rule in rule_list:
         m = (rule.get('match') or {})
-        if _match_rule(m, base, ext):
+        if _match_rule(m, base, ext, url):
             return {'allowed': bool(rule.get('allow', True)),
                     'reason': rule.get('reason', ''),
                     'url': url}
     return None
 
 
-def _match_rule(m, base, ext):
+def _match_rule(m, base, ext, url):
     """Check whether a single rule's match clause applies.
 
     ``m`` can have any of these keys:
@@ -318,14 +318,18 @@ def _match_rule(m, base, ext):
         m (dict): Match clause from a rule (may be empty).
         base (str): Basename of the source (file or directory).
         ext (str): File extension including dot, or empty for directories.
+        url (str): URL to download file
 
     Returns:
         bool: ``True`` if the rule matches; ``False`` otherwise.
 
     """
     pg = m.get('path_glob')
-    if pg and not fnmatch.fnmatch(base, pg):
-        return False
+    if pg:
+        if not url and not fnmatch.fnmatch(base, pg):
+            return False
+        elif url and not fnmatch.fnmatch(url, pg):
+            return False
     rx = m.get('name_regex')
     if rx:
         try:
