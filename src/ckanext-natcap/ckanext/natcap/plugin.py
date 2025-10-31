@@ -309,7 +309,7 @@ def _match_rule(m, base, ext, url):
 
     ``m`` can have any of these keys:
       - ``path_glob``: fnmatch pattern tested against ``base`` (used
-        for directory names or simple file patterns).
+            for directory names or simple file patterns).
       - ``name_regex``: Python regex tested against ``base``. Note that
             invalid regex patterns are treated as non-matches (return False)
       - ``ext_any``: list of extensions (with dots) that must contain ``ext``.
@@ -405,8 +405,10 @@ def get_file_downloadability(pkg, source):
     try:
         allowed_default = bool(rules['defaults']['allow'])
     except KeyError:
+        # When `allow` not in `rules['defaults']`
         allowed_default = True
     except TypeError:
+        # When `rules['defaults'] = False` (this is not preferred setup)
         allowed_default = bool(rules['defaults'])
 
     # Extract fields to match on
