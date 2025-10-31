@@ -3,7 +3,7 @@
 If the dataset already exists, then its attributes are updated.
 
 Dependencies:
-    $ mamba install ckanapi pyyaml google-cloud-storage requests gdal pygeoprocessing
+    $ mamba install ckanapi pyyaml google-cloud-storage requests gdal pygeoprocessing rio-tiler
 
 Note:
     You will need to authenticate with the google cloud api in order to do
@@ -12,6 +12,8 @@ Note:
     at your shell:
 
         $ gcloud auth application-default login
+
+    rio-tiler is a dependency of construct_mappreview, upon which this script relies
 """
 import argparse
 import collections
@@ -400,13 +402,13 @@ def _get_median_latlon_bounds(vector_path):
 def main(ckan_url, ckan_apikey, gmm_yaml_path, config_yaml_path=None, private=False,
          group=None, verify_ssl=True):
     with open(gmm_yaml_path) as yaml_file:
-        LOGGER.debug(f"Loading geometamaker yaml from {gmm_yaml_path}")
+        LOGGER.info(f"Loading geometamaker yaml from {gmm_yaml_path}")
         gmm_yaml = yaml.load(yaml_file.read(), Loader=yaml.Loader)
 
     config_yaml = {}
     if config_yaml_path:
         with open(config_yaml_path) as yaml_file:
-            LOGGER.debug(f"Loading config yaml from {config_yaml_path}")
+            LOGGER.info(f"Loading config yaml from {config_yaml_path}")
             config_yaml = yaml.load(yaml_file.read(), Loader=yaml.Loader)
 
         # If config includes `layers_to_preview`, verify that the sources all
@@ -418,6 +420,9 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, config_yaml_path=None, private=Fa
                 raise ValueError("Sources were included in the config file that "
                                  "are not included in the Geometamaker YAML 'sources': "
                                  f"{missing_sources}")
+        else:
+            LOGGER.warning("Config file contains no 'layers_to_preview' key. "
+                           "All layers will be included in the mappreview extra.")
 
     session = requests.Session()
     session.headers.update({'Authorization': ckan_apikey})

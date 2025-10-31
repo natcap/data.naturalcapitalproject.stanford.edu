@@ -74,13 +74,13 @@ def get_wgs84_bbox(bbox: list[float], crs_link: str) -> list[float]:
     try:
         wgs84_bbox = pygeoprocessing.transform_bounding_box(
             bbox, source_srs_wkt, dest_srs_wkt)
+        return wgs84_bbox
     except (ValueError, RuntimeError):
         LOGGER.error(
             f"Failed to transform bounding box from {source_srs_wkt} "
             f"to {dest_srs_wkt}")
         LOGGER.warning("Assuming original bounding box is in WGS84")
-
-    return wgs84_bbox
+        return bbox
 
 
 def bounds_valid(bounds: list[float]) -> bool:
@@ -117,7 +117,9 @@ def get_raster_info(url: str) -> dict:
         'maxzoom': max_zoom,
         'nodata_type': info_dict.get('nodata_type'),
     }
-    if info_dict['nodata_type'].lower() == 'nodata':
+    # nodata_type is always a string, if present, but in case it's missing
+    # from the dict, default to '' to avoid .lower() error
+    if info_dict.get('nodata_type', '').lower() == 'nodata':
         info_stats['nodata'] = info_dict['nodata_value']
     else:
         warnings.warn(
@@ -295,7 +297,7 @@ def get_mappreview_metadata(resources, source_files, mappreview_sources=[]):
 
     if zip_resource and source_files:
         # Look at zip sources for spatial resources and add
-        for shp_source in [s for s in source_files if s.endswith('shp')]:
+        for shp_source in [s for s in source_files if s.endswith('.shp')]:
             if mappreview_sources and shp_source not in mappreview_sources:
                 continue
             LOGGER.debug(shp_source)
@@ -341,10 +343,9 @@ def get_mappreview_metadata(resources, source_files, mappreview_sources=[]):
                 'url': url,
             })
 
-        for tif_source in [s for s in source_files if s.endswith('tif')]:
+        for tif_source in [s for s in source_files if s.endswith('.tif')]:
             if mappreview_sources and tif_source not in mappreview_sources:
                 continue
-            LOGGER.debug(tif_source)
             path = tif_source.replace('\\', '/')
             base = '/'.join(zip_resource['url'].split('/')[0:-1])
             url = f'{base}/{path}'
