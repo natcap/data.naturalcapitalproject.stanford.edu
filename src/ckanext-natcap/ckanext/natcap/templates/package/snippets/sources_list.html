@@ -1,74 +1,36 @@
-{# All directories are collapsible (closed by default); files are normal rows. #}
-
 <ol class="nested-source-list indent-{{ indent }}">
   {% for source in sources %}
-    {% set name = source.name or '' %}
-    {% set children = source.children if source.children is defined else [] %}
-    {% set is_dir = source.type == 'directory' %}
-    {% if is_dir %}
-      {% set label = name.rstrip('/').rsplit('/', 1)[-1] %}
-    {% else %}
-      {% set label = name.rsplit('/', 1)[-1].rsplit('.', 1)[0] %}
-    {% endif %}
-   
-    {% if is_dir or h.natcap_show_resource(name) %}
-      {% if is_dir %}
-        <li class="nested-source-item src-folder" data-level="{{ indent }}">
-          <details class="src-acc">
-            <summary class="src-summary">
-              <span class="src-caret" aria-hidden="true"></span>
-              <div class="resource-item-description">
-                <div class="resource-item-type">
-                  <img src="/img/icon-filetype-directory.png" alt="" />
-                </div>
-                <div class="resource-item-name">{{ label }}</div>
+    {% set parts = source.name.split('.') %}
+    {% if source.type == 'directory' or h.natcap_show_resource(source.name) %}
+      <li class="nested-source-item">
+        <a class="heading" href="{{ source.url }}" aria-label="{{ _('Download resource: {name_or_id}').format(name_or_id=name_or_id)}}">
+          <div class="resource-item-description">
+            {% if source.type != 'directory' and h.natcap_show_icon(source.name) %}
+              <div class="resource-item-type">
+                <img src="/img/icon-filetype-{{ h.natcap_get_resource_type_icon_slug(source.name) }}.png" />
+                {{ h.natcap_get_ext(source.name) }}
               </div>
-              {% set gate = h.natcap_get_file_downloadability(c.pkg_dict, source) %}
-              {% if gate.url %}
-                <a class="icon-button icon-button-download"
-                  href="{{ gate.url }}"
-                  title="{{ _('Download folder') }}"
-                  aria-label="{{ _('Download folder: {name}').format(name=label) }}">
-                </a>
-              {% endif %}
-              <!--  Optional: show a download icon if this folder has a URL  -->
-            </summary>
-            <div class="resource-directory-contents">
-              {% snippet 'package/snippets/sources_list.html', sources=children, indent=indent+1 %}
+            {% elif source.type == 'directory' %}
+              <div class="resource-item-type">
+                <img src="/img/icon-filetype-directory.png" />
+              </div>
+            {% endif %}
+
+            <div class="resource-item-name">
+              {{ parts[0] }}{% if source.type == 'directory' %}/{% endif %}
             </div>
-          </details>
-        </li>
-      {% else %}
-        <li class="nested-source-item src-file" data-level="{{ indent }}">
-          {% set gate = h.natcap_get_file_downloadability(c.pkg_dict, source) | default({'allowed': True}, true) %}
-          {% if gate.allowed %}
-            <a class="heading" href="{{ source.url }}" aria-label="{{ _('Download resource: {fn}').format(fn=name) }}">
-              <div class="resource-item-description">
-                {% if h.natcap_show_icon(name) %}
-                  <div class="resource-item-type">
-                    <img src="/img/icon-filetype-{{ h.natcap_get_resource_type_icon_slug(name) }}.png" alt="" />
-                    {{ h.natcap_get_ext(name) }}
-                  </div>
-                {% endif %}
-                <div class="resource-item-name">{{ label }}</div>
-              </div>
-              <div class="icon-button icon-button-download"></div>
-            </a>
-          {% else %}
-            <div class="heading is-disabled" title="{{ gate.reason or _('Download not permitted') }}">
-              <div class="resource-item-description">
-                {% if h.natcap_show_icon(name) %}
-                  <div class="resource-item-type">
-                    <img src="/img/icon-filetype-{{ h.natcap_get_resource_type_icon_slug(name) }}.png" alt="" />
-                    {{ h.natcap_get_ext(name) }}
-                  </div>
-                {% endif %}
-                <div class="resource-item-name">{{ label }}</div>
-              </div>
-            </div>
-          {% endif %}
-        </li>
-      {% endif %}
+          </div>
+
+        {% if source.type == 'directory' %}
+          <div class="resource-directory-contents">
+            {% snippet 'package/snippets/sources_list.html',sources=source.children,indent=indent+1 %}
+          </div>
+        {% else %}
+          <div class="icon-button icon-button-download">
+          </div>
+        {% endif %}
+        </a>
+      </li>
     {% endif %}
   {% endfor %}
 </ol>

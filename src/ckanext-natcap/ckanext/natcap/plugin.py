@@ -1,14 +1,11 @@
 # encoding=utf-8
 from __future__ import annotations
 
-import fnmatch
 import json
 import logging
 from collections import OrderedDict
 from os import path
-import re
 from typing import Any
-import yaml
 
 import ckan.logic as logic
 import ckan.model as model
@@ -243,194 +240,6 @@ def natcap_update_mappreview(context, package):
     #NatcapPlugin._after_dataset_update(context, package_data)
 
 
-def _load_download_rules_for(pkg):
-    """Try to get dataset-specific rules (first by title, then name)
-
-    Looks in dataset_configs folder for a file named after the dataset.
-
-    Args:
-        pkg (dict): CKAN package dictionary of metadata
-
-    Returns:
-        dict of parsed rules configuration or an empty dict if no
-        per-dataset config exists or loading fails.
-
-    """
-    rules_dir = path.join(
-        path.dirname(__file__), 'dataset_configs'
-    )
-    if not path.isdir(rules_dir):
-        LOGGER.debug(f"dataset_configs not found at: {rules_dir}")
-
-    potential_config_path = path.join(rules_dir, f"{pkg.get('title')}.yml")
-    try:
-        if path.exists(potential_config_path):
-            with open(potential_config_path, 'r') as f:
-                data = yaml.safe_load(f) or {}
-                LOGGER.info(f"Loaded rules for: {potential_config_path}")
-                return data
-    except Exception:
-        LOGGER.exception(f"Failed loading rules from {potential_config_path}")
-
-    return {}
-
-
-def _apply_rule_list(rule_list, base, ext, url):
-    """Evaluate first-match-wins
-
-    Args:
-        rule_list (list[dict]): list of rules read from config if config yaml
-            for the datapackage exists, otherwise will be empty list. List will
-            contain dictionaries of rules like:
-            {'match': {'path_glob': 'some_path'},
-             'allow': True, 'reason': 'some reason'}
-        base (str): basename of source (file or folder), e.g., 'foo.tif'
-            or 'my_dir'
-        ext (str): file extension (e.g., '.tif') (could be empty if directory)
-        url (str): original download url to where source file lives. Will
-            be empty if source is a directory and url inferred via
-            ``get_directory_url``.
-
-    Returns:
-        dict: {'allowed': bool, 'reason': str} or None
-
-    """
-    for rule in rule_list:
-        m = (rule.get('match') or {})
-        if _match_rule(m, base, ext, url):
-            return {'allowed': bool(rule.get('allow', True)),
-                    'reason': rule.get('reason', ''),
-                    'url': url}
-    return None
-
-
-def _match_rule(m, base, ext, url):
-    """Check whether a single rule's match clause applies.
-
-    ``m`` can have any of these keys:
-      - ``path_glob``: fnmatch pattern tested against ``base`` (used
-            for directory names or simple file patterns).
-      - ``name_regex``: Python regex tested against ``base``. Note that
-            invalid regex patterns are treated as non-matches (return False)
-      - ``ext_any``: list of extensions (with dots) that must contain ``ext``.
-
-    Args:
-        m (dict): Match clause from a rule (may be empty).
-        base (str): Basename of the source (file or directory).
-        ext (str): File extension including dot, or empty for directories.
-        url (str): URL to download file
-
-    Returns:
-        bool: ``True`` if the rule matches; ``False`` otherwise.
-
-    """
-    pg = m.get('path_glob')
-    if pg:
-        if not url and not fnmatch.fnmatch(base, pg):
-            return False
-        elif url and not fnmatch.fnmatch(url, pg):
-            return False
-    rx = m.get('name_regex')
-    if rx:
-        try:
-            if not re.search(rx, base):
-                return False
-        except re.error:
-            return False
-
-    ex = m.get('ext_any')
-    if ex and ext.lower() not in [e.lower() for e in ex]:
-        return False
-    return True
-
-
-def get_directory_url(node, target_name):
-    """Infer a folder ZIP URL from a directory node in the sources tree.
-
-    If ``node`` (or any of its descendants) is a directory whose ``name``
-    equals ``target_name``, we try to infer a `.zip` URL by:
-      1) taking the first child's ``url``,
-      2) stripping the final path segment (child filename),
-      3) appending `.zip`.
-
-    This ultimately allows us to click the "Download" icon for a folder and
-    have it point to a pre-zipped archive published at the same path.
-
-    Args:
-        node (dict): Source tree node, e.g. the object passed from the Jinja
-            template (must include ``type``, ``name``, optional ``children``).
-        target_name (str): Basename of directory to find (not full path).
-
-    Returns:
-        Inferred ZIP URL if derivable; otherwise ``None``.
-    """
-    if node["type"] == "directory":
-        if node["name"] == target_name:
-            # infer URL from first child's URL
-            for child in node.get("children", []):
-                if "url" in child:
-                    # Drop the filename and change dir path to zip path
-                    return "/".join(child["url"].split("/")[:-1])+".zip"
-
-        # recurse into children
-        for child in node.get("children", []):
-            result = get_directory_url(child, target_name)
-            if result:
-                return result
-    return None
-
-
-def get_file_downloadability(pkg, source):
-    """
-    Check if a 'source' (file/dir in sources_list.html) is downloadable.
-
-    Loads per-dataset rules for pkg via `_load_download_rules_for`
-    and evaluates them with `_apply_rule_list`. If a folder is allowed,
-    this will also attempt to populate `url` with an inferred folder
-    ZIP URL via `get_directory_url`. If no per-dataset config is found,
-    uses ``defaults.allow`` (evaluates to `True` when absent).
-
-    Args:
-        pkg (dict): CKAN package dictionary
-        source (dict | object): source node (as passed from Jinja template).
-            Should have keys/attributes `name`, `url`, and `type`.
-
-    Returns:
-        dict: {'allowed': bool, 'reason': '...'} which specified whether and
-            why an item can be downloaded and if so, what url to use.
-
-    """
-    rules = _load_download_rules_for(pkg) or {}
-
-    try:
-        allowed_default = bool(rules['defaults']['allow'])
-    except KeyError:
-        # When `allow` not in `rules['defaults']`
-        allowed_default = True
-    except TypeError:
-        # When `rules['defaults'] = False` (this is not preferred setup)
-        allowed_default = bool(rules['defaults'])
-
-    # Extract fields to match on
-    if isinstance(source, dict):
-        name = source.get('name')
-        url = source.get('url')
-        filetype = source.get('type')
-    else:
-        raise Exception('Invalid configuration; source is not a dict')
-
-    ext = path.splitext(name)[1].lower()
-    base = path.basename(name)
-
-    verdict = _apply_rule_list((rules.get('rules') or []), base, ext, url)
-    if verdict is not None:
-        if verdict['allowed'] and filetype == 'directory':
-            verdict['url'] = get_directory_url(source, name)
-        return verdict
-
-    return {'allowed': allowed_default, 'reason': 'default', 'url': url}
-
-
 class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
     plugins.implements(plugins.IConfigurer)
     plugins.implements(plugins.IDatasetForm)
@@ -488,6 +297,7 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
         })
         return schema
 
+
     def is_fallback(self):
         # Return True to register this plugin as the default handler for
         # package types not handled by any other IDatasetForm plugin.
@@ -503,6 +313,7 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
             'natcap_convert_to_tags': natcap_convert_to_tags,
         }
 
+
     def get_helpers(self):
         return {
             'natcap_get_ext': get_ext,
@@ -517,7 +328,6 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
             'natcap_show_resource': show_resource,
             'natcap_parse_json': parse_json,
             'natcap_convert_list_to_string': convert_list_to_string,
-            'natcap_get_file_downloadability': get_file_downloadability,
         }
 
     def dataset_facets(self, facets_dict, package_type):
