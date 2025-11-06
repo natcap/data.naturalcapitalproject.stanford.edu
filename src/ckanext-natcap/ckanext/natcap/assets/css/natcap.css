@@ -220,7 +220,6 @@ body {
     align-items: center;
     gap: 1rem;
     justify-content: space-between;
-    width: 100%;
     max-width: 100%;
 }
 
@@ -1276,9 +1275,18 @@ div#invest-model-list-container div {
 /* Folder headers (nested) */
 .src-summary {
   display: flex; align-items: center; gap: 8px;
-  padding: 6px 8px; margin: 2px 0;
   cursor: pointer; user-select: none;
 }
+
+.src-summary .resource-item-description{
+    display:flex;
+    flex: 1 1 auto;
+    align-items:center;
+    gap:0.5rem;
+    min-width:0;
+    overflow:hidden;            
+ }
+
 
 .src-caret {
   width: 0; height: 0;
@@ -1289,4 +1297,10 @@ div#invest-model-list-container div {
 }
 .src-acc[open] > .src-summary .src-caret { transform: rotate(90deg); }
 
-
+.heading.is-disabled {
+    cursor: not-allowed;
+    /* opacity: 0.55; */
+    text-decoration: none;
+    pointer-events: none; /* keeps it inert if someone wraps it with <a> by mistake */
+    padding-left: calc(var(--base) + var(--level) * var(--step));
+  }
