@@ -399,17 +399,23 @@ def _get_median_latlon_bounds(vector_path):
     return (numpy.median(ys), numpy.median(xs))  # lat, lon, bounds
 
 
-def main(ckan_url, ckan_apikey, gmm_yaml_path, config_yaml_path=None, private=False,
-         group=None, verify_ssl=True):
+def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
+         verify_ssl=True):
     with open(gmm_yaml_path) as yaml_file:
         LOGGER.info(f"Loading geometamaker yaml from {gmm_yaml_path}")
         gmm_yaml = yaml.load(yaml_file.read(), Loader=yaml.Loader)
 
+    session = requests.Session()
+    session.headers.update({'Authorization': ckan_apikey})
+    session.verify = verify_ssl
+
     config_yaml = {}
-    if config_yaml_path:
-        with open(config_yaml_path) as yaml_file:
-            LOGGER.info(f"Loading config yaml from {config_yaml_path}")
-            config_yaml = yaml.load(yaml_file.read(), Loader=yaml.Loader)
+    possible_config_path = f"{ckan_url}/dataset_configs/{gmm_yaml['title']}.yml"
+    resp = session.get(possible_config_path)
+    if resp.ok:
+        LOGGER.info(f"Loading config yaml from {possible_config_path}")
+        content = resp.content.decode("utf-8")
+        config_yaml = yaml.safe_load(content)
 
         # If config includes `layers_to_preview`, verify that the sources all
         # appear in the gmm_yaml
@@ -424,9 +430,9 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, config_yaml_path=None, private=Fa
             LOGGER.warning("Config file contains no 'layers_to_preview' key. "
                            "All layers will be included in the mappreview extra.")
 
-    session = requests.Session()
-    session.headers.update({'Authorization': ckan_apikey})
-    session.verify = verify_ssl
+    else:
+        LOGGER.info("No config file found for this dataset.")
+
     with RemoteCKAN(ckan_url, apikey=ckan_apikey, session=session) as catalog:
         if 'natcap' not in catalog.action.organization_list():
             _ = catalog.action.organization_create(
@@ -670,7 +676,6 @@ def _ui(args=None):
             * host_url (str): The url of the CKAN host selected.
             * apikey (str): The API key selected
             * gmm_path (str): The geometamaker yml filepath
-            * config_path (str): The config yml filepath, if provided
     """
     parser = argparse.ArgumentParser(
         prog=os.path.basename(__file__),
@@ -679,9 +684,6 @@ def _ui(args=None):
     )
     parser.add_argument('geometamaker_yml', help=(
         "The local path to a geometamaker yml file."))
-
-    parser.add_argument('-c', '--config', help=(
-        "The local path to a config yml file. Optional."))
 
     # Allow a user to select the host they want.
     # If no host is explicitly defined, assume prod.
@@ -721,12 +723,12 @@ def _ui(args=None):
         apikey = args.apikey
 
     return (
-        host_url, apikey, args.geometamaker_yml, args.config
+        host_url, apikey, args.geometamaker_yml
     )
 
 
 if __name__ == '__main__':
-    host, apikey, gmm_path, config_path = _ui()
+    host, apikey, gmm_path = _ui()
 
     is_localhost = host.split('https://')[1].startswith('localhost')
-    main(host, apikey, gmm_path, config_path, verify_ssl=(not is_localhost))
+    main(host, apikey, gmm_path, verify_ssl=(not is_localhost))
