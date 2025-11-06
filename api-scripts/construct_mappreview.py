@@ -15,7 +15,7 @@ from rio_tiler.io import Reader # mamba install rio-tiler
 logging.basicConfig(level=logging.DEBUG)
 LOGGER = logging.getLogger(os.path.basename(__file__))
 rt_logger = logging.getLogger('rasterio')
-rt_logger.setLevel(level=logging.WARNING)
+rt_logger.setLevel(level=logging.ERROR)
 
 def get_map_settings(layers: list[dict]) -> dict:
     """Get map default minzoom, maxzoom, and bounds based on layers to display"""
@@ -298,7 +298,6 @@ def get_mappreview_metadata(resources, source_files, mappreview_sources=[]):
         for shp_source in [s for s in source_files if s.endswith('.shp')]:
             if mappreview_sources and shp_source not in mappreview_sources:
                 continue
-            LOGGER.debug(shp_source)
             path = shp_source.replace('\\', '/')
             path_dirname = os.path.dirname(path)
             path_basename = os.path.basename(path)
