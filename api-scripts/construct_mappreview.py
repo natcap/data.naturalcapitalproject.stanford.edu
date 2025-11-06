@@ -12,10 +12,10 @@ from osgeo import ogr
 from osgeo import osr
 from rio_tiler.io import Reader # mamba install rio-tiler
 
-
 logging.basicConfig(level=logging.DEBUG)
 LOGGER = logging.getLogger(os.path.basename(__file__))
-
+rt_logger = logging.getLogger('rasterio')
+rt_logger.setLevel(level=logging.WARNING)
 
 def get_map_settings(layers: list[dict]) -> dict:
     """Get map default minzoom, maxzoom, and bounds based on layers to display"""
@@ -199,8 +199,6 @@ def get_vector_layer_metadata(vector_resource: dict) -> dict:
 
     if url.endswith('.mvt'):
         return get_mvt_layer_metadata(vector_resource)
-    elif url.endswith('.geojson'):
-        return get_geojson_layer_metadata(vector_resource)
 
     LOGGER.warning(f"Could not get metadata from {url}")
     return None
@@ -311,26 +309,23 @@ def get_mappreview_metadata(resources, source_files, mappreview_sources=[]):
             base = base.replace('https://storage.cloud.google.com/',
                                 'https://storage.googleapis.com/')
 
-            # Identify a .mvt (preferred) or .geojson layer version of the
-            # vector for mapping onto the globe.
+            # Identify a .mvt version of the vector for mapping onto the globe.
+            # Ideally, .geojson should also be supported, but the mapbox JS
+            # errors. So, for the moment, check for .mvt only.
             url = None
-            for extension in ('.mvt', '.geojson'):
-                possible_url = (
-                    f'{base}/{path_dirname}/'
-                    f'{path_basename.replace(".shp", extension)}')
-                # If we're working with an mvt, we cannot request a HEAD on a
-                # directory, so we need to get the metadata.json file instead
-                url_to_check = possible_url
-                if extension == '.mvt':
-                    url_to_check = f"{possible_url}/metadata.json"
+            possible_url = (
+                f'{base}/{path_dirname}/'
+                f'{path_basename.replace(".shp", ".mvt")}')
+            # If we're working with an mvt, we cannot request a HEAD on a
+            # directory, so we need to get the metadata.json file instead
+            url_to_check = f"{possible_url}/metadata.json"
 
-                if requests.head(url_to_check).ok:
-                    url = possible_url
-                    break
+            if requests.head(url_to_check).ok:
+                url = possible_url
 
             if not url:
                 LOGGER.warning(
-                    f"Could not find web format equivalent for {shp_source}")
+                    f"Could not find MVTs for {shp_source}")
                 continue
 
             # Get metadata file
