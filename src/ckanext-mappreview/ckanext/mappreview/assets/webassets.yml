@@ -1,5 +1,5 @@
 mappreview-js:
-  filters: rjsmin
+  filter: rjsmin
   output: ckanext-mappreview/%(version)s-mappreview.js
   contents:
     - js/vendor/mapbox-gl.js
@@ -10,7 +10,7 @@ mappreview-js:
       - base/main
 
 mappreview-css:
-  filters: cssrewrite
+  filter: cssrewrite
   output: ckanext-mappreview/%(version)s-mappreview.css
   contents:
     - css/vendor/mapbox-gl.css
