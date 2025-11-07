@@ -78,8 +78,7 @@ def get_wgs84_bbox(bbox: list[float], crs_link: str) -> list[float]:
     except (ValueError, RuntimeError):
         LOGGER.error(
             f"Failed to transform bounding box from {source_srs_wkt} "
-            f"to {dest_srs_wkt}")
-        LOGGER.warning("Assuming original bounding box is in WGS84")
+            f"to {dest_srs_wkt}. Attempting to use original bounding box.")
         return bbox
 
 

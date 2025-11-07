@@ -257,7 +257,7 @@ def _load_download_rules_for(pkg):
 
     """
     rules_dir = path.join(
-        path.dirname(__file__), 'public/dataset_configs'
+        path.dirname(__file__), 'public', 'dataset_configs'
     )
     if not path.isdir(rules_dir):
         LOGGER.debug(f"dataset_configs not found at: {rules_dir}")
