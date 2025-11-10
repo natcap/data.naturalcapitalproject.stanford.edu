@@ -1304,3 +1304,8 @@ div#invest-model-list-container div {
     pointer-events: none; /* keeps it inert if someone wraps it with <a> by mistake */
     padding-left: calc(var(--base) + var(--level) * var(--step));
   }
+
+.package-description {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
