@@ -1,3 +1,13 @@
+"""A script that uses rio_tiler to construct a CKAN dataset mappreview extra.
+
+Takes in the 'resources' associated with a CKAN dataset ('package') and the
+dataset's 'sources' (links to source files included in the geometamaker yml);
+returns a dict containing the metadata necessary to display source layers on a
+Mapbox GL JS-rendered map. The returned dict is intended to be stored in the
+CKAN package ``extras``, associated with the key ``mappreview``.
+
+Intended to be called from ``create-or-update-dataset.py``.
+"""
 import json
 import logging
 import os
@@ -23,14 +33,14 @@ def get_map_settings(layers: list[dict]) -> dict:
     try:
         minzoom = min(filter(None, [l.get('minzoom') for l in layers]))
     except Exception as e:
-        LOGGER.debug(f"exception with minzoom: {e}")
+        LOGGER.error(f"Exception with map minzoom: {e}")
         pass
 
     maxzoom = 16
     try:
         maxzoom = max(filter(None, [l.get('maxzoom') for l in layers]))
     except Exception as e:
-        LOGGER.debug(f"exception with maxzoom: {e}")
+        LOGGER.error(f"Exception with map maxzoom: {e}")
         pass
 
     bounds = [-180, -90, 180, 90]
@@ -42,7 +52,7 @@ def get_map_settings(layers: list[dict]) -> dict:
             max([l.get('bounds')[3] for l in layers]),
         ]
     except Exception as e:
-        LOGGER.error(f"exception with bounds: {e}")
+        LOGGER.error(f"Exception with map bounds: {e}")
         pass
 
     return {
@@ -53,9 +63,21 @@ def get_map_settings(layers: list[dict]) -> dict:
 
 
 def get_wgs84_bbox(bbox: list[float], crs_link: str) -> list[float]:
-    """Transform bounding box to WGS 84, if necessary
+    """Transform bounding box to WGS 84, if necessary.
 
     Uses EPSG:4326, the same CRS as ``create-or-update-dataset.py``
+
+    Args:
+        bbox (list[float]): the layer's bounding box, of the form
+            [xmin, ymin, xmax, ymax]
+        crs_link (str): the layer's CRS, retrieved from the ``crs``
+            property of the dict returned by rio-tiler's .info() method,
+            which has the form: 'http://www.opengis.net/def/crs/EPSG/0/32618'
+
+    Returns:
+        list[float]: bounding box of the form [xmin, ymin, xmax, ymax],
+            transformed to EPSG:4326. If transformation fails, returns
+            original bounding box.
     """
     if crs_link.endswith('4326'):
         return bbox
@@ -93,7 +115,11 @@ def bounds_valid(bounds: list[float]) -> bool:
 
 
 def get_raster_info(url: str) -> dict:
-    """Get raster info via rio-tiler"""
+    """Get raster info via rio-tiler
+
+    Reader methods: https://cogeotiff.github.io/rio-tiler/readers/#methods
+    Info model: https://cogeotiff.github.io/rio-tiler/models/#info
+    """
     with Reader(url) as src:
         info = src.info()
         min_zoom = src.minzoom
@@ -285,7 +311,22 @@ def get_vector_layers_metadata(vector_resources):
 
 
 def get_mappreview_metadata(resources, source_files, mappreview_sources=[]):
-    """Get metadata needed to display all resources in the map"""
+    """Get metadata needed to display all resources on the map
+
+    Args:
+        resources (list[dict]): list of CKAN ``resource`` dicts associated
+            with the dataset.
+        source_files (list): list of source files associated with the dataset,
+            as contained in the geometamaker yml ``sources`` property.
+        mappreview_sources (list): optional list of sources to include in the
+            mappreview extra. If included, this must be a subset of paths in
+            ``source_files``. If excluded, ``mappreview`` metadata will be
+            retrieved for all rasters and vectors included in ``source_files``.
+
+    Returns:
+        Dict including ``map`` and ``layers`` keys, used to configure the
+        mapbox map for previewing data layers.
+    """
     raster_resources = [r for r in resources if r['format'] == 'GeoTIFF']
     vector_resources = [r for r in resources if r['format'] == 'Shapefile']
     layers = []

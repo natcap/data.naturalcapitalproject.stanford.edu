@@ -431,7 +431,7 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
                            "All layers will be included in the mappreview extra.")
 
     else:
-        LOGGER.info("No config file found for this dataset.")
+        LOGGER.info(f"No config file found at {possible_config_path}")
 
     with RemoteCKAN(ckan_url, apikey=ckan_apikey, session=session) as catalog:
         if 'natcap' not in catalog.action.organization_list():
