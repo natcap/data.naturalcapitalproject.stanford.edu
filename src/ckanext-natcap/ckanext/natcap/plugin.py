@@ -257,7 +257,7 @@ def _load_download_rules_for(pkg):
 
     """
     rules_dir = path.join(
-        path.dirname(__file__), 'dataset_configs'
+        path.dirname(__file__), 'public', 'dataset_configs'
     )
     if not path.isdir(rules_dir):
         LOGGER.debug(f"dataset_configs not found at: {rules_dir}")
@@ -444,9 +444,7 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
 
     # This is how we define new API endpoints.
     def get_actions(self):
-        return {
-            'natcap_update_mappreview': natcap_update_mappreview,
-        }
+        return {}
 
     def update_config(self, config_):
         toolkit.add_template_directory(config_, "templates")
