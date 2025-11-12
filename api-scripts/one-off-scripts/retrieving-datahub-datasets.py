@@ -55,7 +55,7 @@ def get_variables(datasets):
 
     Args:
         datasets (str): The json containing Data Hub datasets and their metadata,
-        returned from get_all_datasets().
+            returned from get_all_datasets().
 
     Returns:
         Returns a sorted json with the following keys.
