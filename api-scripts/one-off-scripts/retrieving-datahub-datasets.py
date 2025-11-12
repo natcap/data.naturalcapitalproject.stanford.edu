@@ -58,7 +58,7 @@ def get_variables(datasets):
             returned from get_all_datasets().
 
     Returns:
-        Returns a sorted json with the following keys.
+        Returns json string of a sorted list of dicts with the following keys:
 
         *title = Title of dataset.
         *created_date = Data dataset was first created on the Hub.
