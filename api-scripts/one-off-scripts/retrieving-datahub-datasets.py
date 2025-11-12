@@ -15,7 +15,7 @@ import requests
 import json
 
 # Set the base URL to the Public Data Hub
-ckan_base_url = 'https://data.naturalcapitalproject.stanford.edu'
+CKAN_BASE_URL = 'https://data.naturalcapitalproject.stanford.edu'
 
 
 def get_all_datasets(ckan_base_url):
@@ -54,11 +54,11 @@ def get_variables(datasets):
     """Select only the variables from the Dataset metadata we want to list.
 
     Args:
-        datasets (str): The json containing Data Hub datasets and their metadata,
-        returned from get_all_datasets().
+        datasets (list): The json containing Data Hub datasets and their metadata,
+            returned from get_all_datasets().
 
     Returns:
-        Returns a sorted json with the following keys.
+        Returns json string of a sorted list of dicts with the following keys:
 
         *title = Title of dataset.
         *created_date = Data dataset was first created on the Hub.
@@ -74,8 +74,8 @@ def get_variables(datasets):
         items = {'title': title, 'created_date': date,
                  'placename': place}
         data.append(items)
-        sorted_data = sorted(data, key=lambda x: x['created_date'])
-        data_json = json.dumps(sorted_data, indent=2)
+    sorted_data = sorted(data, key=lambda x: x['created_date'])
+    data_json = json.dumps(sorted_data, indent=2)
 
     return data_json
 
