@@ -74,8 +74,8 @@ def get_variables(datasets):
         items = {'title': title, 'created_date': date,
                  'placename': place}
         data.append(items)
-        sorted_data = sorted(data, key=lambda x: x['created_date'])
-        data_json = json.dumps(sorted_data, indent=2)
+    sorted_data = sorted(data, key=lambda x: x['created_date'])
+    data_json = json.dumps(sorted_data, indent=2)
 
     return data_json
 
