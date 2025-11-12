@@ -54,7 +54,7 @@ def get_variables(datasets):
     """Select only the variables from the Dataset metadata we want to list.
 
     Args:
-        datasets (str): The json containing Data Hub datasets and their metadata,
+        datasets (list): The json containing Data Hub datasets and their metadata,
             returned from get_all_datasets().
 
     Returns:
