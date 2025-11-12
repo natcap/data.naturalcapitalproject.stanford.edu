@@ -8,7 +8,7 @@ To Run From data.naturalcapitalproject.stanford.edu repo:
     python api-scripts/one-off-scripts/retrieving-datahub-datasets.py
 
 Dependencies:
-    $ mamaba install requests json
+    $ mamaba install requests
 """
 
 import requests
