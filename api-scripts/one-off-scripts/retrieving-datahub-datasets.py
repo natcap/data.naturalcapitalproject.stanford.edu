@@ -8,7 +8,7 @@ To Run From data.naturalcapitalproject.stanford.edu repo:
     python api-scripts/one-off-scripts/retrieving-datahub-datasets.py
 
 Dependencies:
-    $ mamaba install requests
+    $ mamba install requests
 """
 
 import requests
@@ -43,11 +43,11 @@ def get_all_datasets(ckan_base_url):
             all_datasets.extend(results)
         else:
             print(f"API call failed: {response_dict.get('error', 'Unknown error')}")
+        return all_datasets
     except requests.exceptions.RequestException as e:
         print(f"Error making API request: {e}")
     except json.JSONDecodeError:
         print("Error decoding JSON response")
-    return all_datasets
 
 
 def get_variables(datasets):
