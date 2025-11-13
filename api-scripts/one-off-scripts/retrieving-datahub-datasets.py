@@ -18,7 +18,7 @@ import json
 CKAN_BASE_URL = 'https://data.naturalcapitalproject.stanford.edu'
 
 
-def get_all_datasets(ckan_base_url):
+def get_all_datasets(CKAN_BASE_URL):
     """Retrieve all Public Datasets on the Data Hub.
 
     Args:
@@ -28,21 +28,32 @@ def get_all_datasets(ckan_base_url):
         Returns a json with all Public Datasets and their metadata.
     """
     all_datasets = []
+
     # Use package_search to gather all datasets and their metadata
-    url = f"{ckan_base_url}/api/3/action/package_search?rows=100&start=0"
+    url = f"{CKAN_BASE_URL}/api/3/action/package_search"
+    rows = 100
+    start = 0
     try:
-        # Make the GET request
-        response = requests.get(url)
-        response.raise_for_status()  # Raise an exception for bad status codes
-        
-        # Load the JSON response into a dictionary
-        response_dict = response.json()
-        
-        if response_dict['success']:
-            results = response_dict['result']['results']
-            all_datasets.extend(results)
-        else:
-            print(f"API call failed: {response_dict.get('error', 'Unknown error')}")
+        while True: #loop over datasets until all are retrieved
+            params = {
+                'rows': rows,
+                'start': start
+            }
+            # Make the GET request
+            response = requests.get(url, params=params)
+            response.raise_for_status()  # Raise an exception for bad status codes
+
+            # Load the JSON response into a dictionary
+            response_dict = response.json()
+
+            if response_dict['success']:
+                results = response_dict['result']['results']
+                if not results:
+                    break  # No more datasets to retrieve
+                all_datasets.extend(results)
+                start += rows
+            else:
+                print(f"API call failed: {response_dict.get('error', 'Unknown error')}")
         return all_datasets
     except requests.exceptions.RequestException as e:
         print(f"Error making API request: {e}")
@@ -81,7 +92,7 @@ def get_variables(datasets):
 
 
 if __name__ == '__main__':
-    datasets = get_all_datasets(ckan_base_url)
+    datasets = get_all_datasets(CKAN_BASE_URL)
     final_data = get_variables(datasets)
     print(final_data)
     print(f"Total datasets retrieved: {len(datasets)}")
