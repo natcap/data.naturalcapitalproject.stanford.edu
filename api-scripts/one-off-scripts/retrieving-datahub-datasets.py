@@ -77,13 +77,16 @@ def get_variables(datasets):
         Data is sorted by the created_date key.
     """
     data = []
-    print(len(datasets))
     for dataset in datasets:
         title = dataset['title']
         place = dataset['place']
         date = dataset['metadata_created']
+        size = 0
+        for resource in dataset['resources']:
+            resource_size = resource.get('size')
+            size += resource_size
         items = {'title': title, 'created_date': date,
-                 'placename': place}
+                 'placename': place, 'size': size}
         data.append(items)
     sorted_data = sorted(data, key=lambda x: x['created_date'])
     data_json = json.dumps(sorted_data, indent=2)
@@ -93,6 +96,13 @@ def get_variables(datasets):
 
 if __name__ == '__main__':
     datasets = get_all_datasets(CKAN_BASE_URL)
-    final_data = get_variables(datasets)
-    print(final_data)
+    data = get_variables(datasets)
+    final_data = json.loads(data)
+    total_size = 0
+    for d in final_data:
+        size = d['size']
+        total_size += size
+    gb = total_size/(1000000000)
+    print(data)
+    print(f"Total size: {total_size} ({gb} GB)")
     print(f"Total datasets retrieved: {len(datasets)}")
