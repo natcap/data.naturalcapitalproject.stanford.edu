@@ -764,12 +764,15 @@ ckan.module("mappreview", function ($, _) {
                   <i class="fa-solid fa-xmark"></i>
                 </button>
               </div>`
-
             var rasters = [];
+//            for (const layer of config.layers) {
+//              if (layer.type === "raster") {
+//                rasters.push(layer);
+//              }
+//            }
             for (const layer of config.layers) {
-              if (layer.type === "raster") {
-                rasters.push(layer);
-              }
+              console.log(layer.type);
+              rasters.push(layer);
             }
             if (rasters.length == 0) {
               this._container.innerHTML = `
@@ -890,10 +893,13 @@ ckan.module("mappreview", function ($, _) {
           document.getElementById('natcapClipInProgress').classList.remove('d-none');
           document.getElementById('natcapClipInitOptions').classList.add('d-none');
 
-          var target_cog = document.getElementById(clip_button_id).getAttribute('layer-url');
+          var target_file = document.getElementById(clip_button_id).getAttribute('layer-url');
+          var layer_type = document.getElementById(clip_button_id).getAttribute('layer-type');
+          console.log(`${layer_type}`);
           var clipping_options = {
-            cog_url: target_cog,
+            file_url: target_file,
             target_bbox: _box(),
+            layer_type: layer_type,
           }
 
           // are we overriding the EPSG code?  If not, don't include it in the clipping_options.
@@ -1025,7 +1031,7 @@ ckan.module("mappreview", function ($, _) {
           console.log('updating source raster from cog ' + cog);
 
           var epsg_input = document.getElementById('natcapClipSettingEPSGCode');
-          var cog_stats_url = `${clipping_service_url}/info?cog_url=${encodeURIComponent(cog)}`;
+          var cog_stats_url = `${clipping_service_url}/info?file_url=${encodeURIComponent(cog)}`;
           fetch(cog_stats_url).then(response => {
             if (response.ok) {
               return response.json();
