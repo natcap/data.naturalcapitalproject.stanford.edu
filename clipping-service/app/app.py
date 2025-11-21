@@ -89,41 +89,44 @@ def _clip_vector_to_bounding_box(
     Returns:
         None
     """
-    working_file_path = None
-    print(target_projection_wkt)
-    if target_projection_wkt:
-        app.logger.debug("REPROJECTING VECTOR...")
-        working_file_path = target_vector_path.replace('.fgb', '-projected.fgb')
-        try:
-            pygeoprocessing.reproject_vector(source_vector_path,
-                target_projection_wkt, working_file_path,
-                driver_name='FlatGeobuf')
-            source_vector_path = working_file_path
-        except Exception:
-            app.logger.exception("Failed to reproject vector; aborting")
-            os.remove(working_file_path)
-            raise
+    shapely_mask = shapely.prepared.prep(
+        shapely.geometry.box(*target_bounding_box))
 
-    shapely_mask = shapely.prepared.prep(shapely.geometry.box(*target_bounding_box))
-
-    app.logger.debug("OPENING BASE VECTOR...")
+    app.logger.debug("Opening base vector...")
     base_vector = gdal.OpenEx(source_vector_path, gdal.OF_VECTOR)
     base_layer = base_vector.GetLayer()
+    base_layer.SetSpatialFilterRect(*target_bounding_box)
     base_layer_defn = base_layer.GetLayerDefn()
     base_geom_type = base_layer.GetGeomType()
+    base_srs = base_layer.GetSpatialRef()
 
-    app.logger.debug("SETTING UP TARGET...")
+    if target_projection_wkt is not None:
+        target_srs = osr.SpatialReference()
+        target_srs.ImportFromWkt(target_projection_wkt)
+        coord_trans = osr.CreateCoordinateTransformation(base_srs, target_srs)
+    else:
+        target_srs = base_srs
+
+    app.logger.debug("Setting up target...")
     target_driver = gdal.GetDriverByName('FlatGeobuf')
     target_vector = target_driver.Create(
         target_vector_path, 0, 0, 0, gdal.GDT_Unknown)
     target_layer = target_vector.CreateLayer(
-        base_layer_defn.GetName(), base_layer.GetSpatialRef(), base_geom_type)
+        base_layer_defn.GetName(), target_srs, base_geom_type)
     target_layer.CreateFields(base_layer.schema)
 
-    app.logger.debug("CLIPPING VECTOR...")
+    app.logger.debug("Clipping vector...")
     target_layer.StartTransaction()
     invalid_feature_count = 0
+    n_processed = 0
+    last_log_msg_time = time.time()
     for feature in base_layer:
+        now = time.time()
+        if now >= last_log_msg_time+2.0:
+            app.logger.debug(f"Processed {n_processed} features so far")
+            last_log_msg_time = now
+        n_processed += 1
+
         invalid = False
         geometry = feature.GetGeometryRef()
         try:
@@ -137,11 +140,14 @@ def _clip_vector_to_bounding_box(
                 # Check for intersection rather than use gdal.Layer.Clip()
                 # to preserve the shape of the polygons
                 if shapely_mask.intersects(shapely_geom):
-                    new_feature = ogr.Feature(target_layer.GetLayerDefn())
-                    new_feature.SetGeometry(ogr.CreateGeometryFromWkb(
-                        shapely_geom.wkb))
-                    for field_name, field_value in feature.items().items():
-                        new_feature.SetField(field_name, field_value)
+                    # This appears to use the network WAY less
+                    new_feature = ogr.Feature.Clone(feature)
+
+                    # If we need to, transform the geometry
+                    if target_projection_wkt is not None:
+                        geometry.Transform(coord_trans)
+                        new_feature.SetGeometry(geometry)
+
                     target_layer.CreateFeature(new_feature)
             else:
                 invalid = True
@@ -164,9 +170,6 @@ def _clip_vector_to_bounding_box(
     target_layer = None
     target_vector = None
 
-    if working_file_path:
-        os.remove(working_file_path)
-
 
 @functools.lru_cache
 def cached_file_info(vsi_file_path, file_type):
@@ -179,7 +182,7 @@ def cached_file_info(vsi_file_path, file_type):
             raise
     elif file_type == VECTOR:
         try:
-            return pygeoprocessing.get_vector_info(f"/vsicurl/{vsi_file_path}")
+            return pygeoprocessing.get_vector_info(vsi_file_path)
         except Exception:
             app.logger.error("Failed to read vector info for %s", vsi_file_path)
             raise
@@ -302,11 +305,10 @@ def clip():
     source_file_path = f'/vsicurl/{parameters["file_url"]}'
     if source_file_type == VECTOR:
         # Temporarily hard-code path to NOAA shorelines flatgeobuf
-        source_file_path = "https://storage.googleapis.com/jupyter-app-temp-storage/noaa_us_shorelines.fgb"
+        source_file_path = "/vsicurl/https://storage.googleapis.com/jupyter-app-temp-storage/noaa_us_shorelines.fgb"
 #        source_file_path = source_file_path.replace('.mvt', '.shp')
 
     source_file_info = cached_file_info(source_file_path, source_file_type)
-    app.logger.info(f"\n{source_file_info}\n")
 
     if source_file_type == RASTER:
         app.logger.info("CLIPPING RASTER...")
@@ -351,9 +353,6 @@ def clip():
         try:
             target_projection_wkt = _epsg_to_wkt(
                 parameters["target_epsg"])
-            target_bbox = pygeoprocessing.transform_bounding_box(
-                target_bbox, source_file_info['projection_wkt'],
-                target_projection_wkt)
         except KeyError:
             target_projection_wkt = None
 
