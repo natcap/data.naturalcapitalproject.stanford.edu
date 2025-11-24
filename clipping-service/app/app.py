@@ -269,31 +269,13 @@ def clip_app():
 
 @app.route("/clip", methods=['POST'])
 def clip():
-    #data = flask.request.json
-    #source_raster = data['file_url']
-    #target_bbox = data['target_bbox']
-    #target_epsg = data['target_epsg']
-
-    #SOURCE_LOGGER.info(f"Clipping {source_raster} to {target_bbox}")
-
-    #for i in range(11):
-    #    time.sleep(1)
-    #    print(f"logging progress {i*10}%")
-    #    SOURCE_LOGGER.info(f"Progress: {i*10}%")
-    #SOURCE_LOGGER.info("Done!")
-
-    #return jsonify({
-    #    'status': 'success',
-    #    'message': 'Clipping finished'
-    #})
-
     parameters = request.get_json()
     app.logger.info(parameters)
 
     if not parameters['file_url'].startswith(TRUSTED_BUCKET):
         app.logger.error("Invalid source file, not in the known bucket: %s",
                          parameters['file_url'])
-        raise ValueError("Invalid COG provided.")
+        raise ValueError("Invalid source file provided.")
 
     source_file_type = parameters['layer_type']
     if source_file_type not in [RASTER, VECTOR]:

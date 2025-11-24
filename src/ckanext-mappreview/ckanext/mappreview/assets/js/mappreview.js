@@ -764,25 +764,19 @@ ckan.module("mappreview", function ($, _) {
                   <i class="fa-solid fa-xmark"></i>
                 </button>
               </div>`
-            var rasters = [];
-//            for (const layer of config.layers) {
-//              if (layer.type === "raster") {
-//                rasters.push(layer);
-//              }
-//            }
+            var layers = [];
             for (const layer of config.layers) {
-              console.log(layer.type);
-              rasters.push(layer);
+              layers.push(layer);
             }
-            if (rasters.length == 0) {
+            if (layers.length == 0) {
               this._container.innerHTML = `
                 <button type="button"
                         class="btn btn-outline-secondary"
                         disabled
-                        title="At this time, clipping only works with raster layers.">
+                        title="No layers to clip.">
                   Clipping is disabled
                 </button>`;
-            } else if (rasters.length == 1) {
+            } else if (layers.length == 1) {
               this._container.innerHTML = `
                 <button type="button"
                         class="btn btn-secondary"
@@ -794,24 +788,29 @@ ckan.module("mappreview", function ($, _) {
               this._container.getElementsByTagName('button')[0].addEventListener('click', function() {
                 // when the 'clip to this bounding box' button is selected, set an attribute of the button
                 document.getElementById(clip_button_id).setAttribute(
-                  'layer-name', rasters[0].name);
+                  'layer-name', layers[0].name);
                 document.getElementById(clip_button_id).setAttribute(
-                  'layer-url', rasters[0].url);
+                  'layer-url', layers[0].url);
                 document.getElementById(clip_button_id).setAttribute(
-                  'layer-type', rasters[0].type);
-                selected_layer = rasters[0].name;
-                natcapClipLayer(rasters[0].name);
+                  'layer-type', layers[0].type);
+                selected_layer = layers[0].name;
+                natcapClipLayer(layers[0].name);
+
+                // setting custom resolution only makes sense for rasters
+                if (layers[0].type == "vector") {
+                  document.getElementById('natcapClipPixelSize').style.display = 'none';
+                }
               });
             } else {
-              var raster_string = "";
-              for (const raster_layer of rasters) {
-                raster_string += `
+              var clip_layer_string = "";
+              for (const clip_layer of layers) {
+                clip_layer_string += `
                   <li>
                     <a class="dropdown-item
                        href="#"
-                       layer-name='${raster_layer.name}'
-                       layer-url=${raster_layer.url}>
-                      ${raster_layer.name}
+                       layer-name='${clip_layer.name}'
+                       layer-url=${clip_layer.url}>
+                      ${clip_layer.name}
                     </a>
                   </li>\n`
               }
@@ -825,7 +824,7 @@ ckan.module("mappreview", function ($, _) {
                     Clip this layer
                   </button>
                   <ul class="dropdown-menu">
-                    ${raster_string}
+                    ${clip_layer_string}
                   </ul>
                 </div>
                 ${progress_modal_trigger_button}
