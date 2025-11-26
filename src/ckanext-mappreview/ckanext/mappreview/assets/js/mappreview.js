@@ -764,6 +764,7 @@ ckan.module("mappreview", function ($, _) {
                   <i class="fa-solid fa-xmark"></i>
                 </button>
               </div>`
+
             var layers = [];
             for (const layer of config.layers) {
               layers.push(layer);

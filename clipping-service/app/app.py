@@ -286,9 +286,7 @@ def clip():
     # align the bounding box
     source_file_path = f'/vsicurl/{parameters["file_url"]}'
     if source_file_type == VECTOR:
-        # Temporarily hard-code path to NOAA shorelines flatgeobuf
-        source_file_path = "/vsicurl/https://storage.googleapis.com/jupyter-app-temp-storage/noaa_us_shorelines.fgb"
-#        source_file_path = source_file_path.replace('.mvt', '.shp')
+        source_file_path = source_file_path.replace('.mvt', '.fgb')
 
     source_file_info = cached_file_info(source_file_path, source_file_type)
 
