@@ -173,7 +173,7 @@ def _clip_vector_to_bounding_box(
 
 @functools.lru_cache
 def cached_file_info(vsi_file_path, file_type):
-    app.logger.info("Getting file info...")
+    app.logger.info(f"Getting file info for {file_type} at {vsi_file_path}")
     if file_type == RASTER:
         try:
             return pygeoprocessing.get_raster_info(vsi_file_path)
@@ -286,7 +286,10 @@ def clip():
     # align the bounding box
     source_file_path = f'/vsicurl/{parameters["file_url"]}'
     if source_file_type == VECTOR:
-        source_file_path = source_file_path.replace('.mvt', '.fgb')
+        # source_file_path originates in `mappreview` extra; currently always .mvt,
+        # but leaving this flexible in case we support .geojson again in the future
+        filename, _ = os.path.splitext(source_file_path)
+        source_file_path = filename + '.fgb'
 
     source_file_info = cached_file_info(source_file_path, source_file_type)
 
@@ -300,7 +303,7 @@ def clip():
                 target_bbox, source_file_info['projection_wkt'],
                 warping_kwargs['target_projection_wkt'])
         except KeyError:
-            # If we're keeping the same project, just align the requested bounding
+            # If we're keeping the same projection, just align the requested bounding
             # box to the raster's grid.
             aligned_target_bbox = _align_bbox(target_bbox, source_file_info)
 
