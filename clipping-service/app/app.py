@@ -288,8 +288,7 @@ def clip():
     if source_file_type == VECTOR:
         # source_file_path originates in `mappreview` extra; currently always .mvt,
         # but leaving this flexible in case we support .geojson again in the future
-        filename, _ = os.path.splitext(source_file_path)
-        source_file_path = filename + '.fgb'
+        source_file_path = os.path.splitext(source_file_path)[0] + '.fgb'
 
     source_file_info = cached_file_info(source_file_path, source_file_type)
 
