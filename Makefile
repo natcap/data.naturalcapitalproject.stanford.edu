@@ -38,7 +38,7 @@ env-clip:
 	@echo ">> make clipping-service"
 
 clipping-service:
-	python -m gunicorn --chdir ./clipping-service/app app:app --reload
+	python -m gunicorn --chdir ./clipping-service/app app:app --timeout 180 --reload
 
 ckan-dev:
 	docker compose -f docker-compose.dev.yml build
