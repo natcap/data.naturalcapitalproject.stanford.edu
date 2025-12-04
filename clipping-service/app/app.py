@@ -55,8 +55,9 @@ SOURCE_LOGGER = logging.getLogger('pygeoprocessing')
 SOURCE_LOGGER.setLevel(logging.DEBUG)
 GOOGLE_STORAGE_URL = 'https://storage.googleapis.com'
 TRUSTED_BUCKET = f'{GOOGLE_STORAGE_URL}/natcap-data-cache'
-TARGET_FILE_BUCKET = 'gs://jupyter-app-temp-storage/clipped'
-TARGET_BUCKET_URL = f'{GOOGLE_STORAGE_URL}/jupyter-app-temp-storage'
+TARGET_BUCKET_PATH = 'jupyter-app-temp-storage/clipped'
+TARGET_FILE_BUCKET = f'gs://{TARGET_BUCKET_PATH}'
+TARGET_BUCKET_URL = f'{GOOGLE_STORAGE_URL}/{TARGET_BUCKET_PATH}
 WORKSPACE_DIR = os.environ.get('WORKSPACE_DIR', os.getcwd())
 app.logger.info("WORKSPACE_DIR: %s", WORKSPACE_DIR)
 pygeoprocessing.geoprocessing._LOGGING_PERIOD = 1.0
