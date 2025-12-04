@@ -23,8 +23,8 @@ from flask import request
 from flask_cors import CORS
 from google.cloud import storage
 from osgeo import gdal
-from osgeo import osr
 from osgeo import ogr
+from osgeo import osr
 
 app = flask.Flask(__name__, template_folder='templates')
 
@@ -55,7 +55,7 @@ SOURCE_LOGGER = logging.getLogger('pygeoprocessing')
 SOURCE_LOGGER.setLevel(logging.DEBUG)
 GOOGLE_STORAGE_URL = 'https://storage.googleapis.com'
 TRUSTED_BUCKET = f'{GOOGLE_STORAGE_URL}/natcap-data-cache'
-TARGET_FILE_BUCKET = 'gs://jupyter-app-temp-storage'
+TARGET_FILE_BUCKET = 'gs://jupyter-app-temp-storage/clipped'
 TARGET_BUCKET_URL = f'{GOOGLE_STORAGE_URL}/jupyter-app-temp-storage'
 WORKSPACE_DIR = os.environ.get('WORKSPACE_DIR', os.getcwd())
 app.logger.info("WORKSPACE_DIR: %s", WORKSPACE_DIR)
