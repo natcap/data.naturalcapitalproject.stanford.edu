@@ -52,3 +52,99 @@
     </div>
   </div>
 {% endblock %}
+
+{# Only needed bc we want a Bootstrap modal preview. (If you wanted a real new window, skip this block.) #}
+
+{# 1) drop the modal on the page #}
+{% block secondary_content %}
+  {{ super() }}
+  <div class="modal fade" id="metadataModal" tabindex="-1" aria-labelledby="metadataModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+  
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          <h4 class="modal-title" id="metadataModalLabel">Metadata</h4>
+        </div>
+        
+  
+        <div class="modal-body">
+          <pre id="metadataModalBody"
+               class="pre-scrollable"
+               style="white-space:pre-wrap; margin:0; max-height:60vh;">Loading…</pre>
+        </div>
+  
+        <div class="modal-footer">
+          <a id="metadataDownloadLink" class="btn btn-secondary" href="#" download>Download .yml</a>
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+        </div>
+  
+      </div>
+    </div>
+  </div>
+  
+{% endblock %}
+
+{# 2) inline JS that wires the preview button to the modal #}
+{% block scripts %}
+  {{ super() }}
+  <script>
+    (function () {
+      // Hoist the modal to <body> so it isn't trapped under map/search stacking elements
+      var modalEl = document.getElementById('metadataModal');
+      if (modalEl && modalEl.parentNode !== document.body) {
+        document.body.appendChild(modalEl);
+      }
+
+      // click handler
+      document.addEventListener('click', function (evt) {
+        var btn = evt.target.closest('.js-metadata-preview');
+        if (!btn) return;
+
+        evt.preventDefault();
+
+        var metaName = btn.getAttribute('data-meta-name') || 'Metadata';
+        var metaUrl  = btn.getAttribute('data-meta-url');
+        if (!metaUrl) return;
+
+        var bodyEl  = document.getElementById('metadataModalBody');
+        var titleEl = document.getElementById('metadataModalLabel');
+        var dlEl    = document.getElementById('metadataDownloadLink');
+        var modal   = document.getElementById('metadataModal');
+
+        if (titleEl) titleEl.textContent = metaName;
+        if (dlEl)    dlEl.setAttribute('href', metaUrl);
+        if (bodyEl)  bodyEl.textContent = 'Loading…';
+
+        fetch(metaUrl, { credentials: 'same-origin' })
+          .then(function (r) { return r.text(); })
+          .then(function (txt) { if (bodyEl) bodyEl.textContent = txt; })
+          .catch(function (e)  {
+            if (bodyEl) bodyEl.textContent = 'Failed to load metadata.\n\n' + e;
+          })
+          .finally(function () {
+            if (!modal) return;
+
+            // Bootstrap 5
+            if (window.bootstrap && bootstrap.Modal) {
+              var instance = bootstrap.Modal.getOrCreateInstance(modal);
+              instance.show();
+              return;
+            }
+
+            // Bootstrap 3/4 fallback
+            if (window.jQuery && typeof jQuery(modal).modal === 'function') {
+              jQuery(modal).modal('show');
+              return;
+            }
+
+            modal.style.display = 'block';
+          });
+      }, false);
+    })();
+  </script>
+{% endblock %}
+
+
