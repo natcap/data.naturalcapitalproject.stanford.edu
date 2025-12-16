@@ -16,19 +16,13 @@
           <ul class="{% block resource_list_class %}resource-list{% endblock %}">
             {% block resource_list_inner %}
               {% for resource in resources %}
-              {# robust YAML detection: prefer format/url over name #}
-              {% set fmt = (resource.format or '')|lower %}
-              {% set url_l = (resource.url or '')|lower %}
-              {% set name_l = (resource.name or '')|lower %}
-              {% set is_yaml = ('yml' in fmt)
-                                or name_l.endswith('.yml') or name_l.endswith('.yaml')
-                                or url_l.endswith('.yml')  or url_l.endswith('.yaml') %}
-
-              {# hide only if this YAML is one of the attached YAMLs #}
-              {% if not (is_yaml and resource.id in ns.attached_yaml_ids) %}
-                {% snippet 'package/snippets/resource_item.html',
-                   pkg=pkg, res=resource, meta_map=meta_map %}
-              {% endif %}
+                {% set name_l = (resource.name or '')|lower %}
+                {% set is_yaml = name_l.endswith('.yml') or name_l.endswith('.yaml') %}
+                {# hide only if this YAML is one of the attached YAMLs #}
+                {% if not (is_yaml and resource.id in ns.attached_yaml_ids) %}
+                  {% snippet 'package/snippets/resource_item.html',
+                    pkg=pkg, res=resource, meta_map=meta_map %}
+                {% endif %}
             {% endfor %}
           {% endblock %}
           </ul>
