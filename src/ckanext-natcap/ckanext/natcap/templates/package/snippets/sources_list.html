@@ -1,41 +1,16 @@
 {# All directories are collapsible (closed by default); files are normal rows. #}
 
-{# Accept global_meta_map and ns as parameters for recursive calls #}
-{% set global_meta_map = global_meta_map if global_meta_map is defined else {} %}
-{% set ns = ns if ns is defined else namespace(attached_yaml_ids=[]) %}
+{% set sources_meta_map = h.natcap_find_source_metadata_map(sources) %}
 
-{# Only build on first call (when empty) #}
-{% if not global_meta_map %}
-  {# Get package-level resource metadata map #}
-  {% set pkg_meta_map = h.natcap_find_attached_metadata_map(pkg) %}
-  
-  {# Build a metadata map for ALL sources recursively #}
-  {% set global_meta_map = h.natcap_find_source_metadata_map(sources) %}
-  
-  {# Merge package-level and source-level maps #}
-  {% for k, v in pkg_meta_map.items() %}
-    {% set _ = global_meta_map.update({k: v}) %}
-  {% endfor %}
-  
-  {# Build list of ALL attached YAML IDs #}
-  {% set ns = namespace(attached_yaml_ids=[]) %}
-  {% for _data_id, meta_res in global_meta_map.items() %}
-    {% set _ = ns.attached_yaml_ids.append(meta_res['name']) %}
-  {% endfor %}
-{% endif %}
+{# Build list of all attached YAML IDs #}
+{% set ns = namespace(attached_yaml_ids=[]) %}
+{% for _data_id, meta_res in sources_meta_map.items() %}
+  {% set _ = ns.attached_yaml_ids.append(meta_res['name']) %}
+{% endfor %}
 
 
 <ol class="nested-source-list indent-{{ indent }}">
   {% for source in sources %}
-    
-    <!-- <div style="background: orange; padding: 5px; margin: 5px; font-size: 11px;">
-      <strong>Source debug:</strong><br>
-      Name: {{ source.name }}<br>
-      ID: {{ source.id }}<br>
-      Type: {{ source.type }}<br>
-      Has metadata_attached?: {{ source.metadata_attached if source.metadata_attached is defined else 'NO' }}<br>
-      All keys: {{ source.keys() | list }}
-    </div> -->
     {% set name = source.name or '' %}
     {% set children = source.children if source.children is defined else [] %}
     {% set is_dir = source.type == 'directory' %}
@@ -46,28 +21,11 @@
     {% endif %}
 
     {# robust YAML detection: prefer format/url over name #}
-    {% set fmt = (source.format or '')|lower %}
-    {% set url_l = (source.url or '')|lower %}
     {% set name_l = (source.name or '')|lower %}
-    {% set is_yaml = ('yml' in fmt)
-                      or name_l.endswith('.yml') or name_l.endswith('.yaml')
-                      or url_l.endswith('.yml')  or url_l.endswith('.yaml') %}
+    {% set is_yaml = name_l.endswith('.yml') or name_l.endswith('.yaml') %}
+    {% set attached_meta = sources_meta_map.get(source.name) %}
 
     {# Hide only if this YAML is one of the attached YAMLs #}
-    {# DEBUG: Per-source info #}
-    <!-- {% if is_yaml %}
-      <div style="background: lightblue; padding: 5px; margin: 5px; font-family: monospace; font-size: 11px;">
-        <strong>YAML Found:</strong><br>
-        Name: {{ name }}<br>
-        ID: {{ source.id }}<br>
-        Is YAML: {{ is_yaml }}<br>
-        In attached list: {{ source.name in ns.attached_yaml_ids }}<br>
-        Will hide: {{ is_yaml and source.name in ns.attached_yaml_ids }}<br>
-        Format: {{ source.format }}<br>
-        URL: {{ source.url }}
-      </div>
-    {% endif %} -->
-   
     {% if is_dir or h.natcap_show_resource(name) %}
       {% if is_dir %}
         <li class="nested-source-item src-folder" data-level="{{ indent }}">
@@ -82,7 +40,7 @@
               </div>
               <div class="icon-actions">
                 {# ADD METADATA PREVIEW ICON FOR DIRECTORIES #}
-                {% set attached_meta = global_meta_map.get(source.name) %}
+                {% set gate = h.natcap_get_file_downloadability(c.pkg_dict, source) %}
                 {% if attached_meta %}
                   <div class="js-metadata-preview"
                     title="preview metadata"
@@ -93,19 +51,17 @@
                     <i class="fa fa-info-circle" title="Preview metadata"></i>
                   </div>
                 {% endif %}
+                {% if gate.url %}
+                  <a class="icon-button icon-button-download"
+                    href="{{ gate.url }}"
+                    title="{{ _('Download folder') }}"
+                    aria-label="{{ _('Download folder: {name}').format(name=label) }}">
+                  </a>
+                {% endif %}
               </div>
-              {% set gate = h.natcap_get_file_downloadability(c.pkg_dict, source) %}
-              {% if gate.url %}
-                <a class="icon-button icon-button-download"
-                  href="{{ gate.url }}"
-                  title="{{ _('Download folder') }}"
-                  aria-label="{{ _('Download folder: {name}').format(name=label) }}">
-                </a>
-              {% endif %}
-              <!--  Optional: show a download icon if this folder has a URL  -->
             </summary>
             <div class="resource-directory-contents">
-              {% snippet 'package/snippets/sources_list.html', sources=children, indent=indent+1, pkg=pkg, global_meta_map=global_meta_map, ns=ns %}
+              {% snippet 'package/snippets/sources_list.html', sources=children, indent=indent+1%}
             </div>
           </details>
         </li>
@@ -126,7 +82,6 @@
                   </div>
                   <div class="icon-actions">
                     {# ADD METADATA PREVIEW ICON HERE #}
-                    {% set attached_meta = global_meta_map.get(source.name) %}
                     {% if attached_meta %}
                       <div class="js-metadata-preview"
                         title="preview metadata"
@@ -142,7 +97,6 @@
                 </a>
                 {% else %}
                 {# NOT DOWNLOADABLE #}
-                {% set attached_meta = global_meta_map.get(source.name) %}
                 <a class="heading is-disabled"
                    href="javascript:void(0);"
                    aria-disabled="true"
