@@ -62,7 +62,7 @@ def natcap_find_attached_metadata_map(pkg_dict: dict) -> dict:
     return attached
 
 
-def natcap_find_source_metadata_map(pkg, sources):
+def natcap_find_source_metadata_map(sources):
     """
     Build a map of source_name -> metadata_source for all sources.
     Looks for YAML files that match data file names (e.g., data.tif -> data.tif.yml)
@@ -83,7 +83,7 @@ def natcap_find_source_metadata_map(pkg, sources):
             if source.get('children'):
                 yaml_lookup.update(build_yaml_lookup(source['children']))
         return yaml_lookup
-    
+
     def process_sources_recursive(sources_list, yaml_lookup):
         """Match data files to their YAML metadata"""
         for source in sources_list:
