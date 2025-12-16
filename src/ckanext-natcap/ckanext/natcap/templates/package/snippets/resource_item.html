@@ -13,13 +13,13 @@
     </div>
     {% set attached_meta = meta_map.get(res.id) %}
     {% if attached_meta %}
-      <div class="dropdown-item js-metadata-preview"
+      <div class="js-metadata-preview"
+        title="preview metadata"
         href="#"
         data-meta-id="{{ attached_meta.id }}"
         data-meta-name="{{ attached_meta.name }}"
         data-meta-url="{{ attached_meta.url}}">
-        <i class="fa fa-info-circle"></i>
-        {{ _('Metadata') }}
+        <i class="fa fa-info-circle" title="Preview metadata"></i>
     </div>
     {% endif %}
 
@@ -39,24 +39,5 @@
 {% block resource_item_description %}
 {% endblock %}
 
-<!-- {% block resource_item_explore %} 
-<div class="dropdown btn-group"> 
-  <a href="#" class="btn btn-primary dropdown-toggle" type="button" id="dropdownExplorer" data-bs-toggle="dropdown" aria-expanded="false"> {{ _('info') }} 
-    <span class="caret"></span> 
-  </a> 
-  <ul class="dropdown-menu" aria-labelledby="dropdownExplorer"> {% block resource_item_explore_links %} {% block explore_view %} 
-    <li> 
-      <a class="dropdown-item" href="{{ url }}"> 
-        <i class="fa fa-info-circle"></i> {{ _('Metadata preview') }} 
-      </a> 
-    </li> {% endblock explore_view %} {% if res.url and h.is_url(res.url) %} 
-    <li> 
-      <a class="dropdown-item resource-url-analytics" href="{{ res.url }}" target="_blank" rel="noreferrer"> 
-        <i class="fa fa-external-link"></i> {{ _('Download resource and yml') }} 
-      </a> 
-    </li> 
-    {% endif %} 
-    {% endblock %} 
-  </ul> 
-</div> 
-{% endblock resource_item_explore %} -->
+{% block resource_item_explore %}
+{% endblock %}
