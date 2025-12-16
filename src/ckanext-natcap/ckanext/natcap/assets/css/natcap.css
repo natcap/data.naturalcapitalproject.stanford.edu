@@ -1316,27 +1316,6 @@ div#invest-model-list-container div {
     padding-left: calc(var(--base) + var(--level) * var(--step));
   }
 
-  /* Keep icon actions compact, aligned with the download icon */
-/* .icon-actions {
-    display: inline-flex;
-    gap: 0.5rem;
-    vertical-align: middle;
-} */
-
-/* .icon-button.icon-button-metadata,
-.icon-button.icon-button-bundle {
-    width: 24px;
-    height: 24px;
-    display: inline-flex;
-    align-items: left;
-    justify-content: center;
-} 
-.icon-button.icon-button-metadata i,
-.icon-button.icon-button-bundle i {
-    font-size: 14px;
-    line-height: 1;
-} */
-
 .js-metadata-preview:hover {
     background-color: var(--color-light-gray);
     outline: 2px solid var(--color-light-gray);
@@ -1361,7 +1340,6 @@ div#invest-model-list-container div {
 /* Group metadata and download icons together on the right */
 .icon-actions {
     display: flex;
-    gap: 0.5rem;
     align-items: center;
     justify-content: center;
     margin-left: auto; /* Push to right */
