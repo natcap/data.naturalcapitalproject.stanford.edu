@@ -12,19 +12,19 @@
       </div>
     </div>
     {% set attached_meta = meta_map.get(res.id) %}
-    {% if attached_meta %}
-      <div class="js-metadata-preview"
-        title="preview metadata"
-        href="#"
-        data-meta-id="{{ attached_meta.id }}"
-        data-meta-name="{{ attached_meta.name }}"
-        data-meta-url="{{ attached_meta.url}}">
-        <i class="fa fa-info-circle" title="Preview metadata"></i>
-    </div>
-    {% endif %}
+    <div class="icon-actions">
+      {% if attached_meta %}
+        <div class="js-metadata-preview"
+          title="preview metadata"
+          href="#"
+          data-meta-id="{{ attached_meta.id }}"
+          data-meta-name="{{ attached_meta.name }}"
+          data-meta-url="{{ attached_meta.url}}">
+          <i class="fa fa-info-circle" title="Preview metadata"></i>
+      </div>
+      {% endif %}
 
-    <div class="icon-button icon-button-download">
-    
+      <div class="icon-button icon-button-download"></div>
     </div>
   </a>
 
