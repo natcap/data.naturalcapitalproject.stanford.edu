@@ -21,7 +21,6 @@ import datetime
 import hashlib
 import json
 import logging
-import numpy
 import mimetypes
 import os
 import pprint
@@ -29,21 +28,21 @@ import re
 import warnings
 
 import ckanapi.errors
+import numpy
 import pygeoprocessing  # mamba install pygeoprocessing
 import requests  # mamba install requests
 import yaml  # mamba install pyyaml
 from ckanapi import RemoteCKAN  # mamba install ckanapi
+from construct_mappreview import get_mappreview_metadata
 from google.cloud import storage  # mamba install google-cloud-storage
 from osgeo import gdal
 from osgeo import ogr
 from osgeo import osr
 
-from construct_mappreview import get_mappreview_metadata
-
 logging.basicConfig(level=logging.DEBUG)
 LOGGER = logging.getLogger(os.path.basename(__file__))
 CKAN_HOSTS = {
-    'prod': 'https://data.naturalcapitalproject.stanford.edu',
+    'prod': 'https://data.naturalcapitalalliance.stanford.edu',
     'staging': 'https://data-staging.naturalcapitalproject.org',
     'dev': 'https://localhost:8443'
 }
@@ -134,11 +133,26 @@ def _create_resource_dict_from_url(url, description):
     url = re.sub('^https://storage.cloud.google.com',
                  'https://storage.googleapis.com', url)
 
-    if url.startswith('https://storage.googleapis.com'):
-        domain, bucket_name, key = url[8:].split('/', maxsplit=2)
+    if (url.startswith('https://storage.googleapis.com') or
+            re.match('^https://data.naturalcapital[a-z]+.stanford.edu/', url)):
 
+        # Our load balancer setup means that we need to handle these URLs
+        # slightly differently.
+        #
+        # Example bucket URL:
+        #   https://storage.googleapis.com/bucketname/key
+        #
+        # Example native domain URL:
+        #   https://data.naturalcapitalproject.org/key
+        if url.startswith('https://storage.googleapis.com'):
+            domain, bucket, key = url[8:].split('/', maxsplit=2)
+        else:
+            domain, key = url[8:].split('/', maxsplit=1)
+
+        # If we've gotten to this point in the conditional, all data in GMM YML
+        # are in this bucket.
         storage_client = storage.Client(project="sdss-natcap-gef-ckan")
-        bucket = storage_client.bucket(bucket_name)
+        bucket = storage_client.bucket('natcap-data-cache')
         blob = bucket.get_blob(key)
 
         checksum = f"crc32c:{blob.crc32c}"
@@ -352,7 +366,7 @@ def _get_median_latlon_bounds(vector_path):
     wgs84.ImportFromEPSG(4326)
     wgs84.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER)
 
-    # vector_path should look like: 
+    # vector_path should look like:
     # /vsicurl/https://storage.googleapis.com/natcap-data-cache/my_data.. or
     # /vsizip//vsicurl/https://storage.googleapis.com/natcap-data-cache/my_data.zip/vector.shp
     dataset = gdal.OpenEx(vector_path, gdal.OF_VECTOR)
