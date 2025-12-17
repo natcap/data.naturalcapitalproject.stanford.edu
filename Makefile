@@ -1,4 +1,4 @@
-.PHONY: deploy deploy-staging sync-on-prod fetch-nginx-config clipping-service env-clip ckan-dev
+.PHONY: deploy deploy-staging sync-on-prod fetch-nginx-config clipping-service env-clip ckan-dev tileserver
 
 GIT_DIR := /opt/ckan-catalog/data.naturalcapitalproject.stanford.edu
 CKAN_PROD_URL := https://data.naturalcapitalproject.stanford.edu
@@ -39,6 +39,9 @@ env-clip:
 
 clipping-service:
 	python -m gunicorn --chdir ./clipping-service/app app:app --timeout 180 --reload
+
+tileserver:
+	python -m gunicorn --chdir ./tileserver/app main:app --timeout 180 --reload
 
 ckan-dev:
 	docker compose -f docker-compose.dev.yml build
