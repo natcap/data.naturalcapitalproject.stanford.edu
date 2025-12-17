@@ -53,8 +53,6 @@
   </div>
 {% endblock %}
 
-{# Only needed bc we want a Bootstrap modal preview. (If you wanted a real new window, skip this block.) #}
-
 {# 1) drop the modal on the page #}
 {% block secondary_content %}
   {{ super() }}
@@ -66,9 +64,7 @@
           <h4 class="modal-title" id="metadataModalLabel">Metadata</h4>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
           </button>
-          
         </div>
-        
   
         <div class="modal-body">
           <pre id="metadataModalBody"

@@ -20,7 +20,6 @@
       {% set label = name.rsplit('/', 1)[-1].rsplit('.', 1)[0] %}
     {% endif %}
 
-    {# robust YAML detection: prefer format/url over name #}
     {% set name_l = (source.name or '')|lower %}
     {% set is_yaml = name_l.endswith('.yml') or name_l.endswith('.yaml') %}
     {% set attached_meta = sources_meta_map.get(source.name) %}
