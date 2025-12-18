@@ -149,6 +149,11 @@ def _create_resource_dict_from_url(url, description):
         else:
             domain, key = url[8:].split('/', maxsplit=1)
 
+            # Download paths have a /download/ prefix that doesn't actually map
+            # to any real location in a bucket.
+            if key.startswith('download/'):
+                key = key.replace('download/', '')
+
         # If we've gotten to this point in the conditional, all data in GMM YML
         # are in this bucket.
         storage_client = storage.Client(project="sdss-natcap-gef-ckan")
