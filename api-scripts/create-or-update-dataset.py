@@ -160,6 +160,11 @@ def _create_resource_dict_from_url(url, description):
         bucket = storage_client.bucket('natcap-data-cache')
         blob = bucket.get_blob(key)
 
+        if blob is None:
+            LOGGER.debug(f"url: {url}")
+            raise AssertionError(
+                f"Could not retrieve a file from key {key}")
+
         checksum = f"crc32c:{blob.crc32c}"
         size = blob.size
     elif url.startswith('https://drive.google.com'):
