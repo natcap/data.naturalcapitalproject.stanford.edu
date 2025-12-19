@@ -26,19 +26,13 @@
           data-meta-url="{{ attached_meta.url}}">
           <i class="fa fa-info-circle" title="Preview metadata"></i>
         </div>
-        <a class="icon-button icon-button-bundle"
-          title="Download data + metadata (.tar)"
-          href="{{ h.url_for('natcap.bundle_tar', resource_id=res.id) }}">
-          <i class="fa fa-download" aria-hidden="true"></i>
-          <span class="sr-only">Data + metadata (.tar)</span>
-        </a>
-      {% else %}
-        <a class="icon-button icon-button-download"
-          href="{{ res.url }}"
-          title="{{ _('Download resource') }}"
-          aria-label="{{ _('Download resource: {name_or_id}').format(name_or_id=name_or_id) }}">
-        </a>
       {% endif %}
+      <a class="icon-button icon-button-bundle"
+        title="Download data + metadata (.tar)"
+        href="{{ h.url_for('natcap.bundle_tar', resource_id=res.id) }}">
+        <i class="fa fa-download" aria-hidden="true"></i>
+        <span class="sr-only">Data + metadata (.tar)</span>
+      </a>
     </div>
 </div>
 
