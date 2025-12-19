@@ -3,7 +3,7 @@
 If the dataset already exists, then its attributes are updated.
 
 Dependencies:
-    $ mamba install ckanapi pyyaml google-cloud-storage requests gdal pygeoprocessing
+    $ mamba install ckanapi pyyaml google-cloud-storage requests gdal pygeoprocessing rio-tiler
 
 Note:
     You will need to authenticate with the google cloud api in order to do
@@ -12,6 +12,8 @@ Note:
     at your shell:
 
         $ gcloud auth application-default login
+
+    rio-tiler is a dependency of construct_mappreview, upon which this script relies
 """
 import argparse
 import collections
@@ -19,7 +21,6 @@ import datetime
 import hashlib
 import json
 import logging
-import numpy
 import mimetypes
 import os
 import pprint
@@ -27,10 +28,12 @@ import re
 import warnings
 
 import ckanapi.errors
+import numpy
 import pygeoprocessing  # mamba install pygeoprocessing
 import requests  # mamba install requests
 import yaml  # mamba install pyyaml
 from ckanapi import RemoteCKAN  # mamba install ckanapi
+from construct_mappreview import get_mappreview_metadata
 from google.cloud import storage  # mamba install google-cloud-storage
 from osgeo import gdal
 from osgeo import ogr
@@ -39,7 +42,7 @@ from osgeo import osr
 logging.basicConfig(level=logging.DEBUG)
 LOGGER = logging.getLogger(os.path.basename(__file__))
 CKAN_HOSTS = {
-    'prod': 'https://data.naturalcapitalproject.stanford.edu',
+    'prod': 'https://data.naturalcapitalalliance.stanford.edu',
     'staging': 'https://data-staging.naturalcapitalproject.org',
     'dev': 'https://localhost:8443'
 }
@@ -130,12 +133,37 @@ def _create_resource_dict_from_url(url, description):
     url = re.sub('^https://storage.cloud.google.com',
                  'https://storage.googleapis.com', url)
 
-    if url.startswith('https://storage.googleapis.com'):
-        domain, bucket_name, key = url[8:].split('/', maxsplit=2)
+    if (url.startswith('https://storage.googleapis.com') or
+            re.match('^https://data.naturalcapital[a-z]+.stanford.edu/', url)):
 
+        # Our load balancer setup means that we need to handle these URLs
+        # slightly differently.
+        #
+        # Example bucket URL:
+        #   https://storage.googleapis.com/bucketname/key
+        #
+        # Example native domain URL:
+        #   https://data.naturalcapitalproject.org/key
+        if url.startswith('https://storage.googleapis.com'):
+            domain, bucket, key = url[8:].split('/', maxsplit=2)
+        else:
+            domain, key = url[8:].split('/', maxsplit=1)
+
+            # Download paths have a /download/ prefix that doesn't actually map
+            # to any real location in a bucket.
+            if key.startswith('download/'):
+                key = key.replace('download/', '')
+
+        # If we've gotten to this point in the conditional, all data in GMM YML
+        # are in this bucket.
         storage_client = storage.Client(project="sdss-natcap-gef-ckan")
-        bucket = storage_client.bucket(bucket_name)
+        bucket = storage_client.bucket('natcap-data-cache')
         blob = bucket.get_blob(key)
+
+        if blob is None:
+            LOGGER.debug(f"url: {url}")
+            raise AssertionError(
+                f"Could not retrieve a file from key {key}")
 
         checksum = f"crc32c:{blob.crc32c}"
         size = blob.size
@@ -348,7 +376,7 @@ def _get_median_latlon_bounds(vector_path):
     wgs84.ImportFromEPSG(4326)
     wgs84.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER)
 
-    # vector_path should look like: 
+    # vector_path should look like:
     # /vsicurl/https://storage.googleapis.com/natcap-data-cache/my_data.. or
     # /vsizip//vsicurl/https://storage.googleapis.com/natcap-data-cache/my_data.zip/vector.shp
     dataset = gdal.OpenEx(vector_path, gdal.OF_VECTOR)
@@ -398,12 +426,37 @@ def _get_median_latlon_bounds(vector_path):
 def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
          verify_ssl=True):
     with open(gmm_yaml_path) as yaml_file:
-        LOGGER.debug(f"Loading geometamaker yaml from {gmm_yaml_path}")
+        LOGGER.info(f"Loading geometamaker yaml from {gmm_yaml_path}")
         gmm_yaml = yaml.load(yaml_file.read(), Loader=yaml.Loader)
 
     session = requests.Session()
     session.headers.update({'Authorization': ckan_apikey})
     session.verify = verify_ssl
+
+    config_yaml = {}
+    possible_config_path = f"{ckan_url}/dataset_configs/{gmm_yaml['title']}.yml"
+    resp = session.get(possible_config_path)
+    if resp.ok:
+        LOGGER.info(f"Loading config yaml from {possible_config_path}")
+        content = resp.content.decode("utf-8")
+        config_yaml = yaml.safe_load(content)
+
+        # If config includes `layers_to_preview`, verify that the sources all
+        # appear in the gmm_yaml
+        if config_yaml.get('layers_to_preview'):
+            missing_sources = [path for path in config_yaml.get('layers_to_preview')
+                               if path not in gmm_yaml['sources']]
+            if missing_sources:
+                raise ValueError("Sources were included in the config file that "
+                                 "are not included in the Geometamaker YAML 'sources': "
+                                 f"{missing_sources}")
+        else:
+            LOGGER.warning("Config file contains no 'layers_to_preview' key. "
+                           "All layers will be included in the mappreview extra.")
+
+    else:
+        LOGGER.info(f"No config file found at {possible_config_path}")
+
     with RemoteCKAN(ckan_url, apikey=ckan_apikey, session=session) as catalog:
         if 'natcap' not in catalog.action.organization_list():
             _ = catalog.action.organization_create(
@@ -536,9 +589,20 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
                 resources.append(_create_resource_dict_from_file(
                     source_path, label, upload=True))
 
+        extras = []
+
+        # Construct the mappreview extra. If a config file was passed and includes
+        # `layers_to_preview`, only include those layers
+        mappreview_layers_meta = get_mappreview_metadata(
+            resources, gmm_yaml['sources'], config_yaml.get('layers_to_preview'))
+        if mappreview_layers_meta:
+            extras.append({
+                'key': 'mappreview',
+                'value': json.dumps(mappreview_layers_meta)
+            })
+
         # We can define the bbox as a polygon using
         # ckanext-spatial's spatial extra
-        extras = []
         try:
             if get_from_config(gmm_yaml, 'spatial.bounding_box'):
                 extras.append({

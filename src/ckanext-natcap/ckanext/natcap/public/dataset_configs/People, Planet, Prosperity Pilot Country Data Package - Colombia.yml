@@ -1,0 +1,59 @@
+# Default policy if no rule matches
+defaults:
+  allow: true
+  # Note: folders are _not_ downloadable by default (assumes no zipfile created)
+
+# Rule list evaluated top-to-bottom; first match wins
+rules:
+  # block everything under folder 'precipMonthly_corrected' but allow the folder itself to be downloaded
+  - match:
+      path_glob: "precipMonthly_corrected"
+    allow: true
+    reason: "Allow precip zip to be downloaded" # assumption is filepath to zip is same as folder
+
+  - match:
+      path_glob: "ET0"
+    allow: true
+    reason: "Allow ET zip to be downloaded" # assumption is filepath to zip is same as folder
+
+  - match:
+      path_glob: "*/precipMonthly_corrected/*"
+    allow: false
+    reason: "Don't allow files in precip zip to be downloaded"
+
+  # block specific filenames
+  - match:
+      name_regex: "(?i).*_ET0_.*" # this could also be done similarly to precip files above
+    allow: false
+    reason: "Monthly ET files are not downloadable"
+
+  # This blocks the same files as "*/precipMonthly_corrected/*" above
+  # - match:
+  #     name_regex: "(?i).*p_EPSG32618_monthly.*"
+  #   allow: false
+  #   reason: "Monthly precip files are not downloadable"
+
+  # prevent certain extensions
+  # - match:
+  #     ext_any: [".zip"]
+  #   allow: false
+  #   reason: "no zipfiles"
+
+layers_to_preview:
+- Colombia_3Ps_data_pkg/1_model_inputs/AltoChicamocha_aoi/AltoChicamocha.shp
+- Colombia_3Ps_data_pkg/1_model_inputs/ModelBoundary_Andes_SIRAP_SZH_32618/ModelBoundary_Andes_SIRAP_SZH_32618.shp
+- Colombia_3Ps_data_pkg/1_model_inputs/LULC2018_Altochicamocha_Paramo130_dh.tif
+- Colombia_3Ps_data_pkg/2_model_outputs/visitation_out/pud_results_5km/pud_results_5km.shp
+- Colombia_3Ps_data_pkg/2_model_outputs/seasonal_water_yield_out/B_paramos_SWY_TFA500_dh.tif
+- Colombia_3Ps_data_pkg/2_model_outputs/seasonal_water_yield_out/QF_paramos_SWY_TFA500_dh.tif
+- Colombia_3Ps_data_pkg/2_model_outputs/sediment_out/usle_paramos_usleCf1_0_kb2_0_sdrMax0_8_TFA500_dh.tif
+- Colombia_3Ps_data_pkg/2_model_outputs/sediment_out/sed_export_paramos_usleCf1_0_kb2_0_sdrMax0_8_TFA500_dh.tif
+- Colombia_3Ps_data_pkg/2_model_outputs/sediment_out/avoided_erosion_paramos_usleCf1_0_kb2_0_sdrMax0_8_TFA500_dh.tif
+- Colombia_3Ps_data_pkg/2_model_outputs/sediment_out/avoided_export_paramos_usleCf1_0_kb2_0_sdrMax0_8_TFA500_dh.tif
+- Colombia_3Ps_data_pkg/2_model_outputs/nutrients_out/n_total_export_paramos_NDR_TFA500_dh.tif
+- Colombia_3Ps_data_pkg/2_model_outputs/nutrients_out/p_surface_export_paramos_NDR_TFA500_dh.tif
+- Colombia_3Ps_data_pkg/2_model_outputs/seasonal_water_yield_out/L_paramos_SWY_TFA500_dh.tif
+- Colombia_3Ps_data_pkg/3_postprocess/N_retention_paramos_dh.tif
+- Colombia_3Ps_data_pkg/3_postprocess/P_retention_paramos_dh.tif
+- Colombia_3Ps_data_pkg/3_postprocess/carbon_4pools_paramos_dh.tif
+- Colombia_3Ps_data_pkg/3_postprocess/Microsheds_AndresNE/Microsheds_AndresNE.shp

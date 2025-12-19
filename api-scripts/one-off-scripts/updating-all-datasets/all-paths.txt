@@ -25,3 +25,14 @@ global-dataset-cache\Public_DataHub\global\NLCD\LandCover\MRLC_Annual_NLCD_LndCo
 global-dataset-cache\Public_DataHub\global\NLCD\LandCover\MRLC_Annual_NLCD_LndCov_2023_c1v1.tif.yml
 global-dataset-cache\Public_DataHub\global\NLCD\LandCover\MRLC_Annual_NLCD_LndCov_2024_c1v1.tif.yml
 global-dataset-cache\Public_DataHub\global\noaa-us-shorelines\noaa_us_shorelines.zip.yml
+global-dataset-cache\Public_DataHub\natcap-projects\footprint-impact-tool-data\footprint-impact-tool-data.zip.yml
+global-dataset-cache\Public_DataHub\natcap-projects\PeoplePlanetProsperity_Country_Data\Colombia\Colombia_3Ps_data_pkg.zip.yml
+global-dataset-cache\Public_DataHub\natcap-projects\PeoplePlanetProsperity_Country_Data\Cook_Islands\Cook_Islands_3Ps_data_pkg.zip.yml
+global-dataset-cache\Public_DataHub\natcap-projects\PeoplePlanetProsperity_Country_Data\Philippines\Philippines_3Ps_data_pkg.zip.yml
+global-dataset-cache\Public_DataHub\global\CGIAR-ET0\monthly\CGIAR_ET0_v3_monthly_1970_2000.zip.yml
+global-dataset-cache\Public_DataHub\global\CGIAR-ET0\annual\global_et0_v3_yr_1970_2000.tif.yml
+global-dataset-cache\Public_DataHub\collaborator-data\lulc_glc_fcs30d_jjohnson\lulc_glc_fcs30d_2022.tif.yml
+global-dataset-cache\Public_DataHub\collaborator-data\lulc_glc_fcs30d_jjohnson\lulc_glc_fcs30d_2021.tif.yml
+global-dataset-cache\Public_DataHub\collaborator-data\lulc_glc_fcs30d_jjohnson\lulc_glc_fcs30d_2011_2020.zip.yml
+global-dataset-cache\Public_DataHub\collaborator-data\lulc_glc_fcs30d_jjohnson\lulc_glc_fcs30d_2001_2010.zip.yml
+global-dataset-cache\Public_DataHub\collaborator-data\lulc_glc_fcs30d_jjohnson\lulc_glc_fcs30d_1985_2000.zip.yml

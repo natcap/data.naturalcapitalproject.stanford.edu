@@ -159,9 +159,6 @@ ckan.module("mappreview", function ($, _) {
         container: 'map',
         style: globalConfig.mapbox_style,
         bounds: config.map.bounds,
-        zoom: config.map.minzoom + 2,
-        minZoom: config.map.minzoom,
-        maxZoom: config.map.maxzoom,
       });
       map.addControl(new mapboxgl.FullscreenControl({}), 'top-left');
       map.addControl(new mapboxgl.ScaleControl({maxWidth: 80, unit: 'metric'}), 'bottom-left');
@@ -263,8 +260,9 @@ ckan.module("mappreview", function ($, _) {
           }
       }
 
-        if (isGlobal(boundsArray)){
-          map.setCenter([0,0], {zoom:1})
+        if (isGlobal(boundsArray)) {
+          map.setCenter([0,0]);
+          map.setMinZoom(1);
           let userInteracting = false;
           spinGlobe(userInteracting);
           // Stop spinning if user moves mouse onto map
@@ -277,15 +275,13 @@ ckan.module("mappreview", function ($, _) {
             spinGlobe(userInteracting);
           });
         } else if (config.layers.length === 1 && config.layers[0].type === 'vector' && (
-          'center_lat_lon' in layers[0])){
+          'center_lat_lon' in layers[0])) {
           const centerLatLon =  layers[0].center_lat_lon;
           if (centerLatLon) {
             // mapbox uses long, lat format
             map.setCenter([centerLatLon[1], centerLatLon[0]]);
-            // zoom level conservatively set to the min zoom of full dataset
-            map.setZoom(config.map.minzoom);
           }
-        } else{ // bounds aren't global, and map doesn't just show 1 vector layer
+        } else { // bounds aren't global, and map doesn't just show 1 vector layer
           map.fitBounds(boundsArray, { padding: 20, linear: true});
         }
 
@@ -765,21 +761,19 @@ ckan.module("mappreview", function ($, _) {
                 </button>
               </div>`
 
-            var rasters = [];
+            var layers = [];
             for (const layer of config.layers) {
-              if (layer.type === "raster") {
-                rasters.push(layer);
-              }
+              layers.push(layer);
             }
-            if (rasters.length == 0) {
+            if (layers.length == 0) {
               this._container.innerHTML = `
                 <button type="button"
                         class="btn btn-outline-secondary"
                         disabled
-                        title="At this time, clipping only works with raster layers.">
+                        title="No layers to clip.">
                   Clipping is disabled
                 </button>`;
-            } else if (rasters.length == 1) {
+            } else if (layers.length == 1) {
               this._container.innerHTML = `
                 <button type="button"
                         class="btn btn-secondary"
@@ -791,24 +785,29 @@ ckan.module("mappreview", function ($, _) {
               this._container.getElementsByTagName('button')[0].addEventListener('click', function() {
                 // when the 'clip to this bounding box' button is selected, set an attribute of the button
                 document.getElementById(clip_button_id).setAttribute(
-                  'layer-name', rasters[0].name);
+                  'layer-name', layers[0].name);
                 document.getElementById(clip_button_id).setAttribute(
-                  'layer-url', rasters[0].url);
+                  'layer-url', layers[0].url);
                 document.getElementById(clip_button_id).setAttribute(
-                  'layer-type', rasters[0].type);
-                selected_layer = rasters[0].name;
-                natcapClipLayer(rasters[0].name);
+                  'layer-type', layers[0].type);
+                selected_layer = layers[0].name;
+                natcapClipLayer(layers[0].name);
+
+                // setting custom resolution only makes sense for rasters
+                if (layers[0].type == "vector") {
+                  document.getElementById('natcapClipPixelSize').style.display = 'none';
+                }
               });
             } else {
-              var raster_string = "";
-              for (const raster_layer of rasters) {
-                raster_string += `
+              var clip_layer_string = "";
+              for (const clip_layer of layers) {
+                clip_layer_string += `
                   <li>
                     <a class="dropdown-item
                        href="#"
-                       layer-name='${raster_layer.name}'
-                       layer-url=${raster_layer.url}>
-                      ${raster_layer.name}
+                       layer-name='${clip_layer.name}'
+                       layer-url=${clip_layer.url}>
+                      ${clip_layer.name}
                     </a>
                   </li>\n`
               }
@@ -822,7 +821,7 @@ ckan.module("mappreview", function ($, _) {
                     Clip this layer
                   </button>
                   <ul class="dropdown-menu">
-                    ${raster_string}
+                    ${clip_layer_string}
                   </ul>
                 </div>
                 ${progress_modal_trigger_button}
@@ -890,10 +889,13 @@ ckan.module("mappreview", function ($, _) {
           document.getElementById('natcapClipInProgress').classList.remove('d-none');
           document.getElementById('natcapClipInitOptions').classList.add('d-none');
 
-          var target_cog = document.getElementById(clip_button_id).getAttribute('layer-url');
+          var target_file = document.getElementById(clip_button_id).getAttribute('layer-url');
+          var layer_type = document.getElementById(clip_button_id).getAttribute('layer-type');
+          console.log(`${layer_type}`);
           var clipping_options = {
-            cog_url: target_cog,
+            file_url: target_file,
             target_bbox: _box(),
+            layer_type: layer_type,
           }
 
           // are we overriding the EPSG code?  If not, don't include it in the clipping_options.
@@ -1025,7 +1027,7 @@ ckan.module("mappreview", function ($, _) {
           console.log('updating source raster from cog ' + cog);
 
           var epsg_input = document.getElementById('natcapClipSettingEPSGCode');
-          var cog_stats_url = `${clipping_service_url}/info?cog_url=${encodeURIComponent(cog)}`;
+          var cog_stats_url = `${clipping_service_url}/info?file_url=${encodeURIComponent(cog)}`;
           fetch(cog_stats_url).then(response => {
             if (response.ok) {
               return response.json();
