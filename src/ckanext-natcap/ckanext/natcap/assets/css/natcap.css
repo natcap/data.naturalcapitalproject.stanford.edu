@@ -303,14 +303,18 @@ body {
 .resources .nested-source-list.indent-0 { --level: 0; }
 .resources .nested-source-list.indent-1 { --level: 1; }
 .resources .nested-source-list.indent-2 { --level: 2; }
-.resources .nested-source-list.indent-2 { --level: 3; }
+.resources .nested-source-list.indent-3 { --level: 3; }
+.resources .nested-source-list.indent-4 { --level: 4; }
 
 
 /* Apply indent to the entire row so caret + icon + name move together */
+.resources .nested-source-list > li.src-folder > details.src-acc > summary.src-summary,
+.resources .nested-source-list > li.src-file > .resource-row,
+.resources .nested-source-list > li.src-file > a.heading.is-disabled,
 .resources .nested-source-list > li > .src-acc > .src-summary,
 .resources .nested-source-list > li.src-file > a.heading {
     padding-left: calc(var(--base) + var(--level) * var(--step));
-} 
+}
 
 .resources .nested-source-item {
     display: flex;
@@ -1049,7 +1053,8 @@ footer#footer-su {
     max-height: 1.1rem;
 }
 
-.icon-button {
+.icon-button,
+.js-metadata-preview {
     appearance: none;
     border: none;
     cursor: pointer;
@@ -1061,7 +1066,14 @@ footer#footer-su {
     width: 1.25rem;
 }
 
-.icon-button:hover {
+.js-metadata-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-button:hover,
+.js-metadata-preview:hover {
     background-color: var(--color-light-gray);
 }
 
@@ -1316,12 +1328,6 @@ div#invest-model-list-container div {
     padding-left: calc(var(--base) + var(--level) * var(--step));
   }
 
-.js-metadata-preview:hover {
-    background-color: var(--color-light-gray);
-    outline: 2px solid var(--color-light-gray);
-    cursor: pointer;
-}
-
 .btn-group {
     height: 25px;
     vertical-align: center;
@@ -1345,16 +1351,23 @@ div#invest-model-list-container div {
     margin-left: auto; /* Push to right */
 }
 
-.js-metadata-preview {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.5rem;
-    border-radius: 2px;
-}
 
 /* allow the metadata icon to still be interactive */
 .heading.is-disabled .js-metadata-preview {
   pointer-events: auto;
   cursor: pointer;
 }
+
+.resources .resource-list li .resource-row {
+    display: flex;
+}
+  
+.resources .resource-list li .resource-link {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+  
