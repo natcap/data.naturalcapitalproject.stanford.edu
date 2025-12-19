@@ -48,13 +48,15 @@
                     <i class="fa fa-info-circle" title="Preview metadata"></i>
                   </div>
                 {% endif %}
+                {% if gate.url %}
                 {# TODO fix this: bundle all files within dir #}
-                <a class="icon-button icon-button-bundle"
-                  title="Download data + metadata (.tar)"
-                  href="{{ h.url_for('natcap.bundle_source_tar') }}?source_url={{ source.url|urlencode }}&source_name={{ source.name|urlencode }}{% if attached_meta %}&meta_url={{ attached_meta.url|urlencode }}&meta_name={{ attached_meta.name|urlencode }}{% endif %}">
-                  <i class="fa fa-download" aria-hidden="true"></i>
-                  <span class="sr-only">Data + metadata (.tar)</span>
-                </a>
+                  <a class="icon-button icon-button-bundle"
+                    title="Download data + metadata (.tar)"
+                    href="{{ h.url_for('natcap.bundle_source_tar') }}?source_url={{ source.url|urlencode }}&source_name={{ source.name|urlencode }}{% if attached_meta %}&meta_url={{ attached_meta.url|urlencode }}&meta_name={{ attached_meta.name|urlencode }}{% endif %}">
+                    <i class="fa fa-download" aria-hidden="true"></i>
+                    <span class="sr-only">Data + metadata (.tar)</span>
+                  </a>
+                {% endif %}
               </div>
             </summary>
             <div class="resource-directory-contents">
