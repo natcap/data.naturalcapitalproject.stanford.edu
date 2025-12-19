@@ -343,17 +343,29 @@ def bundle_source_tar():
     if not meta_url and not source_name.lower().endswith(".shp"):
         try:
             data = _download_bytes(source_url)
-        except Exception as e:
+        except Exception:
             log.exception("Direct download failed")
             abort(502)
 
-        filename = os.path.basename(source_name) or "download"
+        url_fname = _filename_from_url(source_url)
+        src_base = os.path.basename((source_name or "").rstrip("/")) or "download"
+
+        # If the URL is a zip (folder download), ensure the downloaded filename ends with .zip
+        if url_fname.lower().endswith(".zip") and not src_base.lower().endswith(".zip"):
+            filename = f"{src_base}.zip"
+            mimetype = "application/zip"
+        else:
+            # Prefer the URL filename if source_name looks folder-ish / extensionless
+            filename = src_base
+            if "." not in src_base and url_fname:
+                filename = url_fname
+            mimetype = "application/octet-stream"
 
         return send_file(
             BytesIO(data),
             as_attachment=True,
             download_name=filename,
-            mimetype="application/octet-stream",
+            mimetype=mimetype,
         )
 
     out_name = f"{os.path.basename(source_name.replace('.', '_'))}_with_metadata.tar"
@@ -385,8 +397,18 @@ def bundle_source_tar():
                                 code = getattr(e.response, "status_code", None)
                                 if code in (403, 404):
                                     continue
-                    else: # non-shp
-                        _add_url_as_tar_member(tar, source_url, source_name)
+                    else:  # non-shp
+                        # Folder downloads (gate.url) are usually already a .zip. Put that zip into the tar.
+                        url_fname = _filename_from_url(source_url)
+                        looks_like_zip = url_fname.lower().endswith(".zip")
+
+                        if looks_like_zip:
+                            # If source_name is a folder-ish name/path, convert to a zip filename for the tar member.
+                            base = os.path.basename(source_name.rstrip("/")) or os.path.splitext(url_fname)[0] or "folder"
+                            arcname = os.path.join(os.path.dirname(source_name), f"{base}.zip") if "/" in source_name else f"{base}.zip"
+                            _add_url_as_tar_member(tar, source_url, arcname)
+                        else:
+                            _add_url_as_tar_member(tar, source_url, source_name)
 
                     # ---- YAML METADATA ----
                     if meta_url:
