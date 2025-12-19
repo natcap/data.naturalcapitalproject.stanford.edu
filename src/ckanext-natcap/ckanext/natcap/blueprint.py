@@ -1,4 +1,4 @@
-from flask import Blueprint, Response, abort, send_file, request
+from flask import Blueprint, Response, abort, send_file, redirect, request
 from ckan.plugins import toolkit
 import requests, os
 from io import BytesIO
@@ -149,7 +149,7 @@ def bundle_zip(resource_id):
 
 @bp.route("/bundle-tar/<resource_id>")
 def bundle_tar(resource_id):
-    """Return a .tar bundle = data file + its '<filename>.yml/.yaml' if present."""
+    """Return a .tar bundle = data file + metadata yaml if present."""
     data_res = _resource_show(resource_id)
 
     # Fetch package and resources
@@ -174,6 +174,27 @@ def bundle_tar(resource_id):
         # swap to include all sibling parts in the package
         data_resources_to_add = _collect_shapefile_parts(resources, name)
 
+    meta_res_url = meta_res.get("url") if meta_res else None
+    if not name.lower().endswith(".shp") and not meta_res_url:
+        # Direct-download fallback for non-shp single files w/out metadata
+        if not data_res.get("url"):
+            abort(400, "Missing resource url")
+        # return redirect(_sanitize_local_resource_url(data_res.get("url")))
+        try:
+            data = _download_bytes(data_res.get("url"))
+        except Exception as e:
+            log.exception("Direct download failed")
+            abort(502)
+
+        filename = _filename_from_resource(data_res) or "download"
+
+        return send_file(
+            BytesIO(data),
+            as_attachment=True,
+            download_name=filename,
+            mimetype="application/octet-stream",
+        )
+
     # Build the .tar in memory
     tbuf = BytesIO()
     with tarfile.open(fileobj=tbuf, mode="w") as tar:
@@ -189,7 +210,7 @@ def bundle_tar(resource_id):
             info.size = len(data_bytes)
             tar.addfile(info, BytesIO(data_bytes))
 
-        # 2) Add the YAML metadata if found
+        # Add the YAML metadata if found
         if meta_res and meta_res.get("url"):
             y_url = meta_res["url"]
             y_name = meta_res.get("name") or f"{name}.yml"
@@ -225,6 +246,25 @@ def bundle_source_tar():
     meta_name = request.args.get("meta_name") or f"{source_name}.yml"
 
     tbuf = BytesIO()
+
+    if not meta_url and not source_name.lower().endswith(".shp"):
+        if not source_url:
+            abort(400, "Missing source_url")
+        # return redirect(_sanitize_local_resource_url(source_url))
+        try:
+            data = _download_bytes(source_url)
+        except Exception as e:
+            log.exception("Direct download failed")
+            abort(502)
+
+        filename = os.path.basename(source_name) or "download"
+
+        return send_file(
+            BytesIO(data),
+            as_attachment=True,
+            download_name=filename,
+            mimetype="application/octet-stream",
+        )
 
     try:
         with tarfile.open(fileobj=tbuf, mode="w") as tar:
