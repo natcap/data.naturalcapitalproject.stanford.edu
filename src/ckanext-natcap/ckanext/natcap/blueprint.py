@@ -1,4 +1,4 @@
-from flask import Blueprint, Response, abort, send_file, redirect, request
+from flask import Blueprint, Response, abort, send_file, redirect, request, stream_with_context
 from ckan.plugins import toolkit
 import requests, os
 from io import BytesIO
@@ -16,6 +16,85 @@ bp = Blueprint("natcap", __name__)
 SHAPEFILE_PART_EXTS = [
     ".shp", ".dbf", ".shx", ".prj", ".cpg", ".qix", ".sbn", ".sbx"
 ]
+
+import tempfile
+import threading
+from ckan.common import config
+
+DEFAULT_TIMEOUT = (10, 600)  # (connect, read) seconds
+
+def _filename_from_url(url: str) -> str:
+    path = urlparse(url).path
+    return os.path.basename(path) or "file"
+
+def _sanitize_local_resource_url(resource_url: str) -> str:
+    if not resource_url:
+        return resource_url
+    m = re.match(r'^https?://localhost(?::\d+)?/(.*)$', resource_url)
+    if m:
+        path_only = m.group(1)
+        internal_base = 'http://localhost:5000'
+        return f"{internal_base.rstrip('/')}/{path_only.lstrip('/')}"
+    return resource_url
+
+def _head_content_length(url: str) -> int | None:
+    """Return Content-Length if available and parseable."""
+    try:
+        r = requests.head(url, allow_redirects=True, timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()
+        cl = r.headers.get("Content-Length")
+        if cl is None:
+            return None
+        return int(cl)
+    except Exception:
+        return None
+
+def _stream_get(url: str) -> requests.Response:
+    """GET streaming response (caller must close)."""
+    r = requests.get(url, stream=True, timeout=DEFAULT_TIMEOUT)
+    r.raise_for_status()
+    # ensure transparent decompression doesn’t break sizes
+    r.raw.decode_content = False
+    return r
+
+def _add_url_as_tar_member(tar: tarfile.TarFile, url: str, arcname: str):
+    """
+    Add a URL to a tar stream.
+    Uses Content-Length for true streaming when possible;
+    otherwise spools to disk for that member.
+    """
+    url = _sanitize_local_resource_url(url)
+
+    size = _head_content_length(url)
+    if size is not None:
+        # True streaming: tar reads directly from response.raw
+        r = _stream_get(url)
+        try:
+            ti = tarfile.TarInfo(name=arcname)
+            ti.size = size
+            tar.addfile(ti, fileobj=r.raw)
+        finally:
+            r.close()
+        return
+
+    # Fallback: spool to disk to learn size
+    with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as tmp:
+        r = _stream_get(url)
+        try:
+            for chunk in r.iter_content(chunk_size=1024 * 1024):
+                if chunk:
+                    tmp.write(chunk)
+        finally:
+            r.close()
+        tmp.flush()
+        tmp.seek(0, os.SEEK_END)
+        size = tmp.tell()
+        tmp.seek(0)
+
+        ti = tarfile.TarInfo(name=arcname)
+        ti.size = size
+        tar.addfile(ti, fileobj=tmp)
+
 
 
 def _replace_basename(url: str, new_name: str) -> str:
@@ -163,7 +242,7 @@ def bundle_tar(resource_id):
     candidates = [f"{name}.yml", f"{name}.yaml"]
     meta_res = None
     for r in resources:
-        rname = r.get("name") or os.path.basename(r.get("url", "")) or ""
+        rname = _filename_from_resource(r)
         if rname in candidates:
             meta_res = r
             break
@@ -195,37 +274,50 @@ def bundle_tar(resource_id):
             mimetype="application/octet-stream",
         )
 
-    # Build the .tar in memory
-    tbuf = BytesIO()
-    with tarfile.open(fileobj=tbuf, mode="w") as tar:
+    out_name = f"{os.path.basename(name.replace('.', '_'))}_with_metadata.tar"
+    headers = {"Content-Disposition": f'attachment; filename="{out_name}"'}
 
-        # Add data (or shapefile parts)
-        for r in data_resources_to_add:
-            fname = _filename_from_resource(r) or "file"
-            r_url = r.get("url")
-            if not r_url:
-                continue
-            data_bytes = _download_bytes(r_url)
-            info = tarfile.TarInfo(name=fname)
-            info.size = len(data_bytes)
-            tar.addfile(info, BytesIO(data_bytes))
+    r_fd, w_fd = os.pipe()
 
-        # Add the YAML metadata if found
-        if meta_res and meta_res.get("url"):
-            y_url = meta_res["url"]
-            y_name = meta_res.get("name") or f"{name}.yml"
-            y_bytes = _download_bytes(y_url)
-            y_info = tarfile.TarInfo(name=y_name)
-            y_info.size = len(y_bytes)
-            tar.addfile(y_info, BytesIO(y_bytes))
+    def writer():
+        try:
+            with os.fdopen(w_fd, "wb") as w:
+                with tarfile.open(fileobj=w, mode="w|") as tar:
+                    # ---- DATA FILES ----
+                    for r in data_resources_to_add:
+                        fname = _filename_from_resource(r) or "file"
+                        r_url = r.get("url")
+                        if not r_url:
+                            continue
+                        _add_url_as_tar_member(tar, r_url, fname)
 
-    tbuf.seek(0)
-    bundle_name = f"{name.replace('.zip', '')}_with_metadata.tar"
-    return send_file(
-        tbuf,
-        as_attachment=True,
-        download_name=bundle_name,
+                    # ---- YAML METADATA ----
+                    if meta_res and meta_res.get("url"):
+                        _add_url_as_tar_member(
+                            tar, meta_res["url"],
+                            _filename_from_resource(meta_res) or f"{name}.yml",)
+        except Exception:
+            pass
+        finally:
+            try:
+                os.close(w_fd)
+            except Exception:
+                pass
+
+    threading.Thread(target=writer, daemon=True).start()
+    def generate():
+        with os.fdopen(r_fd, "rb") as r:
+            while True:
+                chunk = r.read(1024 * 1024)
+                if not chunk:
+                    break
+                yield chunk
+
+    return Response(
+        stream_with_context(generate()),
         mimetype="application/x-tar",
+        headers=headers,
+        direct_passthrough=True,
     )
 
 
@@ -238,19 +330,17 @@ def bundle_source_tar():
     source_url = request.args.get("source_url", "")
     source_name = (
         request.args.get("source_name")
-        or os.path.basename(source_url)
+        or _filename_from_url(source_url)
         or "source"
     )
+
+    if not source_url:
+        abort(400, "Missing source_url")
 
     meta_url = request.args.get("meta_url")
     meta_name = request.args.get("meta_name") or f"{source_name}.yml"
 
-    tbuf = BytesIO()
-
     if not meta_url and not source_name.lower().endswith(".shp"):
-        if not source_url:
-            abort(400, "Missing source_url")
-        # return redirect(_sanitize_local_resource_url(source_url))
         try:
             data = _download_bytes(source_url)
         except Exception as e:
@@ -266,58 +356,68 @@ def bundle_source_tar():
             mimetype="application/octet-stream",
         )
 
-    try:
-        with tarfile.open(fileobj=tbuf, mode="w") as tar:
+    out_name = f"{os.path.basename(source_name.replace('.', '_'))}_with_metadata.tar"
+    headers = {
+        "Content-Disposition": f'attachment; filename="{out_name}"'
+    }
 
-            # ---- SHAPEFILE CASE ----
-            if source_name.lower().endswith(".shp"):
-                shp_dir = os.path.dirname(source_name)
-                shp_base = os.path.splitext(os.path.basename(source_name))[0]
+    r_fd, w_fd = os.pipe()
 
-                for ext in SHAPEFILE_PART_EXTS:
-                    part_name = f"{shp_base}{ext}"
-                    tar_path = (
-                        os.path.join(shp_dir, part_name)
-                        if shp_dir else part_name
-                    )
+    def writer():
+        try:
+            with os.fdopen(w_fd, "wb") as w:
+                with tarfile.open(fileobj=w, mode="w|") as tar:
+                    # ---- SHAPEFILE CASE ----
+                    if source_name.lower().endswith(".shp"):
+                        shp_dir = os.path.dirname(source_name)
+                        shp_base = os.path.splitext(os.path.basename(source_name))[0]
+                        for ext in SHAPEFILE_PART_EXTS:
+                            part_name = f"{shp_base}{ext}"
+                            tar_path = (
+                                os.path.join(shp_dir, part_name)
+                                if shp_dir else part_name
+                            )
+                            part_url = _replace_basename(source_url, part_name)
+                            # try adding sidecars; if 404/403 skip quietly
+                            try:
+                                _add_url_as_tar_member(tar, part_url, tar_path)
+                            except requests.HTTPError as e:
+                                code = getattr(e.response, "status_code", None)
+                                if code in (403, 404):
+                                    continue
+                    else: # non-shp
+                        _add_url_as_tar_member(tar, source_url, source_name)
 
-                    part_url = _replace_basename(source_url, part_name)
-                    part_bytes = _try_download(part_url)
-                    if part_bytes is None:
-                        continue
+                    # ---- YAML METADATA ----
+                    if meta_url:
+                        try:
+                            _add_url_as_tar_member(tar, meta_url, meta_name)
+                        except requests.HTTPError as e:
+                            code = getattr(e.response, "status_code", None)
+                            if code not in (403, 404):
+                                raise
+        except Exception:
+            pass # close pipe if error; user will see incomplete download
+        finally:
+            try:
+                os.close(w_fd)
+            except Exception:
+                pass
 
-                    info = tarfile.TarInfo(name=tar_path)
-                    info.size = len(part_bytes)
-                    tar.addfile(info, BytesIO(part_bytes))
+    threading.Thread(target=writer, daemon=True).start()
 
-            # ---- NON-SHAPEFILE CASE ----
-            else:
-                source_bytes = _download_bytes(source_url)
-                info = tarfile.TarInfo(name=source_name)
-                info.size = len(source_bytes)
-                tar.addfile(info, BytesIO(source_bytes))
+    def generate():
+        with os.fdopen(r_fd, "rb") as r:
+            while True:
+                chunk = r.read(1024 * 1024)
+                if not chunk:
+                    break
+                yield chunk
 
-            # ---- YAML METADATA ----
-            if meta_url:
-                meta_bytes = _try_download(meta_url)
-                if meta_bytes is not None:
-                    info = tarfile.TarInfo(name=meta_name)
-                    info.size = len(meta_bytes)
-                    tar.addfile(info, BytesIO(meta_bytes))
-
-    except Exception as e:
-        log.exception("Failed to build source tar")
-        return Response(
-            f"Failed to build tar archive.\n\n{e}",
-            status=502,
-            mimetype="text/plain",
-        )
-
-    tbuf.seek(0)
-    bundle_name = f"{os.path.basename(source_name.replace('.', '_'))}_with_metadata.tar"
-    return send_file(
-        tbuf,
-        as_attachment=True,
-        download_name=bundle_name,
+    return Response(
+        stream_with_context(generate()),
         mimetype="application/x-tar",
+        headers=headers,
+        direct_passthrough=True,
     )
+
