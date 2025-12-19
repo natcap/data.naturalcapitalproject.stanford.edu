@@ -13,3 +13,4 @@ env310
 *~
 venv
 node_modules
+api-scripts/__pycache__/construct_mappreview.cpython-311.pyc
