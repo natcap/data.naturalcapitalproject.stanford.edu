@@ -10,15 +10,6 @@ def _is_yaml_name(name: str) -> bool:
     return n.endswith(".yml") or n.endswith(".yaml")
 
 
-def _strip_yaml_suffix(name: str) -> str:
-    # returns 'foo.tif' for 'foo.tif.yml'
-    if name.lower().endswith(".yaml"):
-        return name[:-5]
-    if name.lower().endswith(".yml"):
-        return name[:-4]
-    return name
-
-
 def natcap_find_attached_metadata_map(pkg_dict: dict) -> dict:
     """
     Return a mapping {data_resource_id: metadata_resource_dict}

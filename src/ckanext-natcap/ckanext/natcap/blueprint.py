@@ -129,7 +129,7 @@ def bundle_tar(resource_id):
             tar.addfile(y_info, BytesIO(y_bytes))
 
     tbuf.seek(0)
-    bundle_name = f"{name.replace(".zip", '')}_with_metadata.tar"
+    bundle_name = f"{name.replace('.zip', '')}_with_metadata.tar"
     return send_file(
         tbuf,
         as_attachment=True,
