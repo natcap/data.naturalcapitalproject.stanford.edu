@@ -1,15 +1,16 @@
-from flask import Blueprint, Response, abort, send_file, redirect, request, stream_with_context
+from flask import Blueprint, Response, abort, send_file, request, stream_with_context
 from ckan.plugins import toolkit
 import requests, os
 from io import BytesIO
-import tarfile
-import zipfile
+import logging
 import re
+import tarfile
+import tempfile
+import threading
+import zipfile
 from urllib.parse import urlparse
 
-import logging
 log = logging.getLogger(__name__)
-
 bp = Blueprint("natcap", __name__)
 
 
@@ -17,25 +18,22 @@ SHAPEFILE_PART_EXTS = [
     ".shp", ".dbf", ".shx", ".prj", ".cpg", ".qix", ".sbn", ".sbx"
 ]
 
-import tempfile
-import threading
-from ckan.common import config
-
 DEFAULT_TIMEOUT = (10, 600)  # (connect, read) seconds
+
 
 def _filename_from_url(url: str) -> str:
     path = urlparse(url).path
     return os.path.basename(path) or "file"
 
-def _sanitize_local_resource_url(resource_url: str) -> str:
-    if not resource_url:
-        return resource_url
-    m = re.match(r'^https?://localhost(?::\d+)?/(.*)$', resource_url)
-    if m:
-        path_only = m.group(1)
-        internal_base = 'http://localhost:5000'
-        return f"{internal_base.rstrip('/')}/{path_only.lstrip('/')}"
-    return resource_url
+
+def _stream_get(url: str) -> requests.Response:
+    """GET streaming response (caller must close)."""
+    r = requests.get(url, stream=True, timeout=DEFAULT_TIMEOUT)
+    r.raise_for_status()
+    # ensure transparent decompression doesn’t break sizes
+    r.raw.decode_content = False
+    return r
+
 
 def _head_content_length(url: str) -> int | None:
     """Return Content-Length if available and parseable."""
@@ -49,17 +47,11 @@ def _head_content_length(url: str) -> int | None:
     except Exception:
         return None
 
-def _stream_get(url: str) -> requests.Response:
-    """GET streaming response (caller must close)."""
-    r = requests.get(url, stream=True, timeout=DEFAULT_TIMEOUT)
-    r.raise_for_status()
-    # ensure transparent decompression doesn’t break sizes
-    r.raw.decode_content = False
-    return r
 
 def _add_url_as_tar_member(tar: tarfile.TarFile, url: str, arcname: str):
     """
     Add a URL to a tar stream.
+
     Uses Content-Length for true streaming when possible;
     otherwise spools to disk for that member.
     """
@@ -94,21 +86,6 @@ def _add_url_as_tar_member(tar: tarfile.TarFile, url: str, arcname: str):
         ti = tarfile.TarInfo(name=arcname)
         ti.size = size
         tar.addfile(ti, fileobj=tmp)
-
-
-
-def _replace_basename(url: str, new_name: str) -> str:
-    """Replace only the filename portion of a URL."""
-    base = url.rsplit("/", 1)[0]
-    return f"{base}/{new_name}"
-
-
-def _try_download(url: str):
-    try:
-        return _download_bytes(url)
-    except Exception as e:
-        log.info(f"Skipping missing sidecar: {url} ({e})")
-        return None
 
 
 def _resource_show(res_id):
@@ -188,42 +165,6 @@ def _collect_shapefile_parts(pkg_resources: list[dict], shp_filename: str) -> li
         f = _filename_from_resource(r).lower()
         return (0 if f.endswith(".shp") else 1, f)
     return sorted(parts, key=sort_key)
-
-
-@bp.route("/bundle/<resource_id>")
-def bundle_zip(resource_id):
-    """ZIP = data file + its '<filename>.yml' if present."""
-    data_res = _resource_show(resource_id)
-
-    # Find attached metadata by filename inside the same package
-    pkg = toolkit.get_action("package_show")({}, {"id": data_res["package_id"]})
-    resources = pkg.get("resources", []) or []
-
-    name = data_res.get("name") or os.path.basename(data_res.get("url",""))
-    candidates = [f"{name}.yml", f"{name}.yaml"]
-
-    meta_res = None
-    for r in resources:
-        rname = r.get("name") or os.path.basename(r.get("url","")) or ""
-        if rname in candidates:
-            meta_res = r
-            break
-
-    zbuf = BytesIO()
-    with zipfile.ZipFile(zbuf, "w", zipfile.ZIP_DEFLATED) as z:
-        # data
-        data_bytes = _download_bytes(data_res["url"])
-        data_name = name
-        z.writestr(data_name, data_bytes)
-
-        # metadata
-        if meta_res and meta_res.get("url"):
-            yname = meta_res.get("name") or "metadata.yml"
-            z.writestr(yname, _download_bytes(meta_res["url"]))
-
-    zbuf.seek(0)
-    bundle_name = f"{name}_with_metadata.zip"
-    return send_file(zbuf, as_attachment=True, download_name=bundle_name, mimetype="application/zip")
 
 
 @bp.route("/bundle-tar/<resource_id>")
@@ -389,7 +330,8 @@ def bundle_source_tar():
                                 os.path.join(shp_dir, part_name)
                                 if shp_dir else part_name
                             )
-                            part_url = _replace_basename(source_url, part_name)
+                            part_url = f"{source_url.rsplit("/", 1)[0]}/{part_name}"
+
                             # try adding sidecars; if 404/403 skip quietly
                             try:
                                 _add_url_as_tar_member(tar, part_url, tar_path)
