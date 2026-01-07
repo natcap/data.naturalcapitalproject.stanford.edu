@@ -545,7 +545,7 @@ body {
 
 .home-invest-model-list {
     column-count: 2;
-    margin: 10 0 0 0;
+    margin: 0;
     padding: 0;
 }
 
@@ -1253,6 +1253,10 @@ div.logo a {
     }
 }
 
+
+div#invest-model-lists{
+    margin-top: 10px;
+}
 
 /* Undo the display:none on the tab-content class elsewhere in CKAN CSS */
 div#invest-model-lists.tab-content {
