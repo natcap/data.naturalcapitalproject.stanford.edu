@@ -299,7 +299,7 @@ body {
 .resources .nested-source-list > li > .src-acc > .src-summary,
 .resources .nested-source-list > li.src-file > a.heading {
     padding-left: calc(var(--base) + var(--level) * var(--step));
-} 
+}
 
 .resources .nested-source-item {
     display: flex;
@@ -545,7 +545,7 @@ body {
 
 .home-invest-model-list {
     column-count: 2;
-    margin: 0;
+    margin: 10 0 0 0;
     padding: 0;
 }
 
@@ -1284,7 +1284,7 @@ div#invest-model-list-container div {
     align-items:center;
     gap:0.5rem;
     min-width:0;
-    overflow:hidden;            
+    overflow:hidden;
  }
 
 
