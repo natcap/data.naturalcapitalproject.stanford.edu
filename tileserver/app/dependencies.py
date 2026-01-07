@@ -69,6 +69,11 @@ def ColorMapParams(
 
 ALLOWED_PREFIXES = (
     'https://storage.googleapis.com/natcap-data-cache',
+    'https://data.naturalcapitalalliance.stanford.edu',
+    'http://data.naturalcapitalalliance.stanford.edu',
+    'https://data.naturalcapitalproject.stanford.edu',
+    'http://data.naturalcapitalproject.stanford.edu',
+
 )
 
 def DatasetPathParams(url: Annotated[str, Query(description="Dataset URL")]) -> str:
