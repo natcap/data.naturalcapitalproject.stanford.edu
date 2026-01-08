@@ -2,18 +2,39 @@
 
 {% block resource_item_title %}
   {% set name_or_id = res.name or res.id %}
-  <a class="heading" href="{{ res.url }}" aria-label="{{ _('Download resource: {name_or_id}').format(name_or_id=name_or_id)}}">
-    <div class="resource-item-description">
-      <div class="resource-item-type">
-        {% snippet 'package/snippets/source_type_badge.html', ext=h.natcap_get_resource_type_icon_slug(res.url) %}
+  {% set attached_meta = meta_map.get(res.id) %}
+  <div class="resource-row">
+    <a class="heading resource-link"
+       href="{{ res.url }}"
+       aria-label="{{ _('Download resource: {name_or_id}').format(name_or_id=name_or_id)}}">
+      <div class="resource-item-description">
+        <div class="resource-item-type">
+          {% snippet 'package/snippets/source_type_badge.html', ext=h.natcap_get_resource_type_icon_slug(res.url) %}
+        </div>
+        <div class="resource-item-name">
+          {{ h.natcap_get_filename(res.url) }}
+        </div>
       </div>
-      <div class="resource-item-name">
-        {{ h.natcap_get_filename(res.url) }}
-      </div>
+    </a>
+    <div class="icon-actions">
+      {% if attached_meta %}
+        <div class="js-metadata-preview"
+          title="preview metadata"
+          href="#"
+          data-meta-id="{{ attached_meta.id }}"
+          data-meta-name="{{ attached_meta.name }}"
+          data-meta-url="{{ attached_meta.url}}">
+          <i class="fa fa-info-circle" title="Preview metadata"></i>
+        </div>
+      {% endif %}
+      <a class="icon-button icon-button-bundle"
+        title="Download data + metadata (.tar)"
+        href="{{ h.url_for('natcap.bundle_tar', resource_id=res.id) }}">
+        <i class="fa fa-download" aria-hidden="true"></i>
+        <span class="sr-only">Data + metadata (.tar)</span>
+      </a>
     </div>
-    <div class="icon-button icon-button-download">
-    </div>
-  </a>
+</div>
 
   {% set sources = h.get_pkg_dict_extra(c.pkg_dict, 'sources', '') %}
   {% set parsed_sources = h.zipexpand_parse_sources(sources, res) %}

@@ -19,6 +19,8 @@ from ckan.lib.helpers import _url_with_params
 from ckan.lib.helpers import helper_functions as h
 from ckan.lib.helpers import url_for
 from ckan.types import Schema
+from .helpers import get_helpers as get_natcap_helpers
+from .blueprint import bp as natcap_bp
 
 from .update_dataset import update_dataset
 
@@ -439,6 +441,7 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
     plugins.implements(plugins.ITemplateHelpers)
     plugins.implements(plugins.IActions)
     plugins.implements(plugins.IValidators)
+    plugins.implements(plugins.IBlueprint)
 
     # IConfigurer
 
@@ -516,7 +519,7 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
             'natcap_parse_json': parse_json,
             'natcap_convert_list_to_string': convert_list_to_string,
             'natcap_get_file_downloadability': get_file_downloadability,
-        }
+        } | get_natcap_helpers()
 
     def dataset_facets(self, facets_dict, package_type):
         facets_dict['extras_sources_res_formats'] = toolkit._('Resource Formats')
@@ -558,6 +561,9 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
     # doesn't use self.
     def after_dataset_update(self, context, package):
         NatcapPlugin._after_dataset_update(context, package)
+
+    def get_blueprint(self):
+        return [natcap_bp]
 
     @staticmethod
     def _after_dataset_update(context, package):

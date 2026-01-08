@@ -1,5 +1,14 @@
 {# All directories are collapsible (closed by default); files are normal rows. #}
 
+{% set sources_meta_map = h.natcap_find_source_metadata_map(sources) %}
+
+{# Build list of all attached YAML IDs #}
+{% set ns = namespace(attached_yaml_ids=[]) %}
+{% for _data_id, meta_res in sources_meta_map.items() %}
+  {% set _ = ns.attached_yaml_ids.append(meta_res['name']) %}
+{% endfor %}
+
+
 <ol class="nested-source-list indent-{{ indent }}">
   {% for source in sources %}
     {% set name = source.name or '' %}
@@ -10,7 +19,11 @@
     {% else %}
       {% set label = name.rsplit('/', 1)[-1].rsplit('.', 1)[0] %}
     {% endif %}
-   
+
+    {% set name_l = (source.name or '')|lower %}
+    {% set attached_meta = sources_meta_map.get(source.name) %}
+
+    {# Hide only if this YAML is one of the attached YAMLs #}
     {% if is_dir or h.natcap_show_resource(name) %}
       {% if is_dir %}
         <li class="nested-source-item src-folder" data-level="{{ indent }}">
@@ -23,51 +36,100 @@
                 </div>
                 <div class="resource-item-name">{{ label }}</div>
               </div>
-              {% set gate = h.natcap_get_file_downloadability(c.pkg_dict, source) %}
-              {% if gate.url %}
-                <a class="icon-button icon-button-download"
-                  href="{{ gate.url }}"
-                  title="{{ _('Download folder') }}"
-                  aria-label="{{ _('Download folder: {name}').format(name=label) }}">
-                </a>
-              {% endif %}
-              <!--  Optional: show a download icon if this folder has a URL  -->
+              <div class="icon-actions">
+                {# ADD METADATA PREVIEW ICON FOR DIRECTORIES #}
+                {% set gate = h.natcap_get_file_downloadability(c.pkg_dict, source) %}
+                {% if attached_meta %}
+                  <div class="js-metadata-preview"
+                    title="preview metadata"
+                    data-meta-id="{{ attached_meta.id }}"
+                    data-meta-name="{{ attached_meta.name }}"
+                    data-meta-url="{{ attached_meta.url }}">
+                    <i class="fa fa-info-circle" title="Preview metadata"></i>
+                  </div>
+                {% endif %}
+                {% if gate.url %}
+                {# TODO fix this: bundle all files within dir #}
+                  <a class="icon-button icon-button-bundle"
+                    title="Download data + metadata (.tar)"
+                    href="{{ h.url_for('natcap.bundle_source_tar') }}?source_url={{ gate.url|urlencode }}&source_name={{ source.name|urlencode }}{% if attached_meta %}&meta_url={{ attached_meta.url|urlencode }}&meta_name={{ attached_meta.name|urlencode }}{% endif %}">
+                    <i class="fa fa-download" aria-hidden="true"></i>
+                    <span class="sr-only">Data + metadata (.tar)</span>
+                  </a>
+                {% endif %}
+              </div>
             </summary>
             <div class="resource-directory-contents">
-              {% snippet 'package/snippets/sources_list.html', sources=children, indent=indent+1 %}
+              {% snippet 'package/snippets/sources_list.html', sources=children, indent=indent+1%}
             </div>
           </details>
         </li>
-      {% else %}
-        <li class="nested-source-item src-file" data-level="{{ indent }}">
-          {% set gate = h.natcap_get_file_downloadability(c.pkg_dict, source) | default({'allowed': True}, true) %}
-          {% if gate.allowed %}
-            <a class="heading" href="{{ source.url }}" aria-label="{{ _('Download resource: {fn}').format(fn=name) }}">
-              <div class="resource-item-description">
-                {% if h.natcap_show_icon(name) %}
-                  <div class="resource-item-type">
-                    <img src="/img/icon-filetype-{{ h.natcap_get_resource_type_icon_slug(name) }}.png" alt="" />
-                    {{ h.natcap_get_ext(name) }}
+        {% else %}
+          {% if not (source.name in ns.attached_yaml_ids) %}
+            <li class="nested-source-item src-file" data-level="{{ indent }}">
+              {% set gate = h.natcap_get_file_downloadability(c.pkg_dict, source) | default({'allowed': True}, true) %}
+              {% if gate.allowed %}
+                <div class="resource-row">
+                  <a class="heading resource-link" href="{{ source.url }}" aria-label="{{ _('Download resource: {fn}').format(fn=name) }}">
+                    <div class="resource-item-description">
+                      {% if h.natcap_show_icon(name) %}
+                        <div class="resource-item-type">
+                          <img src="/img/icon-filetype-{{ h.natcap_get_resource_type_icon_slug(name) }}.png" alt="" />
+                          {{ h.natcap_get_ext(name) }}
+                        </div>
+                      {% endif %}
+                      <div class="resource-item-name">{{ label }}</div>
+                    </div>
+                  </a>
+                  <div class="icon-actions">
+                    {# ADD METADATA PREVIEW ICON HERE #}
+                    {% if attached_meta %}
+                      <div class="js-metadata-preview"
+                        title="preview metadata"
+                        data-meta-id="{{ attached_meta.id }}"
+                        data-meta-name="{{ attached_meta.name }}"
+                        data-meta-url="{{ attached_meta.url }}">
+                        <i class="fa fa-info-circle" title="Preview metadata"></i>
+                      </div>
+                    {% endif %}
+                    <a class="icon-button icon-button-bundle"
+                      title="Download data + metadata (.tar)"
+                      href="{{ h.url_for('natcap.bundle_source_tar') }}?source_url={{ source.url|urlencode }}&source_name={{ source.name|urlencode }}{% if attached_meta %}&meta_url={{ attached_meta.url|urlencode }}&meta_name={{ attached_meta.name|urlencode }}{% endif %}">
+                      <i class="fa fa-download" aria-hidden="true"></i>
+                      <span class="sr-only">Data + metadata (.tar)</span>
+                    </a>
                   </div>
-                {% endif %}
-                <div class="resource-item-name">{{ label }}</div>
-              </div>
-              <div class="icon-button icon-button-download"></div>
-            </a>
-          {% else %}
-            <div class="heading is-disabled" title="{{ gate.reason or _('Download not permitted') }}">
-              <div class="resource-item-description">
-                {% if h.natcap_show_icon(name) %}
-                  <div class="resource-item-type">
-                    <img src="/img/icon-filetype-{{ h.natcap_get_resource_type_icon_slug(name) }}.png" alt="" />
-                    {{ h.natcap_get_ext(name) }}
+                </div>
+                {% else %}
+                {# NOT DOWNLOADABLE #}
+                <a class="heading is-disabled"
+                   href="javascript:void(0);"
+                   aria-disabled="true"
+                   title="{{ gate.reason or _('Download not permitted') }}">
+                  <div class="resource-item-description">
+                    {% if h.natcap_show_icon(name) %}
+                      <div class="resource-item-type">
+                        <img src="/img/icon-filetype-{{ h.natcap_get_resource_type_icon_slug(name) }}.png" alt="" />
+                        {{ h.natcap_get_ext(name) }}
+                      </div>
+                    {% endif %}
+                    <div class="resource-item-name">{{ label }}</div>
                   </div>
-                {% endif %}
-                <div class="resource-item-name">{{ label }}</div>
-              </div>
-            </div>
+                  <div class="icon-actions">
+                    {% if attached_meta %}
+                      <div class="js-metadata-preview"
+                        title="preview metadata"
+                        data-meta-id="{{ attached_meta.id }}"
+                        data-meta-name="{{ attached_meta.name }}"
+                        data-meta-url="{{ attached_meta.url }}">
+                        <i class="fa fa-info-circle" title="Preview metadata"></i>
+                      </div>
+                    {% endif %}
+                  </div>
+                </a>
+              {% endif %}
           {% endif %}
-        </li>
+          </li>
       {% endif %}
     {% endif %}
   {% endfor %}

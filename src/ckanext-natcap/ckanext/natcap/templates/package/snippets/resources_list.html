@@ -1,3 +1,12 @@
+{# Build the map once per page #}
+{% set meta_map = h.natcap_find_attached_metadata_map(pkg) %}
+
+{# Build a list of YAML resource IDs to hide (values of meta_map) #}
+{% set ns = namespace(attached_yaml_ids=[]) %}
+{% for _data_id, meta_res in meta_map.items() %}
+  {% set _ = ns.attached_yaml_ids.append(meta_res['id']) %}
+{% endfor %}
+
 <section id="dataset-resources" class="resources">
   <div class="module-narrow">
     <div class="module-content">
@@ -6,11 +15,16 @@
         {% if resources %}
           <ul class="{% block resource_list_class %}resource-list{% endblock %}">
             {% block resource_list_inner %}
-              {% set can_edit = can_edit or h.check_access('package_update', {'id':pkg.id }) %}
               {% for resource in resources %}
-                {% snippet 'package/snippets/resource_item.html', pkg=pkg, res=resource, can_edit=can_edit %}
-              {% endfor %}
-            {% endblock %}
+                {% set name_l = (resource.name or '')|lower %}
+                {% set is_yaml = name_l.endswith('.yml') or name_l.endswith('.yaml') %}
+                {# hide only if this YAML is one of the attached YAMLs #}
+                {% if not (is_yaml and resource.id in ns.attached_yaml_ids) %}
+                  {% snippet 'package/snippets/resource_item.html',
+                    pkg=pkg, res=resource, meta_map=meta_map %}
+                {% endif %}
+            {% endfor %}
+          {% endblock %}
           </ul>
         {% else %}
           {% block resource_list_empty %}

@@ -214,21 +214,32 @@ body {
     border-bottom: none;
 }
 
-.resources .resource-list li a {
+/* Only the main row link should be flex */
+.resources .resource-list li > a.heading {
     display: flex;
     flex-direction: row;
     align-items: center;
     gap: 1rem;
     justify-content: space-between;
     max-width: 100%;
-}
+  }
+  
+  /* Any other anchors in the row (icons, dropdown toggles) should be inline */
+  .resources .resource-list li a:not(.heading) {
+    display: inline-flex;      /* or inline-block */
+    align-items: center;
+    justify-content: center;
+    max-width: none;
+  }
+
+  
 
 .resources .resource-list .icon-group {
   display: flex;
 }
 
 .resource-item {
-    overflow: hidden;
+    overflow: visible;
     text-overflow: ellipsis;
 }
 
@@ -292,10 +303,14 @@ body {
 .resources .nested-source-list.indent-0 { --level: 0; }
 .resources .nested-source-list.indent-1 { --level: 1; }
 .resources .nested-source-list.indent-2 { --level: 2; }
-.resources .nested-source-list.indent-2 { --level: 3; }
+.resources .nested-source-list.indent-3 { --level: 3; }
+.resources .nested-source-list.indent-4 { --level: 4; }
 
 
 /* Apply indent to the entire row so caret + icon + name move together */
+.resources .nested-source-list > li.src-folder > details.src-acc > summary.src-summary,
+.resources .nested-source-list > li.src-file > .resource-row,
+.resources .nested-source-list > li.src-file > a.heading.is-disabled,
 .resources .nested-source-list > li > .src-acc > .src-summary,
 .resources .nested-source-list > li.src-file > a.heading {
     padding-left: calc(var(--base) + var(--level) * var(--step));
@@ -1038,7 +1053,8 @@ footer#footer-su {
     max-height: 1.1rem;
 }
 
-.icon-button {
+.icon-button,
+.js-metadata-preview {
     appearance: none;
     border: none;
     cursor: pointer;
@@ -1048,10 +1064,19 @@ footer#footer-su {
     border-radius: 2px;
     height: 1.25rem;
     width: 1.25rem;
+    color: #000;
 }
 
-.icon-button:hover {
+.js-metadata-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-button:hover,
+.js-metadata-preview:hover {
     background-color: var(--color-light-gray);
+    color:#007C92
 }
 
 .icon-button-list-on {
@@ -1309,6 +1334,49 @@ div#invest-model-list-container div {
     padding-left: calc(var(--base) + var(--level) * var(--step));
   }
 
+.btn-group {
+    height: 25px;
+    vertical-align: center;
+    display: inline-flex;
+    margin-right: 30px;
+}
+
+.modal-dialog {
+    /* max-width: 1200px; */
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 10%;
+    padding-right: 10%;
+}
+
+/* Group metadata and download icons together on the right */
+.icon-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto; /* Push to right */
+}
+
+
+/* allow the metadata icon to still be interactive */
+.heading.is-disabled .js-metadata-preview {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.resources .resource-list li .resource-row {
+    display: flex;
+}
+  
+.resources .resource-list li .resource-link {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+  
 .package-description {
     overflow-wrap: anywhere;
     word-break: break-word;
