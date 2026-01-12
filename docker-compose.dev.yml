@@ -37,6 +37,9 @@ services:
     env_file:
       - .env
     environment:
+      - UWSGI_HARAKIRI=7200
+      - UWSGI_SOCKET_TIMEOUT=7200
+      - UWSGI_HTTP_TIMEOUT=7200
       - CKANEXT__MAPPREVIEW__CLIPPING_SERVICE_URL=http://localhost:8000
     depends_on:
       db:
