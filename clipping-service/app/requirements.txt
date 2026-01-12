@@ -5,4 +5,4 @@ humanize
 flask_cors
 pyyaml
 uvicorn
-gunicorn
+gunicorn >= 22

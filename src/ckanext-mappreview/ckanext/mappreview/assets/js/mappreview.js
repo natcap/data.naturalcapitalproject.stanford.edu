@@ -159,9 +159,6 @@ ckan.module("mappreview", function ($, _) {
         container: 'map',
         style: globalConfig.mapbox_style,
         bounds: config.map.bounds,
-        zoom: config.map.minzoom + 2,
-        minZoom: config.map.minzoom,
-        maxZoom: config.map.maxzoom,
       });
       map.addControl(new mapboxgl.FullscreenControl({}), 'top-left');
       map.addControl(new mapboxgl.ScaleControl({maxWidth: 80, unit: 'metric'}), 'bottom-left');
@@ -263,8 +260,9 @@ ckan.module("mappreview", function ($, _) {
           }
       }
 
-        if (isGlobal(boundsArray)){
-          map.setCenter([0,0], {zoom:1})
+        if (isGlobal(boundsArray)) {
+          map.setCenter([0,0]);
+          map.setMinZoom(1);
           let userInteracting = false;
           spinGlobe(userInteracting);
           // Stop spinning if user moves mouse onto map
@@ -277,15 +275,13 @@ ckan.module("mappreview", function ($, _) {
             spinGlobe(userInteracting);
           });
         } else if (config.layers.length === 1 && config.layers[0].type === 'vector' && (
-          'center_lat_lon' in layers[0])){
+          'center_lat_lon' in layers[0])) {
           const centerLatLon =  layers[0].center_lat_lon;
           if (centerLatLon) {
             // mapbox uses long, lat format
             map.setCenter([centerLatLon[1], centerLatLon[0]]);
-            // zoom level conservatively set to the min zoom of full dataset
-            map.setZoom(config.map.minzoom);
           }
-        } else{ // bounds aren't global, and map doesn't just show 1 vector layer
+        } else { // bounds aren't global, and map doesn't just show 1 vector layer
           map.fitBounds(boundsArray, { padding: 20, linear: true});
         }
 
