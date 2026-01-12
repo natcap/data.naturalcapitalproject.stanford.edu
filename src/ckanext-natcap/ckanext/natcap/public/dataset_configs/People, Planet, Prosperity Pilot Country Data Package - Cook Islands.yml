@@ -1,0 +1,7 @@
+# Default policy if no rule matches
+defaults:
+  allow: true
+  # Note: folders are _not_ downloadable by default (assumes no zipfile created)
+
+layers_to_preview:
+- Cook_Islands_3Ps_data_pkg/Model_inputs_outputs/FloodRisk_Raro_Muri/FloodRisk_inputs/watersheds_Muri/watersheds_Muri.shp

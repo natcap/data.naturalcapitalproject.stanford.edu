@@ -1373,3 +1373,7 @@ div#invest-model-list-container div {
     gap: 1rem;
 }
   
+.package-description {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}

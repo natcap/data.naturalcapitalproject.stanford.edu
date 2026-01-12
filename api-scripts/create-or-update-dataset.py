@@ -3,7 +3,7 @@
 If the dataset already exists, then its attributes are updated.
 
 Dependencies:
-    $ mamba install ckanapi pyyaml google-cloud-storage requests gdal pygeoprocessing
+    $ mamba install ckanapi pyyaml google-cloud-storage requests gdal pygeoprocessing rio-tiler
 
 Note:
     You will need to authenticate with the google cloud api in order to do
@@ -12,6 +12,8 @@ Note:
     at your shell:
 
         $ gcloud auth application-default login
+
+    rio-tiler is a dependency of construct_mappreview, upon which this script relies
 """
 import argparse
 import collections
@@ -35,6 +37,8 @@ from google.cloud import storage  # mamba install google-cloud-storage
 from osgeo import gdal
 from osgeo import ogr
 from osgeo import osr
+
+from construct_mappreview import get_mappreview_metadata
 
 logging.basicConfig(level=logging.DEBUG)
 LOGGER = logging.getLogger(os.path.basename(__file__))
@@ -398,12 +402,37 @@ def _get_median_latlon_bounds(vector_path):
 def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
          verify_ssl=True):
     with open(gmm_yaml_path) as yaml_file:
-        LOGGER.debug(f"Loading geometamaker yaml from {gmm_yaml_path}")
+        LOGGER.info(f"Loading geometamaker yaml from {gmm_yaml_path}")
         gmm_yaml = yaml.load(yaml_file.read(), Loader=yaml.Loader)
 
     session = requests.Session()
     session.headers.update({'Authorization': ckan_apikey})
     session.verify = verify_ssl
+
+    config_yaml = {}
+    possible_config_path = f"{ckan_url}/dataset_configs/{gmm_yaml['title']}.yml"
+    resp = session.get(possible_config_path)
+    if resp.ok:
+        LOGGER.info(f"Loading config yaml from {possible_config_path}")
+        content = resp.content.decode("utf-8")
+        config_yaml = yaml.safe_load(content)
+
+        # If config includes `layers_to_preview`, verify that the sources all
+        # appear in the gmm_yaml
+        if config_yaml.get('layers_to_preview'):
+            missing_sources = [path for path in config_yaml.get('layers_to_preview')
+                               if path not in gmm_yaml['sources']]
+            if missing_sources:
+                raise ValueError("Sources were included in the config file that "
+                                 "are not included in the Geometamaker YAML 'sources': "
+                                 f"{missing_sources}")
+        else:
+            LOGGER.warning("Config file contains no 'layers_to_preview' key. "
+                           "All layers will be included in the mappreview extra.")
+
+    else:
+        LOGGER.info(f"No config file found at {possible_config_path}")
+
     with RemoteCKAN(ckan_url, apikey=ckan_apikey, session=session) as catalog:
         if 'natcap' not in catalog.action.organization_list():
             _ = catalog.action.organization_create(
@@ -536,9 +565,20 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
                 resources.append(_create_resource_dict_from_file(
                     source_path, label, upload=True))
 
+        extras = []
+
+        # Construct the mappreview extra. If a config file was passed and includes
+        # `layers_to_preview`, only include those layers
+        mappreview_layers_meta = get_mappreview_metadata(
+            resources, gmm_yaml['sources'], config_yaml.get('layers_to_preview'))
+        if mappreview_layers_meta:
+            extras.append({
+                'key': 'mappreview',
+                'value': json.dumps(mappreview_layers_meta)
+            })
+
         # We can define the bbox as a polygon using
         # ckanext-spatial's spatial extra
-        extras = []
         try:
             if get_from_config(gmm_yaml, 'spatial.bounding_box'):
                 extras.append({

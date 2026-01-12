@@ -1,18 +1,17 @@
 mappreview-js:
-  filter: rjsmin
-  output: ckanext-mappreview/%(version)s-mappreview.js
   contents:
     - js/vendor/mapbox-gl.js
     - js/vendor/mapbox-gl-legend.js
     - js/mappreview.js
+  filters: rjsmin
+  output: ckanext-mappreview/%(version)s-mappreview.js
   extra:
     preload:
       - base/main
 
 mappreview-css:
-  filter: cssrewrite
-  output: ckanext-mappreview/%(version)s-mappreview.css
   contents:
     - css/vendor/mapbox-gl.css
     - css/vendor/mapbox-gl-legend.css
     - css/mappreview.css
+  output: ckanext-mappreview/%(version)s-mappreview.css
