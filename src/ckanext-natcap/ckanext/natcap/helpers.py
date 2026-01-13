@@ -29,27 +29,26 @@ def natcap_find_attached_metadata_map(pkg_dict: dict) -> dict:
     for r in resources:
         n = r.get("name") or os.path.basename(r.get("url", "")) or ""
         if _is_yaml_name(n):
-            yaml_by_name[n] = r
+            yaml_by_name[n.lower()] = r
 
     attached = {}
     for r in resources:
         # Determine the data filename we will match against
         name = r.get("name") or os.path.basename(r.get("url", "")) or ""
-        low = name.lower()
+        name_lower = name.lower()
 
         # Only attach metadata to the main file for shapefiles
-        if low.endswith(".shx") or low.endswith(".dbf") or low.endswith(".prj") or low.endswith(".cpg"):
+        if name_lower.endswith(".shx") or name_lower.endswith(".dbf") or name_lower.endswith(".prj") or name_lower.endswith(".cpg"):
             continue
 
         # Try both extensions
-        candidates = [f"{name}.yml", f"{name}.yaml"]
+        candidates = [f"{name_lower}.yml", f"{name_lower}.yaml"]
         for cand in candidates:
             meta = yaml_by_name.get(cand)
             if meta:
                 attached[r["id"]] = meta
                 break
 
-    print(f"returning attached {attached}")
     return attached
 
 
@@ -94,10 +93,10 @@ def natcap_find_source_metadata_map(sources):
 
             # Try to find matching YAML (try both .yml and .yaml)
             candidates = [
-                f"{name_lower}.yml".lower(),
-                f"{name_lower}.yaml".lower(),
-                f"{name_lower}-metadata.yml".lower(),
-                f"{name_lower}-metadata.yaml".lower()
+                f"{name_lower}.yml",
+                f"{name_lower}.yaml",
+                f"{name_lower}-metadata.yml",
+                f"{name_lower}-metadata.yaml"
             ]
 
             for candidate in candidates:
