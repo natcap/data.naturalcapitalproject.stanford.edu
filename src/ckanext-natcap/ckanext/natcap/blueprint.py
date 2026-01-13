@@ -76,18 +76,15 @@ def _validate_outbound_url(url: str) -> str:
     if not _host_allowed(host):
         abort(403, "Host not allowed")
     if host == "storage.googleapis.com":
-        # path is like /bucket_name/obj...
         parts = (u.path or "").lstrip("/").split("/", 1)
         bucket_name = parts[0] if parts else ""
         if bucket_name != ALLOWED_GCS_BUCKET:
-            abort(403, "GCS bucket not allowed", parts)
+            abort(403, "GCS bucket not allowed")
 
-    if not _host_resolves_to_public_ips(host):
-        abort(403, "Host resolves to a disallowed IP range")
-
-    # Optional: restrict ports
-    if u.port and u.port not in (80, 443):
-        abort(403, "Port not allowed")
+    # allow internal hosts without public ip check
+    if host not in ("localhost", "ckan"):
+        if not _host_resolves_to_public_ips(host):
+            abort(403, "Host resolves to a disallowed IP range")
 
     return url
 
@@ -99,6 +96,7 @@ def _filename_from_url(url: str) -> str:
 
 def _stream_get(url: str) -> requests.Response:
     """GET streaming response (caller must close)."""
+    url = _validate_outbound_url(url)
     r = requests.get(url, stream=True, timeout=DEFAULT_TIMEOUT,
                      headers={"Accept-Encoding": "identity",
                               "X-Accel-Buffering": "no"})
@@ -321,6 +319,11 @@ def _stream_tar_response(out_name: str, build_tar_fn):
             log.info("Client disconnected during tar stream")
         except Exception:
             log.exception("Tar stream writer failed")
+        finally:
+            try:
+                os.close(w_fd)
+            except Exception:
+                pass
 
     threading.Thread(target=writer, daemon=True).start()
 
@@ -479,7 +482,6 @@ def bundle_source_tar():
     Supports shapefiles by including all sidecar parts.
     """
     source_url = request.args.get("source_url", "")
-    source_url = _validate_outbound_url(source_url)
     source_name = (
         request.args.get("source_name")
         or _filename_from_url(source_url)
@@ -491,8 +493,6 @@ def bundle_source_tar():
 
     meta_url = request.args.get("meta_url")
     meta_name = request.args.get("meta_name") or f"{source_name}.yml"
-    if meta_url:
-        meta_url = _validate_outbound_url(meta_url)
 
     # Direct download (no tar) if no metadata and not a shapefile
     if not meta_url and not source_name.lower().endswith(".shp"):
