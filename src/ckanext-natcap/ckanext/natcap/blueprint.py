@@ -2,16 +2,16 @@ from flask import Blueprint, Response, abort, send_file, request, stream_with_co
 from ckan.plugins import toolkit
 import requests, os
 from io import BytesIO
+import ipaddress
+import json
 import logging
 import re
+import socket
 import tarfile
 import tempfile
 import threading
-from urllib.parse import urlparse
-
-#new
-import json
 import time
+from urllib.parse import urlparse
 
 log = logging.getLogger(__name__)
 bp = Blueprint("natcap", __name__)
@@ -21,9 +21,75 @@ SHAPEFILE_PART_EXTS = [
     ".shp", ".dbf", ".shx", ".prj", ".cpg", ".qix", ".sbn", ".sbx"
 ]
 
-DEFAULT_TIMEOUT = (600, 7200)  # (connect, read) seconds
+DEFAULT_TIMEOUT = (60, 7200)  # (connect, read) seconds
 LARGE_MEMBER_BYTES = 512 * 1024 * 1024  # 512MB
 MAX_RETRIES = 3
+
+ALLOWED_URL_HOSTS = {
+    "localhost",
+    "ckan",
+    "data.naturalcapitalalliance.stanford.edu",
+    "storage.googleapis.com",
+}
+ALLOWED_GCS_BUCKET = "natcap-data-cache"
+
+
+def _host_allowed(host: str) -> bool:
+    if not host:
+        return False
+    host = host.lower().strip(".")
+    if host in ALLOWED_URL_HOSTS:
+        return True
+
+
+def _host_resolves_to_public_ips(host: str) -> bool:
+    """Resolve host and ensure *all* A/AAAA records are public-ish."""
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        return False
+
+    addrs = {info[4][0] for info in infos}  # unique IP strings
+    for ip_str in addrs:
+        ip = ipaddress.ip_address(ip_str)
+        # reject multicast/unspecified/reserved/private/linklocal/etc
+        if (
+            ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast
+            or ip.is_unspecified or ip.is_reserved
+        ):
+            return False
+    return True
+
+
+def _validate_outbound_url(url: str) -> str:
+    """Return the URL if allowed; otherwise abort."""
+    if not url:
+        abort(400, "Missing URL")
+
+    u = urlparse(url)
+    if u.scheme not in ("http", "https"):
+        abort(400, "Invalid URL scheme")
+    if not u.hostname:
+        abort(400, "Invalid URL host")
+
+    host = u.hostname.lower().strip(".")
+    if not _host_allowed(host):
+        abort(403, "Host not allowed")
+    if host == "storage.googleapis.com":
+        # path is like /bucket_name/obj...
+        parts = (u.path or "").lstrip("/").split("/", 1)
+        bucket_name = parts[0] if parts else ""
+        if bucket_name != ALLOWED_GCS_BUCKET:
+            abort(403, "GCS bucket not allowed", parts)
+
+    if not _host_resolves_to_public_ips(host):
+        abort(403, "Host resolves to a disallowed IP range")
+
+    # Optional: restrict ports
+    if u.port and u.port not in (80, 443):
+        abort(403, "Port not allowed")
+
+    return url
 
 
 def _filename_from_url(url: str) -> str:
@@ -57,9 +123,10 @@ def _add_url_as_tar_member(tar: tarfile.TarFile, url: str, arcname: str):
     try:
         cl = r.headers.get("Content-Length")
         size = int(cl) if cl and cl.isdigit() else None
-
+        if size is None:
+            log.warning("Could not determine Content-Length for %s", url)
         # If size is known and "small enough", stream directly into the tar
-        if size is not None and size < LARGE_MEMBER_BYTES: #diff from above is checking size < large bytes
+        elif size is not None and size < LARGE_MEMBER_BYTES: #diff from above is checking size < large bytes
             # true streaming
             ti = tarfile.TarInfo(name=arcname)
             ti.size = size
@@ -254,11 +321,6 @@ def _stream_tar_response(out_name: str, build_tar_fn):
             log.info("Client disconnected during tar stream")
         except Exception:
             log.exception("Tar stream writer failed")
-        finally:
-            try:
-                os.close(w_fd)
-            except Exception:
-                pass
 
     threading.Thread(target=writer, daemon=True).start()
 
@@ -363,21 +425,21 @@ def bundle_tar_prev(resource_id):
 @bp.route("/bundle-tar/<resource_id>")
 def bundle_tar(resource_id):
     """Return a .tar bundle = data file + metadata yaml if present (manifest-first)."""
+    ctx = {"for_view": True}
+    try:
+        data_res = toolkit.get_action("resource_show")(ctx, {"id": resource_id})
+    except toolkit.ObjectNotFound:
+        abort(404)
+
+    pkg = toolkit.get_action("package_show")({}, {"id": data_res["package_id"]})
+    resources = pkg.get("resources", []) or []
+
+    name = data_res.get("name") or os.path.basename(data_res.get("url", "")) or "resource"
+    out_name = f"{os.path.basename(name.replace('.', '_'))}_with_metadata.tar"
 
     def build(tar):
         #  First bytes immediately
         _add_manifest_first(tar, resource_id)
-
-        ctx = {"for_view": True}
-        try:
-            data_res = toolkit.get_action("resource_show")(ctx, {"id": resource_id})
-        except toolkit.ObjectNotFound:
-            abort(404)
-
-        pkg = toolkit.get_action("package_show")({}, {"id": data_res["package_id"]})
-        resources = pkg.get("resources", []) or []
-
-        name = data_res.get("name") or os.path.basename(data_res.get("url", "")) or "resource"
 
         # Find attached YAML matching filename
         candidates = [f"{name}.yml", f"{name}.yaml"]
@@ -407,11 +469,6 @@ def bundle_tar(resource_id):
         for url, arcname in [(u, a) for (u, a) in data_items if u]:
             _add_url_as_tar_member(tar, url, arcname)
 
-    # out_name = f"{resource_id}_with_metadata.tar"
-    data_res = toolkit.get_action("resource_show")({"for_view": True},
-                                                   {"id": resource_id})
-    name = data_res.get("name") or os.path.basename(data_res.get("url", "")) or "resource"
-    out_name = f"{os.path.basename(name.replace('.', '_'))}_with_metadata.tar"
     return _stream_tar_response(out_name, build)
 
 
@@ -422,6 +479,7 @@ def bundle_source_tar():
     Supports shapefiles by including all sidecar parts.
     """
     source_url = request.args.get("source_url", "")
+    source_url = _validate_outbound_url(source_url)
     source_name = (
         request.args.get("source_name")
         or _filename_from_url(source_url)
@@ -433,6 +491,8 @@ def bundle_source_tar():
 
     meta_url = request.args.get("meta_url")
     meta_name = request.args.get("meta_name") or f"{source_name}.yml"
+    if meta_url:
+        meta_url = _validate_outbound_url(meta_url)
 
     # Direct download (no tar) if no metadata and not a shapefile
     if not meta_url and not source_name.lower().endswith(".shp"):
