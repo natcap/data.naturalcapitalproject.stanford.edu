@@ -85,6 +85,11 @@ def _validate_outbound_url(url: str) -> str:
     if host not in ("localhost", "ckan"):
         if not _host_resolves_to_public_ips(host):
             abort(403, "Host resolves to a disallowed IP range")
+        if u.port and u.port not in (80, 443):
+            abort(403, "Port not allowed")
+    else:
+        if u.port and u.port not in (5000, 8443, 80, 443):
+            abort(403, "Port not allowed")
 
     return url
 
