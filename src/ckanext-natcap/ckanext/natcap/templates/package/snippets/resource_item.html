@@ -5,7 +5,7 @@
   {% set attached_meta = meta_map.get(res.id) %}
   <div class="resource-row">
     <a class="heading resource-link"
-       href="{{ res.url }}"
+       href="{{ h.url_for('natcap.bundle_tar', resource_id=res.id) }}"
        aria-label="{{ _('Download resource: {name_or_id}').format(name_or_id=name_or_id)}}">
       <div class="resource-item-description">
         <div class="resource-item-type">
@@ -18,14 +18,14 @@
     </a>
     <div class="icon-actions">
       {% if attached_meta %}
-        <div class="js-metadata-preview"
+        <a class="js-metadata-preview"
           title="preview metadata"
           href="#"
           data-meta-id="{{ attached_meta.id }}"
           data-meta-name="{{ attached_meta.name }}"
           data-meta-url="{{ attached_meta.url}}">
           <i class="fa fa-info-circle" title="Preview metadata"></i>
-        </div>
+        </a>
       {% endif %}
       <a class="icon-button icon-button-bundle"
         title="Download data + metadata (.tar)"
