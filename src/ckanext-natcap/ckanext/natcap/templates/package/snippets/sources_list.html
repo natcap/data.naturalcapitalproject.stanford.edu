@@ -70,7 +70,9 @@
               {% set gate = h.natcap_get_file_downloadability(c.pkg_dict, source) | default({'allowed': True}, true) %}
               {% if gate.allowed %}
                 <div class="resource-row">
-                  <a class="heading resource-link" href="{{ source.url }}" aria-label="{{ _('Download resource: {fn}').format(fn=name) }}">
+                  <a class="heading resource-link"
+                     href="{{ h.url_for('natcap.bundle_source_tar') }}?source_url={{ source.url|urlencode }}&source_name={{ source.name|urlencode }}{% if attached_meta %}&meta_url={{ attached_meta.url|urlencode }}&meta_name={{ attached_meta.name|urlencode }}{% endif %}"
+                     aria-label="{{ _('Download resource: {fn}').format(fn=name) }}">
                     <div class="resource-item-description">
                       {% if h.natcap_show_icon(name) %}
                         <div class="resource-item-type">
