@@ -521,6 +521,8 @@ def bundle_source_tar():
     out_name = f"{os.path.basename(source_name.replace('.', '_'))}_with_metadata.tar"
 
     def build(tar):
+        _add_manifest_first(tar, f"source:{source_name}")
+
         # data members
         if source_name.lower().endswith(".shp"):
             # best effort to add shapefile sidecar files
