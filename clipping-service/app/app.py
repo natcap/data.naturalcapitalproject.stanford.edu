@@ -30,7 +30,10 @@ app = flask.Flask(__name__, template_folder='templates')
 
 cors_origins = [
     'https://data-staging.naturalcapitalproject.org',
-    'https://data.naturalcapitalproject.stanford.edu'
+    'https://data.naturalcapitalproject.stanford.edu',
+    'http://data.naturalcapitalproject.stanford.edu',
+    'https://data.naturalcapitalalliance.stanford.edu',
+    'http://data.naturalcapitalalliance.stanford.edu',
 ]
 
 if os.environ.get("DEV_MODE"):
