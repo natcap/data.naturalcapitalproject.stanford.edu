@@ -374,62 +374,6 @@ def _add_manifest_first(tar: tarfile.TarFile, resource_id: str):
         pass
 
 
-# @bp.route("/bundle-tar/<resource_id>")
-def bundle_tar_prev(resource_id):
-    """Return a .tar bundle = data file + metadata yaml if present."""
-    ctx = {"for_view": True}
-    try:
-        data_res = toolkit.get_action("resource_show")(ctx, {"id": resource_id})
-    except toolkit.ObjectNotFound:
-        abort(404)
-
-    # Fetch package and resources
-    pkg = toolkit.get_action("package_show")({}, {"id": data_res["package_id"]})
-    resources = pkg.get("resources", []) or []
-
-    # Base name to use for matching and for the data file
-    name = data_res.get("name") or os.path.basename(data_res.get("url", "")) or "resource"
-
-    # Look for attached YAML (must match dataset filename)
-    candidates = [f"{name}.yml", f"{name}.yaml"]
-    meta_res = None
-    for r in resources:
-        rname = _filename_from_resource(r)
-        if rname in candidates:
-            meta_res = r
-            break
-
-    meta_res_url = meta_res.get("url") if meta_res else None
-    if not name.lower().endswith(".shp") and not meta_res_url:
-        # Direct-download fallback for non-shp single files w/out metadata
-        filename = _filename_from_resource(data_res) or "download"
-        return _direct_download_url(data_res.get("url"), download_name=filename)
-
-    # Decide what data files to include
-    if name.lower().endswith(".shp"):
-        data_items = _resource_shapefile_items(resources, name)
-    else:
-        data_items = [(data_res.get("url"),
-                       _filename_from_resource(data_res) or "file")] #prev: or name
-
-    out_name = f"{os.path.basename(name.replace('.', '_'))}_with_metadata.tar"
-
-    def build(tar):
-        # add metadata if it exists
-        if meta_res_url:
-            _add_url_as_tar_member(
-                tar, meta_res_url,
-                _filename_from_resource(meta_res) or f"{name}.yml")
-        for url, arcname in [(u, a) for (u, a) in data_items if u]:
-            # data_items = [(data_res.get("url"),
-            #               _filename_from_resource(data_res) or name)]
-
-            if not url:
-                continue
-            _add_url_as_tar_member(tar, url, arcname)
-
-    return _stream_tar_response(out_name, build)
-
 @bp.route("/bundle-tar/<resource_id>")
 def bundle_tar(resource_id):
     """Return a .tar bundle = data file + metadata yaml if present (manifest-first)."""
