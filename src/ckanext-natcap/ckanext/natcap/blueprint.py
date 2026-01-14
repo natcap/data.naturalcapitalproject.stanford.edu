@@ -376,7 +376,24 @@ def _add_manifest_first(tar: tarfile.TarFile, resource_id: str):
 
 @bp.route("/bundle-tar/<resource_id>")
 def bundle_tar(resource_id):
-    """Return a .tar bundle = data file + metadata yaml if present (manifest-first)."""
+    """
+    Download a CKAN top-level resource (has a resource id) as either:
+      1) a streamed .tar containing the data file(s) + attached YAML metadata, or
+      2) a direct file download (no tar) if no metadata and not a shapefile.
+
+    Using a CKAN resource id:
+    - If attached metadata exists in the same package with filename
+      '<resource_filename>.yml' or '<resource_filename>.yaml', it is included.
+    - If resource is a shapefile (.shp), all sibling shapefile parts from the
+      same package are included (e.g., .shp, .dbf, .shx, .prj, .cpg, etc.) too
+
+    If the resource is not a shapefile and has no attached YAML metadata, this
+    endpoint returns the raw file directly (as an attachment) instead of
+    wrapping it in a .tar.
+
+    Streaming avoids loading large files into memory and supports
+    large multi-GB downloads.
+    """
     ctx = {"for_view": True}
     try:
         data_res = toolkit.get_action("resource_show")(ctx, {"id": resource_id})
@@ -427,8 +444,24 @@ def bundle_tar(resource_id):
 @bp.route("/bundle-source-tar")
 def bundle_source_tar():
     """
-    Bundle a zip-expanded source and its YAML into a .tar
-    Supports shapefiles by including all sidecar parts.
+    Download a [zip-expanded] source (i.e., a "source" item that is not a CKAN
+    resource id) as either:
+      1) a streamed .tar with dataset + YAML metadata, if present, or
+      2) a direct file download (no tar) when bundling is unnecessary.
+
+    This function is similar to /bundle-tar/<resource_id> but works with
+    source URLs instead of CKAN resource ids.
+
+    Inputs (query parameters)
+    Required:
+      - source_url: URL to the source payload to download.
+    Optional:
+      - source_name: desired archive member name/path (or filename
+                     when direct-downloading).
+      - meta_url: URL to an associated YAML metadata file.
+      - meta_name: desired YAML filename/path inside the tar (defaults
+                   to '<source_name>.yml').
+
     """
     source_url = request.args.get("source_url", "")
     source_name = (
