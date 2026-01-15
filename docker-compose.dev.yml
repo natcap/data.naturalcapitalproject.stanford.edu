@@ -61,7 +61,6 @@ services:
         # Need to rebuild ckan to reflect changes to python files, ex:
         # - action: rebuild
         #   path: ./src/ckanext-natcap/ckanext/natcap/blueprint.py
-        #   target: /srv/app/src/ckanext-natcap/ckanext/natcap/blueprint.py
     healthcheck:
       test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:5000"]
 
