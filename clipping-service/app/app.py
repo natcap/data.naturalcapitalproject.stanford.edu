@@ -30,7 +30,10 @@ app = flask.Flask(__name__, template_folder='templates')
 
 cors_origins = [
     'https://data-staging.naturalcapitalproject.org',
-    'https://data.naturalcapitalproject.stanford.edu'
+    'https://data.naturalcapitalproject.stanford.edu',
+    'http://data.naturalcapitalproject.stanford.edu',
+    'https://data.naturalcapitalalliance.stanford.edu',
+    'http://data.naturalcapitalalliance.stanford.edu',
 ]
 
 if os.environ.get("DEV_MODE"):
@@ -54,10 +57,15 @@ logging.basicConfig(level=logging.DEBUG)
 SOURCE_LOGGER = logging.getLogger('pygeoprocessing')
 SOURCE_LOGGER.setLevel(logging.DEBUG)
 GOOGLE_STORAGE_URL = 'https://storage.googleapis.com'
-TRUSTED_BUCKET = f'{GOOGLE_STORAGE_URL}/natcap-data-cache'
+DATAHUB_URL = 'https://data.naturalcapitalalliance.stanford.edu'
+TRUSTED_URL_PREFIXES = (
+    f'{GOOGLE_STORAGE_URL}/natcap-data-cache',
+    f'{DATAHUB_URL}/download',
+    'https://data.naturalcapitalproject.stanford.edu/download',
+)
 TARGET_FILE_BUCKET = 'gs://jupyter-app-temp-storage'
 TARGET_BUCKET_SUBDIR = 'clipped'
-TARGET_BUCKET_URL = f'{GOOGLE_STORAGE_URL}/jupyter-app-temp-storage/{TARGET_BUCKET_SUBDIR}'
+TARGET_DOWNLOAD_URL = f'{DATAHUB_URL}/download/{TARGET_BUCKET_SUBDIR}'
 WORKSPACE_DIR = os.environ.get('WORKSPACE_DIR', os.getcwd())
 app.logger.info("WORKSPACE_DIR: %s", WORKSPACE_DIR)
 pygeoprocessing.geoprocessing._LOGGING_PERIOD = 1.0
@@ -273,8 +281,8 @@ def clip():
     parameters = request.get_json()
     app.logger.info(parameters)
 
-    if not parameters['file_url'].startswith(TRUSTED_BUCKET):
-        app.logger.error("Invalid source file, not in the known bucket: %s",
+    if not parameters['file_url'].startswith(TRUSTED_URL_PREFIXES):
+        app.logger.error("Invalid source file, not from a trusted host: %s",
                          parameters['file_url'])
         raise ValueError("Invalid source file provided.")
 
@@ -373,7 +381,7 @@ def clip():
         app.logger.info(f"Deleting local file {target_file_path}")
         os.remove(target_file_path)
 
-    downloadable_raster_path = f"{TARGET_BUCKET_URL}/{bucket_filename}"
+    downloadable_raster_path = f"{TARGET_DOWNLOAD_URL}/{bucket_filename}"
     app.logger.info("Returning URL: %s", downloadable_raster_path)
     return jsonify({'url': downloadable_raster_path,
                     'size': filesize})
