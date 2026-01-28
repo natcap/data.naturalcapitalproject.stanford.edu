@@ -70,7 +70,7 @@ jobs:
                         -t ${{ env.REGISTRY_URL }}:latest \
                         .
 
-            - name: Test that titler imports
+            - name: Test that gcsproxy can be found
               run: |
                   docker run --rm ghcr.io/${{ github.repository_owner }}/${{ env.CONTAINER_NAME }}:latest gcsproxy --help
 
