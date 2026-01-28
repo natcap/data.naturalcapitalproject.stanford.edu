@@ -72,7 +72,8 @@ jobs:
 
             - name: Test that gcsproxy can be found
               run: |
-                  docker run --rm ghcr.io/${{ github.repository_owner }}/${{ env.CONTAINER_NAME }}:latest gcsproxy --help
+                  # Override entrypoint to avoid the GHA job hanging
+                  docker run --rm --entrypoint="" ghcr.io/${{ github.repository_owner }}/${{ env.CONTAINER_NAME }}:latest gcsproxy --help
 
             - name: Push docker
               if: github.event_name != 'pull_request'
