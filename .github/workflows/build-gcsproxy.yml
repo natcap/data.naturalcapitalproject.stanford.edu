@@ -1,4 +1,4 @@
-name: Build custom titiler
+name: Build custom gcsproxy
 
 on:
     workflow_dispatch:
