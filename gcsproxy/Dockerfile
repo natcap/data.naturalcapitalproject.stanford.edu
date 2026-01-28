@@ -6,8 +6,9 @@ FROM debian:13.3 as build
 RUN apt-get update && apt-get install -y golang-go golang-src git build-essential
 
 # Rev is the latest on the implement-range-requests branch as of 2026-01-28
-RUN git clone -b 290e11b6e9ebe6ab2f302e8423b6d51652aff10e https://github.com/phargogh/gcsproxy /tmp/gcsproxy \
+RUN git clone https://github.com/phargogh/gcsproxy /tmp/gcsproxy \
         && cd /tmp/gcsproxy \
+        && git checkout 290e11b6e9ebe6ab2f302e8423b6d51652aff10e \
         && make build \
         && /tmp/gcsproxy/bin/gcsproxy --help
 
