@@ -16,9 +16,12 @@
                   {% endif %}
                 {% endblock %}
                 {% block heading_title %}
-        <a href="{{ h.url_for('%s.read' % package.type, id=package.name) }}" aria-label="{{ _('Navigate to dataset: {title}').format(title=title|truncate(80)) }}">
-          {{title|truncate(80)}}
-        </a>
+                  {% if package.type == 'collection' %}
+                    <span class="badge bg-info bg-collection">Collection</span>
+                  {% endif %}
+                  <a href="{{ h.url_for('%s.read' % package.type, id=package.name) }}" aria-label="{{ _('Navigate to dataset: {title}').format(title=title|truncate(80)) }}">
+                    {{title|truncate(80)}}
+                  </a>
                 {% endblock %}
                 {% block heading_meta %}
                   {% if package.get('state', '').startswith('draft') %}
@@ -46,6 +49,11 @@
                 {% endif %}
               {% endblock %}
           </div>
+        {% endblock %}
+        {% block collection %}
+          {% if package.in_collection %}
+          <span>This dataset is part of a Collection: <a href="/collection/{{package.in_collection[0]}}" target="_blank">{{ h.natcap_get_collection_name(package.in_collection[0]) }}</a></span>
+          {% endif %}
         {% endblock %}
         {% block notes %}
           {% if notes %}

@@ -1312,4 +1312,13 @@ div#invest-model-list-container div {
 .package-description {
     overflow-wrap: anywhere;
     word-break: break-word;
+    margin-top: 1rem;
+}
+
+.collection-info {
+    margin-top: 1rem;
+}
+
+.badge.bg-info.bg-collection {
+    background-color: var(--color-blue) !important;
 }

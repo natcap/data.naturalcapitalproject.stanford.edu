@@ -41,6 +41,8 @@
                 <img class="field-icon" src="/img/filters-file-type.png" />
               {% elif field == 'tags' %}
                 <img class="field-icon" src="/img/filters-tag.png" />
+              {% elif field == 'extras_in_collection' %}
+                <i class="fa fa-layer-group" aria-hidden="true"></i>
               {% endif %}
 
               <span class="facet-value">
@@ -48,6 +50,8 @@
                   {{ facets.translated_fields[(field,value)] }}
                 {%- elif field == 'extras_sources_res_formats' -%}
                   {{ h.natcap_get_resource_type_label(value) }}
+                {%- elif field == 'extras_in_collection' -%}
+                  {{ h.natcap_get_collection_name(value) }}
                 {%- else -%}
                   {{ h.list_dict_filter(search_facets_items, 'name', 'display_name', value) }}
                 {%- endif %}

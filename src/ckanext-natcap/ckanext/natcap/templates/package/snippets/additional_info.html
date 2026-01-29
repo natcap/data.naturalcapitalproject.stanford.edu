@@ -40,7 +40,7 @@
             <th scope="row" class="dataset-label">{{ _('Tags') }}</th>
             <td class="dataset-details" property="dc:subject">
               <ol class="additional-info-tag-list">
-                {% for tag in pkg_dict.tags %}
+                {% for tag in pkg_dict.tags if not tag.vocabulary_id%}
                   <li class="additional-info-tag">
                     <a href="{% url_for 'dataset.search', tags=tag.name %}" aria-label="{{ _('Search datasets with the tag: {name}').format(name=tag.display_name) }}">
                       <img src="/img/filters-tag.png" />
