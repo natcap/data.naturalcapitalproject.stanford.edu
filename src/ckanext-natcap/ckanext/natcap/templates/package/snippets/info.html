@@ -5,19 +5,12 @@
 
 {% block package_info_inner %}
   {% if pkg.type == 'collection' %}
-  <h3><span class="badge bg-info bg-collection">Collection</span></h3>
+  <div class="collection-banner">
+    <span>Collection</span>
+  </div>
   {% endif %}
 
   {{ super() }}
-
-  {% if pkg.in_collection %}
-  {% block collection_info %}
-    <h3 class="collection-info">
-      <i class="fa fa-layer-group" aria-hidden="true"></i>
-      <span>This dataset is part of a collection: <a href="/collection/{{pkg.in_collection[0]}}" target="_blank">{{ h.natcap_get_collection_name(pkg.in_collection[0]) }}</a></span>
-    </h3>
-  {% endblock %}
-  {% endif %}
 
   {% block package_info_description %}
     <div class="package-description" data-module="natcap-text-linkify">
@@ -25,12 +18,21 @@
     </div>
   {% endblock %}
 
-  {% if pkg.type=='collection' %}
-  {% block collection_explore %}
-    <h3 class="collection-info">
+  {% block collection_info %}
+  {% if pkg.in_collection %}
+    <div class="collection-info">
       <i class="fa fa-layer-group" aria-hidden="true"></i>
-      <a href="{% url_for 'dataset.search', extras_in_collection=pkg.name %}">Explore datasets in this Collection</a>
-    </h3>
-  {% endblock %}
+      <span>This dataset is part of a collection: <a href="/collection/{{pkg.in_collection[0]}}" target="_blank">{{ h.natcap_get_collection_name(pkg.in_collection[0]) }}</a></span>
+    </div>
   {% endif %}
+
+  {% if pkg.type=='collection' %}
+    <div>
+      <a href="{% url_for 'dataset.search', extras_in_collection=pkg.name %}" role="button" type="button" class="btn btn-collection btn-lg btn-block">
+        <i class="fa fa-layer-group" aria-hidden="true"></i>
+        Explore datasets in this Collection <i class="fa fa-chevron-right icon-small"></i>
+      </a>
+    </div>
+  {% endif %}
+  {% endblock %}
 {% endblock %}
