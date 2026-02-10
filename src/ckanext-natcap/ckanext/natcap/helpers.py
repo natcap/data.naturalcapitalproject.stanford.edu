@@ -7,7 +7,15 @@ def natcap_hello():
 
 def _is_yaml_name(name: str) -> bool:
     n = (name or "").lower()
-    return n.endswith(".yml") or n.endswith(".yaml")
+    return n.endswith((".yml", ".yaml"))
+
+
+def _is_shapefile_part(name: str) -> bool:
+    """Check if the filename is a shapefile auxiliary file (not .shp)"""
+    n = (name or "").lower()
+    shapefile_extensions = (".dbf", ".shx", ".prj", ".cpg", ".qix", ".sbn",
+                            ".sbx", ".shp.xml")
+    return n.endswith(shapefile_extensions)
 
 
 def natcap_find_attached_metadata_map(pkg_dict: dict) -> dict:
@@ -20,25 +28,23 @@ def natcap_find_attached_metadata_map(pkg_dict: dict) -> dict:
       - Shapefiles: only the `.shp` gets metadata (`vector.shp.yml`).
       - We ignore standalone YAMLs *without* a corresponding data file.
     """
-    resources = pkg_dict.get("resources", []) or []
+    resources = pkg_dict.get("resources", [])
     if not resources:
         return {}
 
     # Build lookup by name for YAMLs
     yaml_by_name = {}
-    for r in resources:
-        n = r.get("name") or os.path.basename(r.get("url", "")) or ""
-        if _is_yaml_name(n):
-            yaml_by_name[n.lower()] = r
-
     attached = {}
     for r in resources:
         # Determine the data filename we will match against
         name = r.get("name") or os.path.basename(r.get("url", "")) or ""
         name_lower = name.lower()
 
+        if _is_yaml_name(name):
+            yaml_by_name[name_lower] = r
+
         # Only attach metadata to the main file for shapefiles
-        if name_lower.endswith(".shx") or name_lower.endswith(".dbf") or name_lower.endswith(".prj") or name_lower.endswith(".cpg"):
+        if _is_shapefile_part(name_lower):
             continue
 
         # Try both extensions
@@ -67,7 +73,7 @@ def natcap_find_source_metadata_map(sources):
         for source in sources_list:
             name = source.get('name', '').lower()
             # Check if it's a YAML file
-            if name.endswith('.yml') or name.endswith('.yaml'):
+            if _is_yaml_name(name):
                 yaml_lookup[name] = source
             # Recursively process children
             if source.get('children'):
@@ -81,14 +87,11 @@ def natcap_find_source_metadata_map(sources):
             name_lower = name.lower()
 
             # Skip if this IS a YAML file
-            if name_lower.endswith('.yml') or name_lower.endswith('.yaml'):
+            if _is_yaml_name(name_lower):
                 continue
 
             # Skip shapefile auxiliary files
-            if (name_lower.endswith('.shx') or
-                name_lower.endswith('.dbf') or
-                name_lower.endswith('.prj') or
-                name_lower.endswith('.cpg')):
+            if _is_shapefile_part(name_lower):
                 continue
 
             # Try to find matching YAML (try both .yml and .yaml)
