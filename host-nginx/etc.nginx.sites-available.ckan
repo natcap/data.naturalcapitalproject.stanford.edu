@@ -28,8 +28,17 @@ server {
 #}
 
 server {
-    server_name 34.8.16.110;
-    #server_name 34.28.204.100;  # deprecated for now
+	#listen 443 ssl;
+	#http2 on;
+
+    # Recommended for secure backend communication
+    # ssl_protocols TLSv1.2 TLSv1.3; # duplicated in /etc/letsencrypt/options-ssl-nginx.conf
+
+    #listen 80;
+    #listen [::]:80;
+    #server_name 34.8.16.110;
+    server_name 136.113.85.161;  # Actual IP of ckan-3
+    server_name dh03.naturalcapitalalliance.org
     client_max_body_size 100M;
     #server_name data.naturalcapitalproject.stanford.edu;
     server_name data.naturalcapitalalliance.stanford.edu;
@@ -80,10 +89,18 @@ server {
     #}
 
 
-    listen [::]:443 ssl ipv6only=on; # managed by Certbot
+    #listen [::]:443 ssl ipv6only=on; # managed by Certbot
+    #listen 443 ssl; # managed by Certbot
+    #ssl_certificate /etc/letsencrypt/live/data.naturalcapitalproject.stanford.edu/fullchain.pem; # managed by Certbot
+    #ssl_certificate_key /etc/letsencrypt/live/data.naturalcapitalproject.stanford.edu/privkey.pem; # managed by Certbot
+    #include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    #ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+
+
     listen 443 ssl; # managed by Certbot
-    ssl_certificate /etc/letsencrypt/live/data.naturalcapitalproject.stanford.edu/fullchain.pem; # managed by Certbot
-    ssl_certificate_key /etc/letsencrypt/live/data.naturalcapitalproject.stanford.edu/privkey.pem; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/dh03.naturalcapitalalliance.org/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/dh03.naturalcapitalalliance.org/privkey.pem; # managed by Certbot
     include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
 
@@ -105,3 +122,21 @@ server {
 #
 #
 #}
+
+
+server {
+    if ($host = dh03.naturalcapitalalliance.org) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+    server_name 136.113.85.161;
+    server_name dh03.naturalcapitalalliance.org
+    client_max_body_size 100M;
+    server_name data.naturalcapitalalliance.stanford.edu;
+    server_name data-lb.naturalcapitalproject.org;
+    listen 80;
+    return 404; # managed by Certbot
+
+
+}
