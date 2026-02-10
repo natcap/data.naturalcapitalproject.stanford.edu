@@ -6,7 +6,7 @@ GCLOUD_COMMON_ARGS := --project=sdss-natcap-gef-ckan --zone=us-central1-a
 RESTART_DOCKER_CMD := sudo sh -c 'cd $(GIT_DIR) && git pull && docker compose build && docker compose down && docker compose up --detach --remove-orphans'
 STOP_DOCKER_COMMAND := sudo sh -c 'cd $(GIT_DIR) && git pull && docker compose down'
 START_DOCKER_COMMAND := sudo sh -c 'cd $(GIT_DIR) && docker compose up --detach --remove-orphans'
-PROD_VM_NAME := ckan-2
+PROD_VM_NAME := ckan-3
 STAGING_VM_NAME := ckan-staging
 DOCKER_VOLUMES := /var/lib/docker/volumes
 DOCKER_VOL_CKAN := $(DOCKER_VOLUMES)/datanaturalcapitalprojectstanfordedu_ckan_storage
