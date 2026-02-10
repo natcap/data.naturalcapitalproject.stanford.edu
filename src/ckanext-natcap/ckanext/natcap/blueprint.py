@@ -1,4 +1,5 @@
-from flask import Blueprint, Response, abort, send_file, request, stream_with_context
+from flask import Blueprint, Response, abort, request, \
+    stream_with_context, redirect
 from ckan.plugins import toolkit
 import requests, os
 from io import BytesIO
@@ -18,7 +19,7 @@ bp = Blueprint("natcap", __name__)
 
 
 SHAPEFILE_PART_EXTS = [
-    ".shp", ".dbf", ".shx", ".prj", ".cpg", ".qix", ".sbn", ".sbx"
+    ".shp", ".dbf", ".shx", ".prj", ".cpg", ".qix", ".sbn", ".sbx", ".shp.xml"
 ]
 
 DEFAULT_TIMEOUT = (60, 7200)  # (connect, read) seconds
@@ -32,6 +33,8 @@ ALLOWED_URL_HOSTS = {
     "storage.googleapis.com",
 }
 ALLOWED_GCS_BUCKET = "natcap-data-cache"
+INTERNAL_CKAN_PORT = int(os.environ.get("CKAN_PORT", "5000")) #TODO remove fallback?
+ALLOWED_LOCAL_PORTS = {INTERNAL_CKAN_PORT, 8443, 80, 443}
 
 
 def _host_allowed(host: str) -> bool:
@@ -53,10 +56,8 @@ def _host_resolves_to_public_ips(host: str) -> bool:
     for ip_str in addrs:
         ip = ipaddress.ip_address(ip_str)
         # reject multicast/unspecified/reserved/private/linklocal/etc
-        if (
-            ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast
-            or ip.is_unspecified or ip.is_reserved
-        ):
+        if any((ip.is_private, ip.is_loopback, ip.is_link_local,
+                ip.is_multicast, ip.is_unspecified, ip.is_reserved)):
             return False
     return True
 
@@ -88,7 +89,7 @@ def _validate_outbound_url(url: str) -> str:
         if u.port and u.port not in (80, 443):
             abort(403, "Port not allowed")
     else:
-        if u.port and u.port not in (5000, 8443, 80, 443):
+        if u.port and u.port not in (INTERNAL_CKAN_PORT, 8443, 80, 443):
             abort(403, "Port not allowed")
 
     return url
@@ -115,8 +116,8 @@ def _add_url_as_tar_member(tar: tarfile.TarFile, url: str, arcname: str):
     """
     Add a URL to a tar stream.
 
-    - Prefer GET's Content-Length (not HEAD) when streaming.
-    - For large files, spool to disk and verify byte count to avoid truncated tars.
+    - If Content-Length is present, stream.
+    - Otherwise, spool to disk.
     """
 
     url = _sanitize_local_resource_url(url)
@@ -126,64 +127,40 @@ def _add_url_as_tar_member(tar: tarfile.TarFile, url: str, arcname: str):
     try:
         cl = r.headers.get("Content-Length")
         size = int(cl) if cl and cl.isdigit() else None
-        if size is None:
-            log.warning("Could not determine Content-Length for %s", url)
-        # If size is known and "small enough", stream directly into the tar
-        elif size is not None and size < LARGE_MEMBER_BYTES: #diff from above is checking size < large bytes
-            # true streaming
+
+        # If size is known, stream directly into the tar
+        if size is not None:
             ti = tarfile.TarInfo(name=arcname)
             ti.size = size
-            tar.addfile(ti, fileobj=r.raw)
-            return
-    except Exception as e:
-        raise e
+            try:
+                tar.addfile(ti, fileobj=r.raw)
+                return
+            except Exception as e:
+                log.warning("Streaming %s failed, falling back to spooling: %s", url, e)
+
+        else:
+            log.warning("No Content-Length for %s; will spool", url)
     finally:
         r.close()
 
-    # Otherwise spool to disk (and verify/optionally retry)
-    last_err = None
-    for attempt in range(1, MAX_RETRIES + 1):
+    # Need to re-get bc if streaming failed mid-transfer, response is
+    # partially consumed/broken.
+    r = _stream_get(url)
+    try:
         with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as tmp:
-            r = _stream_get(url)
-            expected = None
-            try:
-                cl = r.headers.get("Content-Length")
-                expected = int(cl) if cl and cl.isdigit() else None
-
-                total = 0
-                for chunk in r.iter_content(chunk_size=1024 * 1024):
-                    if not chunk:
-                        continue
+            total = 0
+            for chunk in r.iter_content(chunk_size=1024 * 1024):
+                if chunk:
                     tmp.write(chunk)
                     total += len(chunk)
-            except Exception as e:
-                last_err = e
-                continue
-            finally:
-                r.close()
-
             tmp.flush()
-            if expected is not None and total != expected:
-                last_err = IOError(
-                    f"Short read for {url}: expected {expected} bytes, got {total}"
-                )
-                continue  # retry
-
             tmp.seek(0)
             ti = tarfile.TarInfo(name=arcname)
             ti.size = total
             tar.addfile(ti, fileobj=tmp)
             return
-
-    # If we exhausted retries, raise so it shows clearly in logs
-    raise last_err or IOError(f"Failed to download {url}")
-
-
-def _download_bytes(url: str) -> bytes:
-    safe_url = _sanitize_local_resource_url(url)
-    r = requests.get(safe_url, timeout=30)
-    r.raise_for_status()
-    return r.content
+    finally:
+        r.close()
 
 
 def _sanitize_local_resource_url(resource_url: str) -> str:
@@ -200,10 +177,8 @@ def _sanitize_local_resource_url(resource_url: str) -> str:
     m = re.match(r'^https?://localhost(?::\d+)?/(.*)$', resource_url)
     if m:
         path_only = m.group(1)  # e.g. 'dataset/...'
-        # IMPORTANT: use the internal CKAN address, *not* ckan.site_url
-        internal_base = 'http://localhost:5000'
-        # If you prefer to hit the service name instead:
-        # internal_base = 'http://ckan:5000'
+        # IMPORTANT: use the internal CKAN address
+        internal_base = f'http://localhost:{INTERNAL_CKAN_PORT}'
         return f"{internal_base.rstrip('/')}/{path_only.lstrip('/')}"
 
     # All other URLs (e.g. GCS, s3, real domains) pass through unchanged
@@ -212,10 +187,10 @@ def _sanitize_local_resource_url(resource_url: str) -> str:
 
 def _filename_from_resource(res: dict) -> str:
     # Prefer CKAN resource.name, fallback to URL basename
-    n = (res.get("name") or "").strip()
+    n = res.get("name", "").strip()
     if n:
         return n
-    url = res.get("url", "") or ""
+    url = res.get("url", "")
     # handle querystrings cleanly
     path = urlparse(url).path
     return os.path.basename(path)
@@ -228,14 +203,15 @@ def _shapefile_part_filenames(shp_filename: str) -> list[str]:
     """
     base = os.path.splitext(os.path.basename(shp_filename))[0]
     parts = [f"{base}{ext}" for ext in SHAPEFILE_PART_EXTS]
-    parts.append(f"{base}.shp.xml")
     return parts
 
 
-def _resource_shapefile_items(pkg_resources: list[dict], shp_filename: str) -> list[tuple[str, str]]:
+def _resource_shapefile_items(pkg_resources: list[dict],
+                              shp_filename: str) -> list[tuple[str, str]]:
     """
-    For resource-backed shapefiles: return [(url, arcname), ...] for parts that exist in the package.
-    Uses the expected filename list, then looks up matching resources by filename.
+    For resource-backed shapefiles: return [(url, arcname), ...] for parts
+    that exist in the package. Uses the expected filename list, then looks
+    up matching resources by filename.
     """
     # Build filename -> url lookup from package resources
     by_filename: dict[str, str] = {}
@@ -249,13 +225,14 @@ def _resource_shapefile_items(pkg_resources: list[dict], shp_filename: str) -> l
     for part in _shapefile_part_filenames(shp_filename):
         url = by_filename.get(part.lower())
         if url:
-            items.append((url, part))  # arcname: keep flat, or adjust if you want directories
+            items.append((url, part))
     # Put .shp first for nicer UX
     items.sort(key=lambda it: (0 if it[1].lower().endswith(".shp") else 1, it[1].lower()))
     return items
 
 
-def _shapefile_tar_members(source_name: str, source_url: str) -> list[tuple[str, str]]:
+def _shapefile_tar_members(source_name: str,
+                           source_url: str) -> list[tuple[str, str]]:
     """
     Return [(url, arcname), ...] for all expected shapefile parts,
     placed alongside source_name’s directory path.
@@ -275,28 +252,107 @@ def _zip_arcname_for_folderish(source_url: str, source_name: str) -> str:
     """
     folder download zip arcname normalization helper
 
-    If gate.url points to a .zip, ensure arcname ends in .zip even if source_name is folder-ish.
+    If gate.url points to a .zip, ensure arcname ends in .zip even
+    if source_name is folder-ish.
     """
     url_fname = _filename_from_url(source_url) or ""
-    base = os.path.basename((source_name or "").rstrip("/")) or os.path.splitext(url_fname)[0] or "folder"
+    base = os.path.basename(
+        (source_name or "").rstrip("/")) or os.path.splitext(url_fname)[0] or "folder"
     # preserve directory structure if source_name contains subdirs
     parent = os.path.dirname(source_name.rstrip("/"))
     arc = f"{base}.zip"
     return os.path.join(parent, arc) if parent else arc
 
 
-def _direct_download_url(url: str, download_name: str | None = None, mimetype: str = "application/octet-stream"):
-    """get direct download response"""
+def _proxy_stream(url: str, download_name: str, mimetype: str):
+    # Accept relative /dataset/... by turning it into internal CKAN URL
+    if url.startswith("/") and not url.startswith("//"):
+        safe_url = f"http://localhost:{INTERNAL_CKAN_PORT}{url}"
+    else:
+        safe_url = _validate_outbound_url(url)
+        safe_url = _sanitize_local_resource_url(safe_url)
+
+    # safe_url = _sanitize_local_resource_url(url)
+    r = requests.get(safe_url, stream=True, timeout=DEFAULT_TIMEOUT)
+    r.raise_for_status()
+
+    def gen():
+        try:
+            for chunk in r.iter_content(chunk_size=1024 * 1024):
+                if chunk:
+                    yield chunk
+        finally:
+            r.close()
+
+    headers = {
+        "Content-Disposition": f'attachment; filename="{download_name}"',
+        "X-Accel-Buffering": "no",
+        "Cache-Control": "no-store",
+    }
+    return Response(stream_with_context(gen()), headers=headers,
+                    mimetype=mimetype)
+
+
+def _direct_download_url(
+        url: str, download_name: str | None = None,
+        mimetype: str = "application/octet-stream") -> Response:
+    """
+    Redirect to the given URL for direct download (preferred), or proxy stream.
+
+    Return a redirect to the underlying file unless the browser will try to
+    directly display (and not download) it, in which case, proxy bytes
+    through CKAN.
+    """
     if not url:
         abort(400, "Missing url")
-    try:
-        data = _download_bytes(url)
-    except Exception:
-        log.exception("Direct download failed")
-        abort(502)
 
     filename = download_name or _filename_from_url(url) or "download"
-    return send_file(BytesIO(data), as_attachment=True, download_name=filename, mimetype=mimetype)
+    log.info("Direct download requested url=%s download_name=%s",
+             url, filename)
+
+    # Extensions that browsers typically try to display inline
+    INLINE_EXTENSIONS = ('.txt', '.log', '.csv', '.pdf', '.json',
+                         '.xml', '.html')
+
+    # Determine if we should proxy or redirect
+    is_browser_viewable = filename.lower().endswith(INLINE_EXTENSIONS)
+    if is_browser_viewable:
+        log.info("Forcing download via proxy for viewable file: %s", filename)
+        return _proxy_stream(url, filename, mimetype)
+
+    if url.startswith("/") and not url.startswith("//"):
+        resp = redirect(url, code=302)
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
+
+    # Keep the SSRF checks (host allowlist, ports, etc.)
+    safe = _validate_outbound_url(url)
+    u = urlparse(safe)
+    host = (u.hostname or "").lower().strip(".")
+    log.info("Direct download host: %s", host)
+    log.info("Direct download port: %s", u.port)
+
+    # Localhost is only client-reachable in dev (e.g. https://localhost:8443)
+    if host == "localhost" and u.port in (INTERNAL_CKAN_PORT, 8443):
+        print("host is local and port is 5000 or 8443")
+        target = u.path or "/"
+        if u.query:
+            target += "?" + u.query
+        resp = redirect(target, code=302)
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
+    # else:
+    #     # Fallback: if the client cannot reach it directly, stream through CKAN
+    #     # (with all the same SSRF protections as usual).
+    #     try:
+    #         # data = _download_bytes(url)
+    #         return _proxy_stream(url, filename, mimetype)
+    #     except Exception:
+    #         log.exception("Direct download failed")
+    #         abort(502)
+    resp = redirect(safe, code=302)
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 
 def _stream_tar_response(out_name: str, build_tar_fn):
@@ -324,21 +380,14 @@ def _stream_tar_response(out_name: str, build_tar_fn):
             log.info("Client disconnected during tar stream")
         except Exception:
             log.exception("Tar stream writer failed")
-        finally:
-            try:
-                os.close(w_fd)
-            except Exception:
-                pass
 
     threading.Thread(target=writer, daemon=True).start()
 
     def generate():
-        first = True
         with os.fdopen(r_fd, "rb") as r:
+            yield r.read(16 * 1024)  # 16KB
             while True:
-                #chunk = r.read(1024 * 1024)
-                chunk = r.read(16 * 1024 if first else 1024 * 1024)  # 16KB then 1MB
-                first = False
+                chunk = r.read(1024 * 1024)  # 1MB
                 if not chunk:
                     break
                 yield chunk
@@ -352,13 +401,16 @@ def _stream_tar_response(out_name: str, build_tar_fn):
 
 
 def _add_manifest_first(tar: tarfile.TarFile, resource_id: str):
+    # Stream a POSIX-compatible tar archive over HTTP using standard
+    # sequential tar semantics and chunked HTTP responses
     payload = json.dumps({
         "resource_id": resource_id,
         "generated_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "note": "Tar streaming started successfully."
     }, indent=2).encode("utf-8")
+    # ^ json.dumps returns text; tarfile requires bytes
 
-    #pad manifest to 256 kb so browsers visibly start download immediately
+    # Pad manifest to 256 kb so browsers visibly start download immediately
     min_bytes = 256 * 1024
     if len(payload) < min_bytes:
         payload += b"\n" + b" " * (min_bytes - len(payload) - 1)
@@ -406,9 +458,36 @@ def bundle_tar(resource_id):
     name = data_res.get("name") or os.path.basename(data_res.get("url", "")) or "resource"
     out_name = f"{os.path.basename(name.replace('.', '_'))}_with_metadata.tar"
 
+    candidates = [f"{name}.yml", f"{name}.yaml"]
+    meta_res = None
+    for r in resources:
+        rname = _filename_from_resource(r)
+        if rname in candidates:
+            meta_res = r
+            break
+
+    meta_res_url = meta_res.get("url") if meta_res else None
+
+    # If no metadata and not shapefile: redirect directly
+    # print("meta_res_url", meta_res_url, name, "is name")
+    if not meta_res_url and not name.lower().endswith(".shp"):
+        log.info("Direct download for resource %s (no metadata, not shapefile)", resource_id)
+        download_url = data_res.get("url")
+        dl_name = _filename_from_resource(data_res) or name or "download"
+        log.info("downlad url %s and dlname", str(download_url))
+        log.info(str(dl_name))
+        return _direct_download_url(download_url, download_name=dl_name)
+
     def build(tar):
-        #  First bytes immediately
+        # Add bytes immediately to show download started in browser
         _add_manifest_first(tar, resource_id)
+
+        # Decide what data files to include
+        if name.lower().endswith(".shp"):
+            data_items = _resource_shapefile_items(resources, name)
+        else:
+            data_items = [(data_res.get("url"),
+                           _filename_from_resource(data_res) or "file")]
 
         # Find attached YAML matching filename
         candidates = [f"{name}.yml", f"{name}.yaml"]
@@ -418,15 +497,6 @@ def bundle_tar(resource_id):
             if rname in candidates:
                 meta_res = r
                 break
-
-        meta_res_url = meta_res.get("url") if meta_res else None
-
-        # Decide what data files to include
-        if name.lower().endswith(".shp"):
-            data_items = _resource_shapefile_items(resources, name)
-        else:
-            data_items = [(data_res.get("url"),
-                           _filename_from_resource(data_res) or "file")]
 
         # Add metadata first if it exists
         if meta_res_url:
