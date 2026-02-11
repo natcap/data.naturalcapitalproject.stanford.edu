@@ -31,7 +31,7 @@ ALLOWED_URL_HOSTS = {
     "storage.googleapis.com",
 }
 ALLOWED_GCS_BUCKET = "natcap-data-cache"
-INTERNAL_CKAN_PORT = int(os.environ.get("CKAN_PORT", "5000")) #TODO remove fallback?
+INTERNAL_CKAN_PORT = int(os.environ.get("CKAN_PORT", "5000"))
 ALLOWED_LOCAL_PORTS = {INTERNAL_CKAN_PORT, 8443, 80, 443}
 
 
@@ -134,7 +134,8 @@ def _add_url_as_tar_member(tar: tarfile.TarFile, url: str, arcname: str):
                 tar.addfile(ti, fileobj=r.raw)
                 return
             except Exception as e:
-                log.warning("Streaming %s failed, falling back to spooling: %s", url, e)
+                log.warning("Streaming %s failed, fall back to spooling: %s",
+                            url, e)
 
         else:
             log.warning("No Content-Length for %s; will spool", url)
@@ -163,7 +164,7 @@ def _add_url_as_tar_member(tar: tarfile.TarFile, url: str, arcname: str):
 
 def _sanitize_local_resource_url(resource_url: str) -> str:
     """
-    Normalize resource URLs so they are reachable from inside the CKAN container.
+    Normalize resource URLs so they're reachable from inside CKAN container.
 
     - If URL is like https://localhost:8443/... (dev via nginx),
       rewrite to http://localhost:{INTERNAL_CKAN_PORT}/...
@@ -225,7 +226,8 @@ def _resource_shapefile_items(pkg_resources: list[dict],
         if url:
             items.append((url, part))
     # Put .shp first for nicer UX
-    items.sort(key=lambda it: (0 if it[1].lower().endswith(".shp") else 1, it[1].lower()))
+    items.sort(key=lambda it: (
+        0 if it[1].lower().endswith(".shp") else 1, it[1].lower()))
     return items
 
 
