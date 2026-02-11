@@ -1,11 +1,11 @@
-name: Build custom titiler
+name: Build custom gcsproxy
 
 on:
     workflow_dispatch:
     push:
         paths:
-            - 'tileserver/**/*'
-            - '.github/workflows/build-titiler.yml'
+            - 'gcsproxy/**/*'
+            - '.github/workflows/build-gcsproxy.yml'
 
 concurrency:
     # make sure only one run of this workflow for a given PR or a given branch
@@ -24,13 +24,16 @@ defaults:
 env:
     # Customize this name if needed.
     # The repo name is a very reasonable default!
-    CONTAINER_NAME: titiler
+    CONTAINER_NAME: gcsproxy
+
+    # I know this is a gcsproxy build and this service account is for titiler,
+    # but since it's in the same repo, the same service account should work.
     SERVICE_ACCOUNT_EMAIL: github-titiler-container-build@sdss-natcap-gef-ckan.iam.gserviceaccount.com
-    REGISTRY_URL: us-west1-docker.pkg.dev/sdss-natcap-gef-ckan/titiler/titiler
+    REGISTRY_URL: us-west1-docker.pkg.dev/sdss-natcap-gef-ckan/gcsproxy/gcsproxy
 
 jobs:
     build:
-        name: Build custom titiler
+        name: Build custom gcsproxy
         runs-on: ubuntu-latest
         permissions:
             packages: write
@@ -59,7 +62,7 @@ jobs:
               run: |
                   # Replace / (invalid tag character) with .
                   SANITIZED_REF="$(echo ${{github.ref_name}} | sed 's|/|.|g')"
-                  cd tileserver && docker build \
+                  cd gcsproxy && docker build \
                         -t ghcr.io/${{ github.repository_owner }}/${{ env.CONTAINER_NAME }}:latest \
                         -t ghcr.io/${{ github.repository_owner }}/${{ env.CONTAINER_NAME }}:${{ github.sha }} \
                         -t ghcr.io/${{ github.repository_owner }}/${{ env.CONTAINER_NAME }}:${SANITIZED_REF} \
@@ -67,9 +70,10 @@ jobs:
                         -t ${{ env.REGISTRY_URL }}:latest \
                         .
 
-            - name: Test that titiler imports
+            - name: Test that gcsproxy can be found
               run: |
-                  docker run --rm ghcr.io/${{ github.repository_owner }}/${{ env.CONTAINER_NAME }}:latest python -c "import titiler"
+                  # Override entrypoint to avoid the GHA job hanging
+                  docker run --rm --entrypoint="" ghcr.io/${{ github.repository_owner }}/${{ env.CONTAINER_NAME }}:latest gcsproxy --help
 
             - name: Push docker
               if: github.event_name != 'pull_request'
@@ -81,9 +85,9 @@ jobs:
               if : github.event_name == 'push' && github.ref == 'refs/heads/master'
               uses: google-github-actions/deploy-cloudrun@v2
               with:
-                  service: titiler
+                  service: gcsproxy
                   image: ${{ env.REGISTRY_URL }}:${{ github.sha }}
                   region: us-west1
                   env_vars: |-
-                      WORKERS_PER_CORE=1
+                      WORKERS_PER_CORE=4
                       FORWARDED_ALLOW_IPS=*
