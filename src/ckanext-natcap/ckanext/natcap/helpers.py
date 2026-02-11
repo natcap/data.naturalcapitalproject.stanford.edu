@@ -10,7 +10,7 @@ def _is_yaml_name(name: str) -> bool:
     return n.endswith((".yml", ".yaml"))
 
 
-def _is_shapefile_part(name: str) -> bool:
+def _is_shapefile_sidecar(name: str) -> bool:
     """Check if the filename is a shapefile auxiliary file (not .shp)"""
     n = (name or "").lower()
     shapefile_extensions = (".dbf", ".shx", ".prj", ".cpg", ".qix", ".sbn",
@@ -44,7 +44,7 @@ def natcap_find_attached_metadata_map(pkg_dict: dict) -> dict:
             yaml_by_name[name_lower] = r
 
         # Only attach metadata to the main file for shapefiles
-        if _is_shapefile_part(name_lower):
+        if _is_shapefile_sidecar(name_lower):
             continue
 
         # Try both extensions
@@ -91,7 +91,7 @@ def natcap_find_source_metadata_map(sources):
                 continue
 
             # Skip shapefile auxiliary files
-            if _is_shapefile_part(name_lower):
+            if _is_shapefile_sidecar(name_lower):
                 continue
 
             # Try to find matching YAML (try both .yml and .yaml)
