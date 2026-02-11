@@ -23,8 +23,6 @@ SHAPEFILE_PART_EXTS = [
 ]
 
 DEFAULT_TIMEOUT = (60, 7200)  # (connect, read) seconds
-LARGE_MEMBER_BYTES = 512 * 1024 * 1024  # 512MB
-MAX_RETRIES = 3
 
 ALLOWED_URL_HOSTS = {
     "localhost",
@@ -41,8 +39,7 @@ def _host_allowed(host: str) -> bool:
     if not host:
         return False
     host = host.lower().strip(".")
-    if host in ALLOWED_URL_HOSTS:
-        return True
+    return host in ALLOWED_URL_HOSTS
 
 
 def _host_resolves_to_public_ips(host: str) -> bool:
@@ -78,6 +75,7 @@ def _validate_outbound_url(url: str) -> str:
         abort(403, "Host not allowed")
     if host == "storage.googleapis.com":
         parts = (u.path or "").lstrip("/").split("/", 1)
+        # assumes URLS are /<bucket>/<object>, not JSON API form (/storage/v1/..)
         bucket_name = parts[0] if parts else ""
         if bucket_name != ALLOWED_GCS_BUCKET:
             abort(403, "GCS bucket not allowed")
@@ -89,7 +87,7 @@ def _validate_outbound_url(url: str) -> str:
         if u.port and u.port not in (80, 443):
             abort(403, "Port not allowed")
     else:
-        if u.port and u.port not in (INTERNAL_CKAN_PORT, 8443, 80, 443):
+        if u.port and u.port not in ALLOWED_LOCAL_PORTS:
             abort(403, "Port not allowed")
 
     return url
@@ -116,8 +114,8 @@ def _add_url_as_tar_member(tar: tarfile.TarFile, url: str, arcname: str):
     """
     Add a URL to a tar stream.
 
-    - If Content-Length is present, stream.
-    - Otherwise, spool to disk.
+    - If Content-Length is present, try streaming.
+    - Otherwise, spool to a temp file.
     """
 
     url = _sanitize_local_resource_url(url)
@@ -168,7 +166,7 @@ def _sanitize_local_resource_url(resource_url: str) -> str:
     Normalize resource URLs so they are reachable from inside the CKAN container.
 
     - If URL is like https://localhost:8443/... (dev via nginx),
-      rewrite to http://localhost:5000/... (CKAN's internal port).
+      rewrite to http://localhost:{INTERNAL_CKAN_PORT}/...
     """
     if not resource_url:
         return resource_url
@@ -269,12 +267,10 @@ def _proxy_stream(url: str, download_name: str, mimetype: str):
     if url.startswith("/") and not url.startswith("//"):
         safe_url = f"http://localhost:{INTERNAL_CKAN_PORT}{url}"
     else:
-        safe_url = _validate_outbound_url(url)
-        safe_url = _sanitize_local_resource_url(safe_url)
+        # Rewrite localhost dev URLs to internal CKAN port
+        safe_url = _sanitize_local_resource_url(url)
 
-    # safe_url = _sanitize_local_resource_url(url)
-    r = requests.get(safe_url, stream=True, timeout=DEFAULT_TIMEOUT)
-    r.raise_for_status()
+    r = _stream_get(safe_url)
 
     def gen():
         try:
@@ -284,8 +280,10 @@ def _proxy_stream(url: str, download_name: str, mimetype: str):
         finally:
             r.close()
 
+    clean_download_name = download_name.replace(
+        '"', '_').replace("\n", "").replace("\r", "")
     headers = {
-        "Content-Disposition": f'attachment; filename="{download_name}"',
+        "Content-Disposition": f'attachment; filename="{clean_download_name}"',
         "X-Accel-Buffering": "no",
         "Cache-Control": "no-store",
     }
@@ -300,8 +298,8 @@ def _direct_download_url(
     Redirect to the given URL for direct download (preferred), or proxy stream.
 
     Return a redirect to the underlying file unless the browser will try to
-    directly display (and not download) it, in which case, proxy bytes
-    through CKAN.
+    directly display (and not download) it (based on  filename extension, not
+    response header), in which case, proxy bytes through CKAN.
     """
     if not url:
         abort(400, "Missing url")
@@ -333,23 +331,15 @@ def _direct_download_url(
     log.info("Direct download port: %s", u.port)
 
     # Localhost is only client-reachable in dev (e.g. https://localhost:8443)
-    if host == "localhost" and u.port in (INTERNAL_CKAN_PORT, 8443):
-        print("host is local and port is 5000 or 8443")
+    if host == "localhost" and u.port in ALLOWED_LOCAL_PORTS:
+        log.info("Host is local and port is 5000 or 8443")
         target = u.path or "/"
         if u.query:
             target += "?" + u.query
         resp = redirect(target, code=302)
         resp.headers["Cache-Control"] = "no-store"
         return resp
-    # else:
-    #     # Fallback: if the client cannot reach it directly, stream through CKAN
-    #     # (with all the same SSRF protections as usual).
-    #     try:
-    #         # data = _download_bytes(url)
-    #         return _proxy_stream(url, filename, mimetype)
-    #     except Exception:
-    #         log.exception("Direct download failed")
-    #         abort(502)
+
     resp = redirect(safe, code=302)
     resp.headers["Cache-Control"] = "no-store"
     return resp
@@ -440,8 +430,9 @@ def bundle_tar(resource_id):
       same package are included (e.g., .shp, .dbf, .shx, .prj, .cpg, etc.) too
 
     If the resource is not a shapefile and has no attached YAML metadata, this
-    endpoint returns the raw file directly (as an attachment) instead of
-    wrapping it in a .tar.
+    endpoint returns the raw file directly (via redirect when possible,
+    otherwise proxied with attachment headers) instead of wrapping it in
+    a .tar.
 
     Streaming avoids loading large files into memory and supports
     large multi-GB downloads.
@@ -471,11 +462,9 @@ def bundle_tar(resource_id):
     # If no metadata and not shapefile: redirect directly
     # print("meta_res_url", meta_res_url, name, "is name")
     if not meta_res_url and not name.lower().endswith(".shp"):
-        log.info("Direct download for resource %s (no metadata, not shapefile)", resource_id)
+        log.info("Direct download for resource %s", name)
         download_url = data_res.get("url")
         dl_name = _filename_from_resource(data_res) or name or "download"
-        log.info("downlad url %s and dlname", str(download_url))
-        log.info(str(dl_name))
         return _direct_download_url(download_url, download_name=dl_name)
 
     def build(tar):
@@ -488,15 +477,6 @@ def bundle_tar(resource_id):
         else:
             data_items = [(data_res.get("url"),
                            _filename_from_resource(data_res) or "file")]
-
-        # Find attached YAML matching filename
-        candidates = [f"{name}.yml", f"{name}.yaml"]
-        meta_res = None
-        for r in resources:
-            rname = _filename_from_resource(r)
-            if rname in candidates:
-                meta_res = r
-                break
 
         # Add metadata first if it exists
         if meta_res_url:
