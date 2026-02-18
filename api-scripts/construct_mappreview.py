@@ -352,9 +352,13 @@ def get_mappreview_metadata(resources, source_files, mappreview_sources=[]):
             # Ideally, .geojson should also be supported, but the mapbox JS
             # errors. So, for the moment, check for .mvt only.
             url = None
-            possible_url = (
-                f'{base}/{path_dirname}/'
-                f'{path_basename.replace(".shp", ".mvt")}')
+            if path_dirname:
+                possible_url = (
+                    f'{base}/{path_dirname}/'
+                    f'{path_basename.replace(".shp", ".mvt")}')
+            else:
+                possible_url = (
+                    f'{base}/{path_basename.replace(".shp", ".mvt")}')
             # If we're working with an mvt, we cannot request a HEAD on a
             # directory, so we need to get the metadata.json file instead
             url_to_check = f"{possible_url}/metadata.json"
