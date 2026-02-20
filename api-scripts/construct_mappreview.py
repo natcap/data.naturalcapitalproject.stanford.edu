@@ -328,13 +328,12 @@ def get_mappreview_metadata(resources, source_files, mappreview_sources=[]):
         mapbox map for previewing data layers.
     """
     raster_resources = [r for r in resources if r['format'] == 'GeoTIFF']
-    vector_resources = [r for r in resources if r['format'] == 'Shapefile']
+    vector_resources = [] # These will never be .mvts to start
     layers = []
 
     zip_resource = next((r for r in resources if r['format'] == 'ZIP'), None)
 
-    if zip_resource and source_files:
-        # Look at zip sources for spatial resources and add
+    if source_files:
         for shp_source in [s for s in source_files if s.endswith('.shp')]:
             if mappreview_sources and shp_source not in mappreview_sources:
                 continue
@@ -381,6 +380,8 @@ def get_mappreview_metadata(resources, source_files, mappreview_sources=[]):
                 'url': url,
             })
 
+    if zip_resource and source_files:
+        # Look at zip sources for spatial resources and add
         for tif_source in [s for s in source_files if s.endswith('.tif')]:
             if mappreview_sources and tif_source not in mappreview_sources:
                 continue

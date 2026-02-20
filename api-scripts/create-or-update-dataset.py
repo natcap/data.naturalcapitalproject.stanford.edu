@@ -336,7 +336,7 @@ def _get_wgs84_bbox(config):
              [minx, maxy]]]
 
 
-def _detect_vector(gmm_yaml, path_key, data_format):
+def _detect_vector(gmm_yaml, dataset_path, data_format):
     """Get path to vector dataset (_get_median_latlon helper function )
 
     if dataset is not a vector, return False
@@ -344,7 +344,6 @@ def _detect_vector(gmm_yaml, path_key, data_format):
     if dataset is a zip, check each item in the zip and return path if item
         is a vector
     """
-    dataset_path = gmm_yaml[path_key]
     if dataset_path.startswith("http"):  # read file from remote
         # gdal can't handle the storage.cloud.google.com URL
         dataset_path = re.sub('^https://storage.cloud.google.com',
@@ -427,11 +426,25 @@ def _get_median_latlon_bounds(vector_path):
     return (numpy.median(ys), numpy.median(xs))  # lat, lon, bounds
 
 
-def detect_collection(sources, top_level_path, limited_collection_members):
+def _get_path_from_yaml(gmm_yaml):
+    """Try to find the dataset path: check for `path` or `url` in the GMM YAML."""
+    path_key = None
+    for _path_key in ('path', 'url'):
+        if _path_key in gmm_yaml and gmm_yaml[_path_key]:
+            path_key = _path_key
+            break
+    if not path_key:
+        return None
+    return gmm_yaml[path_key]
+
+
+def detect_collection(sources, top_level_path, config_yaml):
     """Determine if a GMM YAML source list represents a Dataset or Collection.
     """
-    base_path = top_level_path.rsplit("/", 1)[0]
+    if config_yaml.get('treat_as_collection') is False:
+        return False, []
 
+    base_path = top_level_path.rsplit("/", 1)[0]
     collection = False
 
     yml_sources = [source for source in sources
@@ -439,6 +452,9 @@ def detect_collection(sources, top_level_path, limited_collection_members):
     if len(yml_sources) > 1:
         collection = True
 
+    # If the parent collection's config file limits child datasets
+    # to a subset, drop those not included
+    limited_collection_members = config_yaml.get('collection_members', None)
     if limited_collection_members:
         yml_sources = [source for source in yml_sources
                        if source in limited_collection_members]
@@ -448,8 +464,6 @@ def detect_collection(sources, top_level_path, limited_collection_members):
         for yml_path in yml_sources:
             data_path = yml_path.rsplit('.', 1)[0]
             if data_path in sources:
-                if data_path.endswith('.shp'):
-                    yml_path = re.sub('\.shp\.yml$', '.zip.yml', yml_path)
                 valid_yml_sources.append("/".join([base_path, yml_path]))
 
     return collection, valid_yml_sources
@@ -495,25 +509,21 @@ def get_config(gmm_yaml, ckan_url, session):
 
 def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
          verify_ssl=True):
-
     session = requests.Session()
     session.headers.update({'Authorization': ckan_apikey})
     session.verify = verify_ssl
 
-    def generate_package_meta(gmm_path, gmm_yaml, path_key, licenses,
+    def generate_package_meta(gmm_path, gmm_yaml, licenses,
                               package_type, collection_id=None):
         config_yaml = get_config(gmm_yaml, ckan_url, session)
 
-        # Get the path_key
-        path_key = None
-        for _path_key in ('path', 'url'):
-            if _path_key in gmm_yaml and gmm_yaml[_path_key]:
-                path_key = _path_key
-                break
-        if not path_key:
-            raise ValueError(
+        dataset_path = _get_path_from_yaml(gmm_yaml)
+        if not dataset_path:
+            LOGGER.error(
                 "The YAML has neither a valid URL nor path key; "
-                "cannot create any resources.")
+                "cannot create any resources. Skipping the dataset: "
+                f"{gmm_path} in collection: {collection_id}")
+            return None
 
         license_id = ''
         if gmm_yaml['license']:
@@ -556,9 +566,9 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
         # is accessed by URL.
         try:
             resource_dict = _create_resource_dict_from_url(
-                gmm_yaml[path_key], gmm_yaml['description'])
+                dataset_path, gmm_yaml['description'])
         except NotImplementedError:
-            resource_path = gmm_yaml[path_key]
+            resource_path = dataset_path
             resource_dict = {
                 'url': resource_path,
                 'description': gmm_yaml['description'],
@@ -584,7 +594,7 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
         # iterate through the source items and add each as a resource.
         for source_path in gmm_yaml['sources']:
             # Don't duplicate the resource for the main dataset
-            if gmm_yaml[path_key].endswith(source_path):
+            if dataset_path.endswith(source_path):
                 continue
 
             # Don't create resources for shapefile parts other than the .shp
@@ -604,15 +614,15 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
 
             # Should we interpret source_path as a URL adjacent to the linked
             # dataset? If yes, figure out the URL to use.
-            if (gmm_yaml[path_key].startswith('http') and not
+            if (dataset_path.startswith('http') and not
                     source_path.startswith('http')):
                 # Exception: we should not include resources that are known to
                 # be members of zipfiles.
-                if gmm_yaml[path_key].endswith('.zip') and _path_is_in_zipfile(
-                        gmm_yaml[path_key], source_path):
+                if dataset_path.endswith('.zip') and _path_is_in_zipfile(
+                        dataset_path, source_path):
                     continue
 
-                dataset_dirname = os.path.dirname(gmm_yaml[path_key])
+                dataset_dirname = os.path.dirname(dataset_path)
 
                 # Is the resource relative to the parent dir of the primary
                 # URL?
@@ -664,7 +674,7 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
             pass
 
         # Computing average lat/lon for vectors
-        vector_path = _detect_vector(gmm_yaml, path_key, resource_dict['format'])
+        vector_path = _detect_vector(gmm_yaml, dataset_path, resource_dict['format'])
         avg_lat = None
         avg_lon = None
         if vector_path:
@@ -753,13 +763,8 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
         licenses = catalog.action.license_list()
         print(f"{len(licenses)} licenses found")
 
-    # Get the path_key
-    path_key = None
-    for _path_key in ('path', 'url'):
-        if _path_key in gmm_yaml and gmm_yaml[_path_key]:
-            path_key = _path_key
-            break
-    if not path_key:
+    dataset_path = _get_path_from_yaml(gmm_yaml)
+    if not dataset_path:
         raise ValueError(
             "The YAML has neither a valid URL nor path key; "
             "cannot create any resources.")
@@ -767,17 +772,15 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
     # If the GMM YAML describes a single geospatial layer, create a dataset package
     # Otherwise, need to create a top-level collection and datasets for child layers
     config_yaml = get_config(gmm_yaml, ckan_url, session)
-    limited_collection_members = config_yaml.get('collection_members', None)
-
     collection, yaml_sources = detect_collection(
             gmm_yaml['sources'],
-            gmm_yaml[path_key],
-            limited_collection_members)
+            dataset_path,
+            config_yaml)
 
     if not collection:
         print(f"Generating package meta for Dataset: {gmm_yaml_path}")
-        generate_package_meta(gmm_yaml_path, gmm_yaml, path_key,
-                              licenses, package_type="dataset")
+        generate_package_meta(gmm_yaml_path, gmm_yaml, licenses,
+                              package_type="dataset")
 
     if collection:
         name = str(gmm_yaml['uid'].replace(':', '-').replace('sizetimestamp', 'sts'))
@@ -785,8 +788,8 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
 
         # Construct the top-level collection
         print(f"Generating package meta for Collection: {gmm_yaml_path}")
-        generate_package_meta(gmm_yaml_path, gmm_yaml, path_key,
-                              licenses, package_type="collection")
+        generate_package_meta(gmm_yaml_path, gmm_yaml, licenses,
+                              package_type="collection")
 
         # Need to do some recursive stuff here!
         for yaml_path in yaml_sources:
@@ -802,7 +805,7 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
             content = resp.content.decode("utf-8")
             yaml_content = yaml.safe_load(content)
 
-            generate_package_meta(yaml_path, yaml_content, path_key, licenses,
+            generate_package_meta(yaml_path, yaml_content, licenses,
                                   package_type="dataset",
                                   collection_id=collection_id)
 
