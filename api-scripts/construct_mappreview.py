@@ -310,7 +310,8 @@ def get_vector_layers_metadata(vector_resources):
     return filter(None, vector_layers)
 
 
-def get_mappreview_metadata(resources, source_files, mappreview_sources=[]):
+def get_mappreview_metadata(resources, source_files, base_dataset_path,
+                            mappreview_sources=[]):
     """Get metadata needed to display all resources on the map
 
     Args:
@@ -318,6 +319,8 @@ def get_mappreview_metadata(resources, source_files, mappreview_sources=[]):
             with the dataset.
         source_files (list): list of source files associated with the dataset,
             as contained in the geometamaker yml ``sources`` property.
+        base_dataset_path (string): URL of the dataset, pulled from the YML.
+            Used during path manipulation to create the MVT URL for shapefiles.
         mappreview_sources (list): optional list of sources to include in the
             mappreview extra. If included, this must be a subset of paths in
             ``source_files``. If excluded, ``mappreview`` metadata will be
@@ -343,7 +346,7 @@ def get_mappreview_metadata(resources, source_files, mappreview_sources=[]):
 
             name = path.split('/')[-1]
 
-            base = '/'.join(zip_resource['url'].split('/')[0:-1])
+            base = '/'.join(base_dataset_path.split('/')[0:-1])
             base = base.replace('https://storage.cloud.google.com/',
                                 'https://storage.googleapis.com/')
 

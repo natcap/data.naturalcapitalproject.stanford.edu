@@ -651,7 +651,8 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
         # Construct the mappreview extra. If a config file was passed and includes
         # `layers_to_preview`, only include those layers
         mappreview_layers_meta = get_mappreview_metadata(
-            resources, gmm_yaml['sources'], config_yaml.get('layers_to_preview'))
+            resources, gmm_yaml['sources'], dataset_path,
+            config_yaml.get('layers_to_preview'))
         if mappreview_layers_meta:
             extras.append({
                 'key': 'mappreview',
