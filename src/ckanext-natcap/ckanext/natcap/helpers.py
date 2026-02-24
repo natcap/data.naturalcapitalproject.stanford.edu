@@ -401,6 +401,12 @@ def get_file_downloadability(pkg, source):
     return {'allowed': allowed_default, 'reason': 'default', 'url': url}
 
 
+def get_download_url(resource_url):
+    if resource_url.lower().endswith('.shp'):
+        return '.'.join([resource_url.rsplit('.', 1)[0], 'zip'])
+    return resource_url
+
+
 def get_helpers():
     return {
         'natcap_get_ext': get_ext,
@@ -415,6 +421,7 @@ def get_helpers():
         'natcap_show_resource': show_resource,
         'natcap_parse_json': parse_json,
         'natcap_get_file_downloadability': get_file_downloadability,
+        'natcap_get_download_url': get_download_url,
         # helpers for ckanext-scheming:
         'natcap_get_place_tags': get_place_tags,
         'natcap_get_collection_name': get_collection_name,
