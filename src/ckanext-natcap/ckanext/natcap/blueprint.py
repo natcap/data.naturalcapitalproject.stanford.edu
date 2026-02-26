@@ -14,14 +14,13 @@ import threading
 import time
 from urllib.parse import urlparse
 
+from .helpers import SHAPEFILE_PART_EXTS
+
 log = logging.getLogger(__name__)
 bp = Blueprint("natcap", __name__)
 
 
-SHAPEFILE_PART_EXTS = [
-    ".shp", ".dbf", ".shx", ".prj", ".cpg", ".qix", ".sbn", ".sbx", ".shp.xml"
-]
-
+ALL_SHAPEFILE_EXTS = SHAPEFILE_PART_EXTS + ('.shp',)
 DEFAULT_TIMEOUT = (60, 7200)  # (connect, read) seconds
 
 ALLOWED_URL_HOSTS = {
@@ -201,7 +200,7 @@ def _shapefile_part_filenames(shp_filename: str) -> list[str]:
     (Note: .shp.xml is optional and has a double extension.)
     """
     base = os.path.splitext(os.path.basename(shp_filename))[0]
-    parts = [f"{base}{ext}" for ext in SHAPEFILE_PART_EXTS]
+    parts = [f"{base}{ext}" for ext in ALL_SHAPEFILE_EXTS]
     return parts
 
 

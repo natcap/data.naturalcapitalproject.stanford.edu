@@ -1,4 +1,6 @@
 import os
+SHAPEFILE_PART_EXTS = (".dbf", ".shx", ".prj", ".cpg", ".qix", ".sbn",
+                       ".sbx", ".shp.xml")
 
 
 def natcap_hello():
@@ -13,9 +15,7 @@ def _is_yaml_name(name: str) -> bool:
 def _is_shapefile_sidecar(name: str) -> bool:
     """Check if the filename is a shapefile auxiliary file (not .shp)"""
     n = (name or "").lower()
-    shapefile_extensions = (".dbf", ".shx", ".prj", ".cpg", ".qix", ".sbn",
-                            ".sbx", ".shp.xml")
-    return n.endswith(shapefile_extensions)
+    return n.endswith(SHAPEFILE_PART_EXTS)
 
 
 def natcap_find_attached_metadata_map(pkg_dict: dict) -> dict:
