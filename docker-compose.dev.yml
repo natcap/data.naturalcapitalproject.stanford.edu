@@ -37,6 +37,9 @@ services:
     env_file:
       - .env
     environment:
+      - UWSGI_HARAKIRI=7200
+      - UWSGI_SOCKET_TIMEOUT=7200
+      - UWSGI_HTTP_TIMEOUT=7200
       - CKANEXT__MAPPREVIEW__CLIPPING_SERVICE_URL=http://localhost:8000
     depends_on:
       db:
@@ -55,6 +58,9 @@ services:
         - action: sync
           path: ./src
           target: /srv/app/src
+        # Need to rebuild ckan to reflect changes to python files, ex:
+        # - action: rebuild
+        #   path: ./src/ckanext-natcap/ckanext/natcap/blueprint.py
     healthcheck:
       test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:5000"]
 
