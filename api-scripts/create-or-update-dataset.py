@@ -340,6 +340,9 @@ def _detect_vector(gmm_yaml, path_key, data_format):
     if dataset is a zip, check each item in the zip and return path if item
         is a vector
     """
+    if gmm_yaml.get('type') in ['raster', 'table']:
+        return False
+
     dataset_path = gmm_yaml[path_key]
     if dataset_path.startswith("http"):  # read file from remote
         # gdal can't handle the storage.cloud.google.com URL
