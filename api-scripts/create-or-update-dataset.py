@@ -344,6 +344,9 @@ def _detect_vector(gmm_yaml, dataset_path, data_format):
     if dataset is a zip, check each item in the zip and return path if item
         is a vector
     """
+    if gmm_yaml.get('type') in ['raster', 'table']:
+        return False
+
     if dataset_path.startswith("http"):  # read file from remote
         # gdal can't handle the storage.cloud.google.com URL
         dataset_path = re.sub('^https://storage.cloud.google.com',
@@ -772,11 +775,14 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
 
     # If the GMM YAML describes a single geospatial layer, create a dataset package
     # Otherwise, need to create a top-level collection and datasets for child layers
-    config_yaml = get_config(gmm_yaml, ckan_url, session)
-    collection, yaml_sources = detect_collection(
-            gmm_yaml['sources'],
-            dataset_path,
-            config_yaml)
+    collection = False
+
+    if gmm_yaml.get('type') in ['archive', 'collection']:
+        config_yaml = get_config(gmm_yaml, ckan_url, session)
+        collection, yaml_sources = detect_collection(
+                gmm_yaml['sources'],
+                dataset_path,
+                config_yaml)
 
     if not collection:
         print(f"Generating package meta for Dataset: {gmm_yaml_path}")
