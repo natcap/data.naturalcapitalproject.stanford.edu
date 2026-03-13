@@ -554,6 +554,7 @@ body {
     flex-direction: row;
     align-items: center;
     gap: 0.5rem;
+    break-inside: avoid;
 }
 
 .home-invest-model-list-item a {
@@ -564,6 +565,10 @@ body {
 
 .home-invest-model-list-item a img {
     padding-right: 5px;
+}
+
+.home-invest-model-list-item > div {
+    display: flex;
 }
 
 .additional-info .table {
