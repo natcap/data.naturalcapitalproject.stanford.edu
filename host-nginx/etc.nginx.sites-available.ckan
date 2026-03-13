@@ -54,7 +54,7 @@ server {
 		# If we have >1 requests over that rate, return a 503 error.
 		# To configure the error, see https://nginx.org/en/docs/http/ngx_http_limit_req_module.html#limit_req_status
 		#limit_req zone=1req_per_s burst=34 nodelay;
-		
+
 		# limit the number of connections
 		#limit_conn addr 10;
 		include /etc/nginx/throttle-bots.conf;
