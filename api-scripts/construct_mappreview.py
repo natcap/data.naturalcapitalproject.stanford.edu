@@ -310,8 +310,7 @@ def get_vector_layers_metadata(vector_resources):
     return filter(None, vector_layers)
 
 
-def get_mappreview_metadata(resources, source_files, base_dataset_path,
-                            mappreview_sources=[]):
+def get_mappreview_metadata(resources, source_files, mappreview_sources=[]):
     """Get metadata needed to display all resources on the map
 
     Args:
@@ -319,8 +318,6 @@ def get_mappreview_metadata(resources, source_files, base_dataset_path,
             with the dataset.
         source_files (list): list of source files associated with the dataset,
             as contained in the geometamaker yml ``sources`` property.
-        base_dataset_path (string): URL of the dataset, pulled from the YML.
-            Used during path manipulation to create the MVT URL for shapefiles.
         mappreview_sources (list): optional list of sources to include in the
             mappreview extra. If included, this must be a subset of paths in
             ``source_files``. If excluded, ``mappreview`` metadata will be
@@ -330,13 +327,15 @@ def get_mappreview_metadata(resources, source_files, base_dataset_path,
         Dict including ``map`` and ``layers`` keys, used to configure the
         mapbox map for previewing data layers.
     """
+    LOGGER.warning("GETTING MAPPREVIEW...")
     raster_resources = [r for r in resources if r['format'] == 'GeoTIFF']
-    vector_resources = [] # These will never be .mvts to start
+    vector_resources = [r for r in resources if r['format'] == 'Shapefile']
     layers = []
 
     zip_resource = next((r for r in resources if r['format'] == 'ZIP'), None)
 
-    if source_files:
+    if zip_resource and source_files:
+        # Look at zip sources for spatial resources and add
         for shp_source in [s for s in source_files if s.endswith('.shp')]:
             if mappreview_sources and shp_source not in mappreview_sources:
                 continue
@@ -346,7 +345,7 @@ def get_mappreview_metadata(resources, source_files, base_dataset_path,
 
             name = path.split('/')[-1]
 
-            base = '/'.join(base_dataset_path.split('/')[0:-1])
+            base = '/'.join(zip_resource['url'].split('/')[0:-1])
             base = base.replace('https://storage.cloud.google.com/',
                                 'https://storage.googleapis.com/')
 
@@ -354,13 +353,9 @@ def get_mappreview_metadata(resources, source_files, base_dataset_path,
             # Ideally, .geojson should also be supported, but the mapbox JS
             # errors. So, for the moment, check for .mvt only.
             url = None
-            if path_dirname:
-                possible_url = (
-                    f'{base}/{path_dirname}/'
-                    f'{path_basename.replace(".shp", ".mvt")}')
-            else:
-                possible_url = (
-                    f'{base}/{path_basename.replace(".shp", ".mvt")}')
+            possible_url = (
+                f'{base}/{path_dirname}/'
+                f'{path_basename.replace(".shp", ".mvt")}')
             # If we're working with an mvt, we cannot request a HEAD on a
             # directory, so we need to get the metadata.json file instead
             url_to_check = f"{possible_url}/metadata.json"
@@ -383,8 +378,6 @@ def get_mappreview_metadata(resources, source_files, base_dataset_path,
                 'url': url,
             })
 
-    if zip_resource and source_files:
-        # Look at zip sources for spatial resources and add
         for tif_source in [s for s in source_files if s.endswith('.tif')]:
             if mappreview_sources and tif_source not in mappreview_sources:
                 continue

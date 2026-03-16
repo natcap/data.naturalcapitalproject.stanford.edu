@@ -55,6 +55,7 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
     def dataset_facets(self, facets_dict, package_type):
         facets_dict['extras_sources_res_formats'] = toolkit._('Resource Formats')
         facets_dict['vocab_place'] = toolkit._('Place')
+        facets_dict['vocab_collection'] = toolkit._('Collection')
         return facets_dict
 
     def organization_facets(self, facets_dict, organization_type, package_type):
@@ -95,7 +96,6 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
 
     @staticmethod
     def _after_dataset_update(context, package):
-        LOGGER.info(f"After dataset update: {context} ||| {package}")
         if "package" in context:
             # This is what is supposed to happen when we add/update a dataset.
             resources = [toolkit.get_action('resource_show')(context, { 'id': r.id })

@@ -81,6 +81,13 @@ dataset_fields:
   validators: ignore_missing natcap_convert_to_tags(place)
   output_validators: convert_from_tags(place)
 
+- field_name: collection
+  label: Collection
+  preset: multiple_select
+  choices_helper: natcap_get_collection_tags
+  validators: ignore_missing natcap_convert_to_tags(collection)
+  output_validators: convert_from_tags(collection)
+
 resource_fields:
 
 - field_name: url

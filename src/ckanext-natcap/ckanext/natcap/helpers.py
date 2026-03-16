@@ -173,6 +173,12 @@ def parse_json(json_str):
         return []
 
 
+def get_collection_tags(context):
+    vocab_tags = toolkit.get_action('tag_list')(
+        context, {'vocabulary_id': 'collection'})
+    return [{'value': tag, 'label': tag} for tag in vocab_tags]
+
+
 def get_place_tags(context):
     vocab_tags = toolkit.get_action('tag_list')(
         context, {'vocabulary_id': 'place'})
@@ -185,32 +191,31 @@ def get_collection_name(collection_name):
     return dataset.get('title', '')
 
 
-def collection_choices(field: dict[str, Any]) -> list[dict[str, str]]:
-    """Return a list of options for the in_collection field.
+def get_collection_name_url(collection_label):
+    label = '+'.join(collection_label.split())
 
-    Adapted from https://github.com/ckan/ckanext-dataset-series/blob/main/ckanext/dataset_series/helpers.py
-
-    Args:
-        field: Scheming field definition.
-
-    Returns:
-        A list of options for the in_collection field.
-    """
-    result = toolkit.get_action("package_search")(
-        {"ignore_auth": True},
+    results = toolkit.get_action('package_search')(
+        {},
         {
+            "fq": f"extras_collection:{label}",
             "q": "type:collection",
-            "rows": 1000,
             "fl": "title, name",
-            "include_private": True,
-        },
+        }
     )
-    collection = []
+    if results['count'] > 0:
+        return results['results']
+    return None
 
-    for dataset in result["results"]:
-        collection.append({"value": dataset["name"], "label": dataset["title"]})
 
-    return sorted(collection, key=lambda d: d["label"])
+def collection_lulc_biotable(pkg):
+    if not pkg['collection']:
+        return (False, False)
+
+    tags = [tag['name'] for tag in pkg['tags']]
+    if 'LULC' in tags:
+        return (True, False)
+    if 'BIOPHYSICAL TABLE' in tags:
+        return (False, True)
 
 
 def _load_download_rules_for(pkg):
@@ -422,8 +427,10 @@ def get_helpers():
         'natcap_parse_json': parse_json,
         'natcap_get_file_downloadability': get_file_downloadability,
         'natcap_get_download_url': get_download_url,
+        'natcap_get_collection_name': get_collection_name,
+        'natcap_get_collection_name_url': get_collection_name_url,
+        'natcap_collection_lulc_biotable': collection_lulc_biotable,
         # helpers for ckanext-scheming:
         'natcap_get_place_tags': get_place_tags,
-        'natcap_get_collection_name': get_collection_name,
-        'natcap_collection_choices': collection_choices,
+        'natcap_get_collection_tags': get_collection_tags,
     }

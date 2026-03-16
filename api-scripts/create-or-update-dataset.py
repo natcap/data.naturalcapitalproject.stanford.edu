@@ -63,10 +63,6 @@ RESOURCES_BY_EXTENSION = {
     '.gcolors': 'GRASS Color Table',
 }
 
-SHAPEFILE_PART_EXTS = (
-    ".dbf", ".shx", ".prj", ".cpg", ".qix", ".sbn", ".sbx"
-)
-
 # Add a few mimetypes for extensions we're likely to encounter
 for extension, mimetype in [
         ('.shp', 'application/octet-stream'),
@@ -273,9 +269,8 @@ def get_from_config(config, dot_keys):
     return ''
 
 
-def _create_tags_dicts(config):
-    tags_list = get_from_config(config, 'keywords')
-    return [{'name': name} for name in tags_list]
+def _create_tags_dicts(tag_list):
+    return [{'name': name} for name in tag_list]
 
 
 def _get_wgs84_bbox(config):
@@ -336,7 +331,7 @@ def _get_wgs84_bbox(config):
              [minx, maxy]]]
 
 
-def _detect_vector(gmm_yaml, dataset_path, data_format):
+def _detect_vector(gmm_yaml, path_key, data_format):
     """Get path to vector dataset (_get_median_latlon helper function )
 
     if dataset is not a vector, return False
@@ -347,6 +342,7 @@ def _detect_vector(gmm_yaml, dataset_path, data_format):
     if gmm_yaml.get('type') in ['raster', 'table']:
         return False
 
+    dataset_path = gmm_yaml[path_key]
     if dataset_path.startswith("http"):  # read file from remote
         # gdal can't handle the storage.cloud.google.com URL
         dataset_path = re.sub('^https://storage.cloud.google.com',
@@ -429,52 +425,53 @@ def _get_median_latlon_bounds(vector_path):
     return (numpy.median(ys), numpy.median(xs))  # lat, lon, bounds
 
 
-def _get_path_from_yaml(gmm_yaml):
-    """Try to find the dataset path: check for `path` or `url` in the GMM YAML."""
-    path_key = None
-    for _path_key in ('path', 'url'):
-        if _path_key in gmm_yaml and gmm_yaml[_path_key]:
-            path_key = _path_key
-            break
-    if not path_key:
-        return None
-    return gmm_yaml[path_key]
+def _fetch_vocab_tags(vocab_name, ckan_url, apikey, session):
+    with RemoteCKAN(ckan_url, apikey=apikey, session=session) as catalog:
+        try:
+            vocab_tags = catalog.action.tag_list(vocabulary_id=vocab_name)
+        except ckanapi.errors.NotFound:
+            LOGGER.error(f"No Tag Vocabulary with name `{vocab_name}` was found.")
+            raise
+    return vocab_tags
 
 
-def detect_collection(sources, top_level_path, config_yaml):
-    """Determine if a GMM YAML source list represents a Dataset or Collection.
-    """
-    if config_yaml.get('treat_as_collection') is False:
-        return False, []
+def _extract_vocab_tags_from_free_tags(package_tags, vocab_name, ckan_url, apikey, session):
+    vocab_tags = _fetch_vocab_tags(vocab_name, ckan_url, apikey, session)
+    collection_tags = []
+    free_tags = []
 
-    base_path = top_level_path.rsplit("/", 1)[0]
-    collection = False
-
-    yml_sources = [source for source in sources
-                   if source.lower().endswith(('.yml', '.yaml'))]
-    if len(yml_sources) > 1:
-        collection = True
-
-    # If the parent collection's config file limits child datasets
-    # to a subset, drop those not included
-    limited_collection_members = config_yaml.get('collection_members', None)
-    if limited_collection_members:
-        yml_sources = [source for source in yml_sources
-                       if source in limited_collection_members]
-
-    valid_yml_sources = []
-    if collection:
-        for yml_path in yml_sources:
-            data_path = yml_path.rsplit('.', 1)[0]
-            if data_path in sources:
-                valid_yml_sources.append("/".join([base_path, yml_path]))
-
-    return collection, valid_yml_sources
+    for tag in package_tags:
+        if tag in vocab_tags:
+            collection_tags.append(tag)
+        else:
+            free_tags.append(tag)
+    return free_tags, collection_tags
 
 
-def get_config(gmm_yaml, ckan_url, session):
-    """Attempt to find a config file for this dataset.
-    """
+def _package_type(gmm_yml, config_yml, collection_tags):
+    if gmm_yml.get('type') in ['collection', 'archive']:
+        if config_yml.get('treat_as_collection') is False:
+            return 'dataset'
+        if not collection_tags:
+            return 'dataset'
+
+        yml_sources = [source for source in gmm_yml['sources']
+                       if source.lower().endswith(('.yml', '.yaml'))]
+        if len(yml_sources) > 1:
+            return 'collection'
+    return 'dataset'
+
+
+def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
+         verify_ssl=True):
+    with open(gmm_yaml_path) as yaml_file:
+        LOGGER.info(f"Loading geometamaker yaml from {gmm_yaml_path}")
+        gmm_yaml = yaml.load(yaml_file.read(), Loader=yaml.Loader)
+
+    session = requests.Session()
+    session.headers.update({'Authorization': ckan_apikey})
+    session.verify = verify_ssl
+
     config_yaml = {}
     possible_config_path = f"{ckan_url}/dataset_configs/{gmm_yaml['title']}.yml"
     resp = session.get(possible_config_path)
@@ -496,37 +493,20 @@ def get_config(gmm_yaml, ckan_url, session):
             LOGGER.warning("Config file contains no 'layers_to_preview' key. "
                            "All layers will be included in the mappreview extra.")
 
-        if config_yaml.get('collection_members'):
-            missing_meta = [path for path in config_yaml.get('collection_members')
-                            if path not in gmm_yaml['sources']]
-            if missing_meta:
-                raise ValueError("Sources were included in the config file "
-                                 "`collection_members` that are not included in the "
-                                 f"Geometamaker YAML 'sources': {missing_meta}")
-
     else:
         LOGGER.info(f"No config file found at {possible_config_path}")
 
-    return config_yaml
+    with RemoteCKAN(ckan_url, apikey=ckan_apikey, session=session) as catalog:
+        if 'natcap' not in catalog.action.organization_list():
+            _ = catalog.action.organization_create(
+                name="natcap",
+                title="Natural Capital Project",
+                description=""
+            )
+        print('list org natcap', catalog.action.organization_list(id='natcap'))
 
-
-def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
-         verify_ssl=True):
-    session = requests.Session()
-    session.headers.update({'Authorization': ckan_apikey})
-    session.verify = verify_ssl
-
-    def generate_package_meta(gmm_path, gmm_yaml, licenses,
-                              package_type, collection_id=None):
-        config_yaml = get_config(gmm_yaml, ckan_url, session)
-
-        dataset_path = _get_path_from_yaml(gmm_yaml)
-        if not dataset_path:
-            LOGGER.error(
-                "The YAML has neither a valid URL nor path key; "
-                "cannot create any resources. Skipping the dataset: "
-                f"{gmm_path} in collection: {collection_id}")
-            return None
+        licenses = catalog.action.license_list()
+        print(f"{len(licenses)} licenses found")
 
         license_id = ''
         if gmm_yaml['license']:
@@ -554,24 +534,27 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
             if contact_info[author_key]:
                 break  # just keep the first author_key we find
 
-        # RESOURCES CONSTRUCTION:
-        if collection_id:
-            resources = [
-                _create_resource_dict_from_url(gmm_path, "Geometamaker YML")
-            ]
-        else:
-            resources = [
-                _create_resource_dict_from_file(
-                    gmm_path, "Geometamaker YML", upload=True),
-            ]
+        resources = [
+            _create_resource_dict_from_file(
+                gmm_yaml_path, "Geometamaker YML", upload=True),
+        ]
 
         # Create a resource dict.  GMM yaml only has 1 possible resource, which
         # is accessed by URL.
+        path_key = None
+        for _path_key in ('path', 'url'):
+            if _path_key in gmm_yaml and gmm_yaml[_path_key]:
+                path_key = _path_key
+                break
+        if not path_key:
+            raise ValueError(
+                "The YAML has neither a valid URL nor path key; "
+                "cannot create any resources.")
         try:
             resource_dict = _create_resource_dict_from_url(
-                dataset_path, gmm_yaml['description'])
+                gmm_yaml[path_key], gmm_yaml['description'])
         except NotImplementedError:
-            resource_path = dataset_path
+            resource_path = gmm_yaml[path_key]
             resource_dict = {
                 'url': resource_path,
                 'description': gmm_yaml['description'],
@@ -588,7 +571,7 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
         resources.append(resource_dict)
 
         # If sidecar .xml exists, add it as ISO XML.
-        sidecar_xml = re.sub(".yml$", ".xml", gmm_path)
+        sidecar_xml = re.sub(".yml$", ".xml", gmm_yaml_path)
         if (os.path.exists(sidecar_xml)
                 and not sidecar_xml.endswith('.aux.xml')):
             resources.append(_create_resource_dict_from_file(
@@ -597,11 +580,7 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
         # iterate through the source items and add each as a resource.
         for source_path in gmm_yaml['sources']:
             # Don't duplicate the resource for the main dataset
-            if dataset_path.endswith(source_path):
-                continue
-
-            # Don't create resources for shapefile parts other than the .shp
-            if source_path.lower().endswith(SHAPEFILE_PART_EXTS):
+            if gmm_yaml[path_key].endswith(source_path):
                 continue
 
             if os.path.basename(source_path).upper().startswith('README'):
@@ -617,15 +596,15 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
 
             # Should we interpret source_path as a URL adjacent to the linked
             # dataset? If yes, figure out the URL to use.
-            if (dataset_path.startswith('http') and not
+            if (gmm_yaml[path_key].startswith('http') and not
                     source_path.startswith('http')):
                 # Exception: we should not include resources that are known to
                 # be members of zipfiles.
-                if dataset_path.endswith('.zip') and _path_is_in_zipfile(
-                        dataset_path, source_path):
+                if gmm_yaml['path'].endswith('.zip') and _path_is_in_zipfile(
+                        gmm_yaml[path_key], source_path):
                     continue
 
-                dataset_dirname = os.path.dirname(dataset_path)
+                dataset_dirname = os.path.dirname(gmm_yaml[path_key])
 
                 # Is the resource relative to the parent dir of the primary
                 # URL?
@@ -654,8 +633,7 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
         # Construct the mappreview extra. If a config file was passed and includes
         # `layers_to_preview`, only include those layers
         mappreview_layers_meta = get_mappreview_metadata(
-            resources, gmm_yaml['sources'], dataset_path,
-            config_yaml.get('layers_to_preview'))
+            resources, gmm_yaml['sources'], config_yaml.get('layers_to_preview'))
         if mappreview_layers_meta:
             extras.append({
                 'key': 'mappreview',
@@ -678,7 +656,7 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
             pass
 
         # Computing average lat/lon for vectors
-        vector_path = _detect_vector(gmm_yaml, dataset_path, resource_dict['format'])
+        vector_path = _detect_vector(gmm_yaml, path_key, resource_dict['format'])
         avg_lat = None
         avg_lon = None
         if vector_path:
@@ -688,6 +666,10 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
                 'value': json.dumps([avg_lat, avg_lon])
             })
 
+        tags_list = [tag.upper() for tag in get_from_config(gmm_yaml, 'keywords')]
+        free_tags, collection_tags = _extract_vocab_tags_from_free_tags(
+            tags_list, 'collection', ckan_url, ckan_apikey, session)
+
         package_parameters = {
             'name': name,
             'title': title,
@@ -695,126 +677,58 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
             'author': contact_info[author_key],
             'author_email': contact_info['email'],
             'owner_org': 'natcap',
-            'type': package_type,
+            'type': _package_type(gmm_yaml, config_yaml, collection_tags),
             'notes': gmm_yaml['description'],
             # 'url': gmm_yaml['url'],
             'version': gmm_yaml['edition'],
             'suggested_citation': gmm_yaml['citation'],
             'license_id': license_id,
             'groups': [] if not group else [{'id': group}],
-            'tags': _create_tags_dicts(gmm_yaml),
+            'tags': _create_tags_dicts(free_tags),
             'place': [tag.upper() for tag in gmm_yaml.get('placenames', [])],
-            'in_collection': [collection_id] if collection_id else [],
+            'collection': collection_tags,
             'extras': extras,
         }
-
-        with RemoteCKAN(ckan_url, apikey=ckan_apikey, session=session) as catalog:
+        try:
             try:
-                try:
-                    LOGGER.info(
-                        f"Checking to see if package exists with name={name}")
-                    pkg_dict = catalog.action.package_show(name_or_id=name)
-                    LOGGER.info(f"Package already exists name={name}")
+                LOGGER.info(
+                    f"Checking to see if package exists with name={name}")
+                pkg_dict = catalog.action.package_show(name_or_id=name)
+                LOGGER.info(f"Package already exists name={name}")
 
-                    if pkg_dict['state'] == 'deleted':
-                        LOGGER.info(f"Dataset {title} (name: {name}) exists in "
-                                    "deleted state. Setting state to active.")
-                        package_parameters['state'] = 'active'
+                if pkg_dict['state'] == 'deleted':
+                    LOGGER.info(f"Dataset {title} (name: {name}) exists in "
+                                "deleted state. Setting state to active.")
+                    package_parameters['state'] = 'active'
 
-                    pkg_dict = catalog.action.package_update(
-                        id=pkg_dict['id'],
-                        **package_parameters
-                    )
-                except ckanapi.errors.NotFound:
-                    LOGGER.info(
-                        f"Package not found; creating package with name={name}")
-                    pkg_dict = catalog.action.package_create(
-                        **package_parameters
-                    )
-                pprint.pprint(pkg_dict)
+                pkg_dict = catalog.action.package_update(
+                    id=pkg_dict['id'],
+                    **package_parameters
+                )
+            except ckanapi.errors.NotFound:
+                LOGGER.info(
+                    f"Package not found; creating package with name={name}")
+                pkg_dict = catalog.action.package_create(
+                    **package_parameters
+                )
+            pprint.pprint(pkg_dict)
 
-                # Resources:
-                #   * The file we're referring to (at a different URL)
-                #   * The ISO XML
-                #   * The MCF file
+            # Resources:
+            #   * The file we're referring to (at a different URL)
+            #   * The ISO XML
+            #   * The MCF file
 
-                attached_resources = pkg_dict['resources']
-                assert not attached_resources
-                for resource in resources:
-                    created_resource = catalog.action.resource_create(
-                        package_id=pkg_dict['id'],
-                        **resource
-                    )
-                    pprint.pprint(created_resource)
+            attached_resources = pkg_dict['resources']
+            assert not attached_resources
+            for resource in resources:
+                created_resource = catalog.action.resource_create(
+                    package_id=pkg_dict['id'],
+                    **resource
+                )
+                pprint.pprint(created_resource)
 
-            except AttributeError:
-                print(dir(catalog.action))
-
-
-    with open(gmm_yaml_path) as yaml_file:
-        LOGGER.info(f"Loading geometamaker yaml from {gmm_yaml_path}")
-        gmm_yaml = yaml.load(yaml_file.read(), Loader=yaml.Loader)
-
-    with RemoteCKAN(ckan_url, apikey=ckan_apikey, session=session) as catalog:
-        if 'natcap' not in catalog.action.organization_list():
-            _ = catalog.action.organization_create(
-                name="natcap",
-                title="Natural Capital Project",
-                description=""
-            )
-        print('list org natcap', catalog.action.organization_list(id='natcap'))
-
-        licenses = catalog.action.license_list()
-        print(f"{len(licenses)} licenses found")
-
-    dataset_path = _get_path_from_yaml(gmm_yaml)
-    if not dataset_path:
-        raise ValueError(
-            "The YAML has neither a valid URL nor path key; "
-            "cannot create any resources.")
-
-    # If the GMM YAML describes a single geospatial layer, create a dataset package
-    # Otherwise, need to create a top-level collection and datasets for child layers
-    collection = False
-
-    if gmm_yaml.get('type') in ['archive', 'collection']:
-        config_yaml = get_config(gmm_yaml, ckan_url, session)
-        collection, yaml_sources = detect_collection(
-                gmm_yaml['sources'],
-                dataset_path,
-                config_yaml)
-
-    if not collection:
-        print(f"Generating package meta for Dataset: {gmm_yaml_path}")
-        generate_package_meta(gmm_yaml_path, gmm_yaml, licenses,
-                              package_type="dataset")
-
-    if collection:
-        name = str(gmm_yaml['uid'].replace(':', '-').replace('sizetimestamp', 'sts'))
-        collection_id = name
-
-        # Construct the top-level collection
-        print(f"Generating package meta for Collection: {gmm_yaml_path}")
-        generate_package_meta(gmm_yaml_path, gmm_yaml, licenses,
-                              package_type="collection")
-
-        # Need to do some recursive stuff here!
-        for yaml_path in yaml_sources:
-            print(f"Generating package meta for Dataset: {yaml_path}")
-
-            resp = session.get(yaml_path)
-            if not resp.ok:
-                LOGGER.error(f"Unable to load yaml from {yaml_path}; "
-                             "skipping this dataset")
-                continue
-
-            LOGGER.info(f"Loading yaml from {yaml_path}")
-            content = resp.content.decode("utf-8")
-            yaml_content = yaml.safe_load(content)
-
-            generate_package_meta(yaml_path, yaml_content, licenses,
-                                  package_type="dataset",
-                                  collection_id=collection_id)
+        except AttributeError:
+            print(dir(catalog.action))
 
 
 def _ui(args=None):
