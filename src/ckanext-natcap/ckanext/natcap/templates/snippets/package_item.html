@@ -51,8 +51,14 @@
           </div>
         {% endblock %}
         {% block collection %}
-          {% if package.in_collection %}
-          <span>This dataset is part of a Collection: <a href="/collection/{{package.in_collection[0]}}" target="_blank">{{ h.natcap_get_collection_name(package.in_collection[0]) }}</a></span>
+          {% if package.collection and package.type == 'dataset' %}
+            {% set collection_tag = package.collection[0] %}
+            {% set collection_packages = h.natcap_get_collection_name_url(collection_tag) %}
+            {% if not collection_packages %}
+              <span>This dataset is part of a Collection: <a href="{% url_for 'dataset.search', vocab_collection=collection_tag %}">{{ collection_tag }}</a></span>
+            {% elif collection_packages|length == 1 %}
+              <span>This dataset is part of a Collection: <a href="/collection/{{collection_packages[0]['name']}}" target="_blank">{{ collection_packages[0]['title'] }}</a></span>
+            {% endif %}
           {% endif %}
         {% endblock %}
         {% block notes %}
