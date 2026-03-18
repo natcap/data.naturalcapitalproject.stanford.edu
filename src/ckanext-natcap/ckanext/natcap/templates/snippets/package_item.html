@@ -16,9 +16,12 @@
                   {% endif %}
                 {% endblock %}
                 {% block heading_title %}
-        <a href="{{ h.url_for('%s.read' % package.type, id=package.name) }}" aria-label="{{ _('Navigate to dataset: {title}').format(title=title|truncate(80)) }}">
-          {{title|truncate(80)}}
-        </a>
+                  {% if package.type == 'collection' %}
+                    <span class="badge bg-info bg-collection">Collection</span>
+                  {% endif %}
+                  <a href="{{ h.url_for('%s.read' % package.type, id=package.name) }}" aria-label="{{ _('Navigate to dataset: {title}').format(title=title|truncate(80)) }}">
+                    {{title|truncate(80)}}
+                  </a>
                 {% endblock %}
                 {% block heading_meta %}
                   {% if package.get('state', '').startswith('draft') %}
@@ -46,6 +49,17 @@
                 {% endif %}
               {% endblock %}
           </div>
+        {% endblock %}
+        {% block collection %}
+          {% if package.collection and package.type == 'dataset' %}
+            {% set collection_tag = package.collection[0] %}
+            {% set collection_packages = h.natcap_get_collection_name_url(collection_tag) %}
+            {% if not collection_packages %}
+              <span>This dataset is part of a Collection: <a href="{% url_for 'dataset.search', vocab_collection=collection_tag %}">{{ collection_tag }}</a></span>
+            {% elif collection_packages|length == 1 %}
+              <span>This dataset is part of a Collection: <a href="/collection/{{collection_packages[0]['name']}}" target="_blank">{{ collection_packages[0]['title'] }}</a></span>
+            {% endif %}
+          {% endif %}
         {% endblock %}
         {% block notes %}
           {% if notes %}

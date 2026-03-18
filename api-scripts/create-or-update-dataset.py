@@ -269,9 +269,8 @@ def get_from_config(config, dot_keys):
     return ''
 
 
-def _create_tags_dicts(config):
-    tags_list = get_from_config(config, 'keywords')
-    return [{'name': name} for name in tags_list]
+def _create_tags_dicts(tag_list):
+    return [{'name': name} for name in tag_list]
 
 
 def _get_wgs84_bbox(config):
@@ -424,6 +423,43 @@ def _get_median_latlon_bounds(vector_path):
                          f"{numpy.min(ys)}, max y: {numpy.max(ys)}")
 
     return (numpy.median(ys), numpy.median(xs))  # lat, lon, bounds
+
+
+def _fetch_vocab_tags(vocab_name, ckan_url, apikey, session):
+    with RemoteCKAN(ckan_url, apikey=apikey, session=session) as catalog:
+        try:
+            vocab_tags = catalog.action.tag_list(vocabulary_id=vocab_name)
+        except ckanapi.errors.NotFound:
+            LOGGER.error(f"No Tag Vocabulary with name `{vocab_name}` was found.")
+            raise
+    return vocab_tags
+
+
+def _extract_vocab_tags_from_free_tags(package_tags, vocab_name, ckan_url, apikey, session):
+    vocab_tags = _fetch_vocab_tags(vocab_name, ckan_url, apikey, session)
+    collection_tags = []
+    free_tags = []
+
+    for tag in package_tags:
+        if tag in vocab_tags:
+            collection_tags.append(tag)
+        else:
+            free_tags.append(tag)
+    return free_tags, collection_tags
+
+
+def _package_type(gmm_yml, config_yml, collection_tags):
+    if gmm_yml.get('type') in ['collection', 'archive']:
+        if config_yml.get('treat_as_collection') is False:
+            return 'dataset'
+        if not collection_tags:
+            return 'dataset'
+
+        yml_sources = [source for source in gmm_yml['sources']
+                       if source.lower().endswith(('.yml', '.yaml'))]
+        if len(yml_sources) > 1:
+            return 'collection'
+    return 'dataset'
 
 
 def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
@@ -630,6 +666,10 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
                 'value': json.dumps([avg_lat, avg_lon])
             })
 
+        tags_list = [tag.upper() for tag in get_from_config(gmm_yaml, 'keywords')]
+        free_tags, collection_tags = _extract_vocab_tags_from_free_tags(
+            tags_list, 'collection', ckan_url, ckan_apikey, session)
+
         package_parameters = {
             'name': name,
             'title': title,
@@ -637,15 +677,16 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
             'author': contact_info[author_key],
             'author_email': contact_info['email'],
             'owner_org': 'natcap',
-            'type': 'dataset',
+            'type': _package_type(gmm_yaml, config_yaml, collection_tags),
             'notes': gmm_yaml['description'],
             # 'url': gmm_yaml['url'],
             'version': gmm_yaml['edition'],
             'suggested_citation': gmm_yaml['citation'],
             'license_id': license_id,
             'groups': [] if not group else [{'id': group}],
-            'tags': _create_tags_dicts(gmm_yaml),
+            'tags': _create_tags_dicts(free_tags),
             'place': [tag.upper() for tag in gmm_yaml.get('placenames', [])],
+            'collection': collection_tags,
             'extras': extras,
         }
         try:

@@ -327,6 +327,7 @@ def get_mappreview_metadata(resources, source_files, mappreview_sources=[]):
         Dict including ``map`` and ``layers`` keys, used to configure the
         mapbox map for previewing data layers.
     """
+    LOGGER.warning("GETTING MAPPREVIEW...")
     raster_resources = [r for r in resources if r['format'] == 'GeoTIFF']
     vector_resources = [r for r in resources if r['format'] == 'Shapefile']
     layers = []

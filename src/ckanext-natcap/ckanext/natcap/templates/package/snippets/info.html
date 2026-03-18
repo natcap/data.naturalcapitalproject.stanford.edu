@@ -4,10 +4,58 @@
 {% endblock %}
 
 {% block package_info_inner %}
+  {% if pkg.type == 'collection' %}
+  <div class="collection-banner">
+    <span>Collection</span>
+  </div>
+  {% endif %}
+
   {{ super() }}
+
   {% block package_info_description %}
     <div class="package-description" data-module="natcap-text-linkify">
       {{ pkg.notes }}
     </div>
+  {% endblock %}
+
+  {% block collection_info %}
+  {% if pkg.collection %}
+    {% set collection_tag = pkg.collection[0] %}
+
+    {% if pkg.type=='dataset' %}
+      {% set collection_packages = h.natcap_get_collection_name_url(collection_tag) %}
+      <div class="collection-info">
+        <i class="fa fa-layer-group" aria-hidden="true"></i>
+        {% if not collection_packages %}
+          <span>This dataset is part of a collection: <a href="{% url_for 'dataset.search', vocab_collection=collection_tag %}">{{ collection_tag }}</a></span>
+        {% elif collection_packages|length == 1 %}
+        <span>This dataset is part of a collection: <a href="/collection/{{collection_packages[0]['name']}}">{{ collection_packages[0]['title'] }}</a></span>
+        {% else %}
+        <span>This dataset is part of these collections:</span>
+        <ul>
+          {% for coll_pkg in collection_packages %}
+          <li><a href="/collection/{{coll_pkg['name']}}">{{ coll_pkg['title'] }}</a></span>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+      {% set lulc, biotable = h.natcap_collection_lulc_biotable(pkg) %}
+      {% if lulc %}
+        <span><a href="{% url_for 'dataset.search', vocab_collection=collection_tag, tags='BIOPHYSICAL TABLE' %}">Search for compatible Biophysical Tables</a></span>
+      {% elif biotable %}
+        <span><a href="{% url_for 'dataset.search', vocab_collection=collection_tag, tags='LULC' %}">Search for compatible LULC Rasters</a></span>
+      {% endif %}
+      </div>
+
+    {% elif pkg.type=='collection' %}
+      <div>
+        <a href="{% url_for 'dataset.search', vocab_collection=collection_tag %}" role="button" type="button" class="btn btn-collection btn-lg btn-block">
+          <i class="fa fa-layer-group" aria-hidden="true"></i>
+          Explore datasets in this Collection <i class="fa fa-chevron-right icon-small"></i>
+        </a>
+      </div>
+    {% endif %}
+
+  {% endif %}
   {% endblock %}
 {% endblock %}

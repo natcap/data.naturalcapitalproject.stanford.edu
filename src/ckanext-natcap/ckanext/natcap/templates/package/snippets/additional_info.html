@@ -40,7 +40,7 @@
             <th scope="row" class="dataset-label">{{ _('Tags') }}</th>
             <td class="dataset-details" property="dc:subject">
               <ol class="additional-info-tag-list">
-                {% for tag in pkg_dict.tags %}
+                {% for tag in pkg_dict.tags if not tag.vocabulary_id%}
                   <li class="additional-info-tag">
                     <a href="{% url_for 'dataset.search', tags=tag.name %}" aria-label="{{ _('Search datasets with the tag: {name}').format(name=tag.display_name) }}">
                       <img src="/img/filters-tag.png" />
@@ -62,6 +62,24 @@
                     <a href="{% url_for 'dataset.search', vocab_place=place %}" aria-label="{{ _('Search datasets with the place: {name}').format(name=place) }}">
                       <img src="/img/filters-place.png" />
                       {{ place }}
+                    </a>
+                  </li>
+                {% endfor %}
+              </ol>
+            </td>
+          </tr>
+          {% endif %}
+
+          {% if pkg_dict.collection %}
+          <tr>
+            <th scope="row" class="dataset-label">{{ _('Collections') }}</th>
+            <td class="dataset-details" property="dc:subject">
+              <ol class="additional-info-tag-list">
+                {% for collection in pkg_dict.collection %}
+                  <li class="additional-info-tag">
+                    <a href="{% url_for 'dataset.search', vocab_collection=collection %}" aria-label="{{ _('Search datasets with the collection: {name}').format(name=collection) }}">
+                      <img src="/img/filters-tag.png" />
+                      {{ collection }}
                     </a>
                   </li>
                 {% endfor %}

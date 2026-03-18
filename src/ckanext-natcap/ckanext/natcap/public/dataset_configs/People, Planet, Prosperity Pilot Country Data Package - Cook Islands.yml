@@ -5,3 +5,6 @@ defaults:
 
 layers_to_preview:
 - Cook_Islands_3Ps_data_pkg/Model_inputs_outputs/FloodRisk_Raro_Muri/FloodRisk_inputs/watersheds_Muri/watersheds_Muri.shp
+
+collection_members:
+- Cook_Islands_3Ps_data_pkg/Model_inputs_outputs/FloodRisk_Raro_Muri/FloodRisk_inputs/watersheds_Muri/watersheds_Muri.shp.yml

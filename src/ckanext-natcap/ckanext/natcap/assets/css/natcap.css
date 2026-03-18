@@ -1317,4 +1317,46 @@ div#invest-model-list-container div {
 .package-description {
     overflow-wrap: anywhere;
     word-break: break-word;
+    margin-top: 1rem;
+}
+
+.badge.bg-info.bg-collection {
+    background-color: var(--color-blue) !important;
+}
+
+.collection-banner {
+    color: var(--color-white);
+    font-size: 1.25em;
+    font-weight: bold;
+    background-color: var(--color-dark-plum);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.collection-info {
+    font-size: 1.25em;
+    border: 0.25rem solid var(--color-blue);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.btn-collection {
+    color: var(--color-blue);
+    font-size: 1.25em;
+    border: 0.25rem solid var(--color-blue);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.btn-collection:hover {
+    color: var(--color-white);
+    font-size: 1.25em;
+    background-color: var(--color-blue);
+    border: 0.25rem solid var(--color-blue);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-top: 1rem;
 }
