@@ -432,7 +432,7 @@ def _fetch_vocab_tags(vocab_name, ckan_url, apikey, session):
         except ckanapi.errors.NotFound:
             LOGGER.error(f"No Tag Vocabulary with name `{vocab_name}` was found.")
             raise
-    return vocab_tags
+    return set(vocab_tags)
 
 
 def _extract_vocab_tags_from_free_tags(package_tags, vocab_name, ckan_url, apikey, session):
@@ -455,10 +455,12 @@ def _package_type(gmm_yml, config_yml, collection_tags):
         if not collection_tags:
             return 'dataset'
 
-        yml_sources = [source for source in gmm_yml['sources']
-                       if source.lower().endswith(('.yml', '.yaml'))]
-        if len(yml_sources) > 1:
-            return 'collection'
+        yml_sources = 0
+        for source in gmm_yml['sources']:
+            if source.lower().endswith(('.yml', '.yaml')):
+                yml_sources += 1
+            if yml_sources > 1:
+                return 'collection'
     return 'dataset'
 
 
