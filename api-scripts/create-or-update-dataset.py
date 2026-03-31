@@ -703,10 +703,22 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
                                 "deleted state. Setting state to active.")
                     package_parameters['state'] = 'active'
 
-                pkg_dict = catalog.action.package_update(
-                    id=pkg_dict['id'],
-                    **package_parameters
-                )
+                if pkg_dict['type'] == package_parameters['type']:
+                    pkg_dict = catalog.action.package_update(
+                        id=pkg_dict['id'],
+                        **package_parameters
+                    )
+                else:
+                    # Handle an edge case where we want to convert between a collection
+                    # and a dataset; `type` doesn't update like other properties
+                    LOGGER.info(
+                        f"Package found but types don't match; "
+                        "purging and re-creating package with name={name}")
+                    catalog.action.dataset_purge(id=pkg_dict['id'])
+                    pkg_dict = catalog.action.package_create(
+                        **package_parameters
+                    )
+
             except ckanapi.errors.NotFound:
                 LOGGER.info(
                     f"Package not found; creating package with name={name}")
