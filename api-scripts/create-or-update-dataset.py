@@ -63,6 +63,11 @@ RESOURCES_BY_EXTENSION = {
     '.gcolors': 'GRASS Color Table',
 }
 
+SHAPEFILE_PART_EXTS = (
+    ".dbf", ".shx", ".prj", ".cpg", ".qix", ".sbn",
+    ".sbx", ".shp.xml"
+)
+
 # Add a few mimetypes for extensions we're likely to encounter
 for extension, mimetype in [
         ('.shp', 'application/octet-stream'),
@@ -583,6 +588,10 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
         for source_path in gmm_yaml['sources']:
             # Don't duplicate the resource for the main dataset
             if gmm_yaml[path_key].endswith(source_path):
+                continue
+
+            # Don't create resources for each shapefile part
+            if gmm_yaml[path_key].lower().endswith(SHAPEFILE_PART_EXTS):
                 continue
 
             if os.path.basename(source_path).upper().startswith('README'):
