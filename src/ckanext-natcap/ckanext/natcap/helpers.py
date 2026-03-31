@@ -216,6 +216,21 @@ def collection_lulc_biotable(pkg):
         return (True, False)
     if 'BIOPHYSICAL TABLE' in tags:
         return (False, True)
+    return (False, False)
+
+
+def collection_has_datasets(collection_tag):
+    results = toolkit.get_action('package_search')(
+        {},
+        {
+            "fq": f"extras_collection:{collection_tag}",
+            "q": "type:dataset",
+            "fl": "title",
+        }
+    )
+    if results['count'] > 0:
+        return True
+    return False
 
 
 def _load_download_rules_for(pkg):
@@ -430,6 +445,7 @@ def get_helpers():
         'natcap_get_collection_name': get_collection_name,
         'natcap_get_collection_name_url': get_collection_name_url,
         'natcap_collection_lulc_biotable': collection_lulc_biotable,
+        'natcap_collection_has_datasets': collection_has_datasets,
         # helpers for ckanext-scheming:
         'natcap_get_place_tags': get_place_tags,
         'natcap_get_collection_tags': get_collection_tags,

@@ -47,7 +47,7 @@
       {% endif %}
       </div>
 
-    {% elif pkg.type=='collection' %}
+    {% elif pkg.type=='collection' and h.natcap_collection_has_datasets(pkg.collection[0]) %}
       <div>
         <a href="{% url_for 'dataset.search', vocab_collection=collection_tag %}" role="button" type="button" class="btn btn-collection btn-lg btn-block">
           <i class="fa fa-layer-group" aria-hidden="true"></i>
