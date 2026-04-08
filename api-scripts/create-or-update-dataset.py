@@ -591,7 +591,7 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
                 continue
 
             # Don't create resources for each shapefile part
-            if gmm_yaml[path_key].lower().endswith(SHAPEFILE_PART_EXTS):
+            if source_path.endswith(SHAPEFILE_PART_EXTS):
                 continue
 
             if os.path.basename(source_path).upper().startswith('README'):
