@@ -191,13 +191,11 @@ def get_collection_name(collection_name):
     return dataset.get('title', '')
 
 
-def get_collection_name_url(collection_label):
-    label = '+'.join(collection_label.split())
-
+def get_collection_name_url(collection_tag):
     results = toolkit.get_action('package_search')(
         {},
         {
-            "fq": f"extras_collection:{label}",
+            "fq": f'extras_collection:"{collection_tag}"',
             "q": "type:collection",
             "fl": "title, name",
         }
@@ -223,7 +221,7 @@ def collection_has_datasets(collection_tag):
     results = toolkit.get_action('package_search')(
         {},
         {
-            "fq": f"extras_collection:{collection_tag}",
+            "fq": f'extras_collection:"{collection_tag}"',
             "q": "type:dataset",
             "fl": "title",
         }

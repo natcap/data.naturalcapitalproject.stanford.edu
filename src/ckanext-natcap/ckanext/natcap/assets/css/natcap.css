@@ -1337,6 +1337,11 @@ div#invest-model-list-container div {
     margin-top: 1rem;
 }
 
+.collection-search {
+    margin-top: 1rem;
+    margin-bottom: 0rem;
+}
+
 .btn-collection {
     color: var(--color-blue);
     font-size: 1.25em;

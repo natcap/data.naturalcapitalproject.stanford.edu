@@ -41,9 +41,9 @@
 
       {% set lulc, biotable = h.natcap_collection_lulc_biotable(pkg) %}
       {% if lulc %}
-        <span><a href="{% url_for 'dataset.search', vocab_collection=collection_tag, tags='BIOPHYSICAL TABLE' %}">Search for compatible Biophysical Tables</a></span>
+        <p class="collection-search"><a href="{% url_for 'dataset.search', vocab_collection=collection_tag, tags='BIOPHYSICAL TABLE' %}">Search for compatible Biophysical Tables</a></p>
       {% elif biotable %}
-        <span><a href="{% url_for 'dataset.search', vocab_collection=collection_tag, tags='LULC' %}">Search for compatible LULC Rasters</a></span>
+        <p class="collection-search"><a href="{% url_for 'dataset.search', vocab_collection=collection_tag, tags='LULC' %}">Search for compatible LULC Rasters</a></p>
       {% endif %}
       </div>
 
