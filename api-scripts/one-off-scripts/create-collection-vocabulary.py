@@ -1,7 +1,8 @@
 """A script used for creating the `collection` Tag Vocabulary on CKAN.
 
-Includes a list of TAGS to create within the `collection` vocabulary. These were
-extracted from the existing datasets' "extras" on the production Hub on 2025-07-11.
+Includes a list of TAGS to create within the `collection` vocabulary. The
+initial tag list was decided on by the Data Hub team during a standup on
+2026-04-01, based on the datasets on the Hub at the time.
 """
 import os
 import requests
