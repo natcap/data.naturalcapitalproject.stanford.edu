@@ -25,6 +25,7 @@ ENV CKANEXT_SPATIAL_GIT_REVISION=v2.2.0
 RUN apt-get update && apt-get install -y libgeos-dev libgeos3.11.1 libproj-dev proj-bin python3-shapely
 RUN pip3 install -e git+https://github.com/ckan/ckanext-spatial.git@$CKANEXT_SPATIAL_GIT_REVISION#egg=ckanext-spatial && \
     pip3 install -r https://raw.githubusercontent.com/ckan/ckanext-spatial/refs/tags/$CKANEXT_SPATIAL_GIT_REVISION/requirements.txt
+RUN pip3 install -e git+https://github.com/ckan/ckanext-scheming.git@release-3.1.0#egg=ckanext-scheming
 RUN pip3 install "numpy<2"
 
 ENV CKANEXT_GOOGLEANALYTICS_GIT_REV=6484a04fdc5eca1cdee9e3ee3b4e881678d1538d
@@ -52,6 +53,10 @@ RUN pip3 install -r /srv/app/src/ckanext-zipexpand/requirements.txt && \
 
 # Install any extensions needed by your CKAN instance
 # See Dockerfile.dev for more details and examples
+
+# $CKAN_INI is set by the base ckan image; location: /srv/app/ckan.ini
+RUN ckan config-tool $CKAN_INI --section app:main 'scheming.presets=ckanext.scheming:presets.json'
+RUN ckan config-tool $CKAN_INI --section app:main 'scheming.dataset_schemas=ckanext.natcap:schemas/natcap_dataset_schema.yml ckanext.natcap:schemas/natcap_collection_schema.yml'
 
 # Copy custom initialization scripts
 COPY ./ckan/docker-entrypoint.d/* /docker-entrypoint.d/
