@@ -88,8 +88,10 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, yaml_key, create=False,
     session = requests.Session()
     session.headers.update({'Authorization': ckan_apikey})
     session.verify = verify_ssl
+    session.headers['X-CKAN-API-TOKEN'] = ckan_apikey
     if auth:
         session.auth = auth
+
     with RemoteCKAN(ckan_url, apikey=ckan_apikey, session=session) as catalog:
         try:
             # `.tag_list()` returns a list of strings

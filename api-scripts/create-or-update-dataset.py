@@ -438,7 +438,8 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
     session = requests.Session()
     session.headers.update({'Authorization': ckan_apikey})
     session.verify = verify_ssl
-    if ckan_url == CKAN_HOSTS['staging']:
+    session.headers['X-CKAN-API-TOKEN'] = ckan_apikey
+    if auth:
         session.auth = auth
 
     config_yaml = {}

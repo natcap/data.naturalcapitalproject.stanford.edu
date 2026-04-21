@@ -54,6 +54,9 @@ RUN pip3 install -r /srv/app/src/ckanext-zipexpand/requirements.txt && \
 RUN pip3 install -r /srv/app/src/ckan/dev-requirements.txt
 # $CKAN_INI is set by the base ckan image; location: /srv/app/ckan.ini
 RUN ckan config-tool $CKAN_INI "debug=true"
+# Change the API Token header; the default `Authorization` interferes
+# with Basic Auth, which is used by nginx on the data-staging site
+RUN ckan config-tool $CKAN_INI --section app:main "apitoken_header_name=X-CKAN-API-TOKEN"
 
 # Copy custom initialization scripts
 COPY ./ckan/docker-entrypoint.d/* /docker-entrypoint.d/
