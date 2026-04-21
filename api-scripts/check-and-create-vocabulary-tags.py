@@ -46,7 +46,7 @@ YML_KEY_VOCAB_NAME_MAP = {
 
 
 def main(ckan_url, ckan_apikey, gmm_yaml_path, yaml_key, create=False,
-         verify_ssl=True):
+         auth=None, verify_ssl=True):
     """Check for the existence of and create CKAN Vocabulary Tags.
 
     Args:
@@ -88,6 +88,8 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, yaml_key, create=False,
     session = requests.Session()
     session.headers.update({'Authorization': ckan_apikey})
     session.verify = verify_ssl
+    if auth:
+        session.auth = auth
     with RemoteCKAN(ckan_url, apikey=ckan_apikey, session=session) as catalog:
         try:
             # `.tag_list()` returns a list of strings
@@ -168,6 +170,10 @@ def _ui(args=None):
             'Create/update the dataset on localhost:8443'))
     parser.add_argument('--apikey', default=None, help=(
         "The API key to use for the target host."))
+    parser.add_argument('--username', default=None, help=(
+        "The username for authenticating with the target host."))
+    parser.add_argument('--password', default=None, help=(
+        "The password for authenticating with the target host."))
 
     args = parser.parse_args(args)
 
@@ -189,13 +195,29 @@ def _ui(args=None):
         LOGGER.info("Using CLI-defined API key")
         apikey = args.apikey
 
+    auth = None
+    if selected_host == 'staging':
+        if not args.username:
+            LOGGER.info(f"Using API key from environment variable CKAN_STAGING_USERNAME")
+            username = os.environ['CKAN_STAGING_USERNAME']
+        else:
+            LOGGER.info("Using CLI-defined username")
+            username = args.username
+        if not args.password:
+            LOGGER.info(f"Using API key from environment variable CKAN_STAGING_PASSWORD")
+            password = os.environ['CKAN_STAGING_PASSWORD']
+        else:
+            LOGGER.info("Using CLI-defined password")
+            password = args.password
+        auth = (username, password)
+
     return (
-        host_url, apikey, args.geometamaker_yml, args.yml_key, args.create
+        host_url, apikey, args.geometamaker_yml, args.yml_key, args.create, auth
     )
 
 
 if __name__ == '__main__':
-    host, apikey, gmm_path, yml_key, create = _ui()
+    host, apikey, gmm_path, yml_key, create, auth = _ui()
 
     is_localhost = host.split('https://')[1].startswith('localhost')
-    main(host, apikey, gmm_path, yml_key, create, verify_ssl=(not is_localhost))
+    main(host, apikey, gmm_path, yml_key, create, auth=auth, verify_ssl=(not is_localhost))

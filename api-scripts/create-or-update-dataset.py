@@ -54,6 +54,9 @@ CKAN_APIKEY_ENVVARS = {
 assert set(CKAN_HOSTS.keys()) == set(CKAN_APIKEY_ENVVARS.keys()), (
     'Mismatch between keys in CKAN host and apikey dicts')
 
+# STAGING requires a username and password; these can be passed via the CLI
+# or by setting the env vars CKAN_STAGING_USERNAME and CKAN_STAGING_PASSWORD
+
 RESOURCES_BY_EXTENSION = {
     '.csv': 'CSV Table',
     '.tif.aux.xml': 'GDAL Auxiliary XML',
@@ -427,7 +430,7 @@ def _get_median_latlon_bounds(vector_path):
 
 
 def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
-         verify_ssl=True):
+         auth=None, verify_ssl=True):
     with open(gmm_yaml_path) as yaml_file:
         LOGGER.info(f"Loading geometamaker yaml from {gmm_yaml_path}")
         gmm_yaml = yaml.load(yaml_file.read(), Loader=yaml.Loader)
@@ -435,6 +438,8 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
     session = requests.Session()
     session.headers.update({'Authorization': ckan_apikey})
     session.verify = verify_ssl
+    if ckan_url == CKAN_HOSTS['staging']:
+        session.auth = auth
 
     config_yaml = {}
     possible_config_path = f"{ckan_url}/dataset_configs/{gmm_yaml['title']}.yml"
@@ -728,6 +733,10 @@ def _ui(args=None):
             'Create/update the dataset on localhost:8443'))
     parser.add_argument('--apikey', default=None, help=(
         "The API key to use for the target host."))
+    parser.add_argument('--username', default=None, help=(
+        "The username for authenticating with the target host."))
+    parser.add_argument('--password', default=None, help=(
+        "The password for authenticating with the target host."))
 
     args = parser.parse_args(args)
 
@@ -749,13 +758,29 @@ def _ui(args=None):
         LOGGER.info("Using CLI-defined API key")
         apikey = args.apikey
 
+    auth = None
+    if selected_host == 'staging':
+        if not args.username:
+            LOGGER.info(f"Using API key from environment variable CKAN_STAGING_USERNAME")
+            username = os.environ['CKAN_STAGING_USERNAME']
+        else:
+            LOGGER.info("Using CLI-defined username")
+            username = args.username
+        if not args.password:
+            LOGGER.info(f"Using API key from environment variable CKAN_STAGING_PASSWORD")
+            password = os.environ['CKAN_STAGING_PASSWORD']
+        else:
+            LOGGER.info("Using CLI-defined password")
+            password = args.password
+        auth = (username, password)
+
     return (
-        host_url, apikey, args.geometamaker_yml
+        host_url, apikey, args.geometamaker_yml, auth
     )
 
 
 if __name__ == '__main__':
-    host, apikey, gmm_path = _ui()
+    host, apikey, gmm_path, auth = _ui()
 
     is_localhost = host.split('https://')[1].startswith('localhost')
-    main(host, apikey, gmm_path, verify_ssl=(not is_localhost))
+    main(host, apikey, gmm_path, auth=auth, verify_ssl=(not is_localhost))
