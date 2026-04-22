@@ -429,6 +429,44 @@ def _get_median_latlon_bounds(vector_path):
     return (numpy.median(ys), numpy.median(xs))  # lat, lon, bounds
 
 
+def _to_short_format(f):
+    """
+    Get the short format name for this format.
+
+    This is helpful partially because Solr will tokenize longer names.
+    """
+    short_formats = {
+        'CSV': 'csv',
+        'GeoJSON': 'geojson',
+        'GeoTIFF': 'tif',
+        'Shapefile': 'shp',
+        'Text': 'txt',
+        'YML': 'yml',
+    }
+    return short_formats.get(f, f)
+
+
+def _include_format(f: str) -> bool:
+    """Determine whether this format should be included and displayed."""
+    to_keep = [
+        'csv',
+        'geojson',
+        'tif',
+        'shp',
+        'txt',
+        'yml',
+    ]
+    return f in to_keep
+
+
+def _get_sources_res_formats(resources, sources):
+    all_res_formats = [_to_short_format(r['format']) for r in resources]
+    all_res_formats += [s.split('.')[-1] for s in sources]
+    all_res_formats = [s for s in all_res_formats if _include_format(s)]
+    sources_res_formats = sorted(list(set(all_res_formats)))
+    return sources_res_formats
+
+
 def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
          auth=None, verify_ssl=True):
     with open(gmm_yaml_path) as yaml_file:
@@ -598,6 +636,17 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
                     source_path, label, upload=True))
 
         extras = []
+
+        # Construct `sources` and `sources_res_formats` extras
+        extras.append({
+            'key': 'sources',
+            'value': json.dumps(gmm_yaml['sources'])
+        })
+        sources_res_formats = _get_sources_res_formats(resources, gmm_yaml['sources'])
+        extras.append({
+            'key': 'sources_res_formats',
+            'value': json.dumps(sources_res_formats)
+        })
 
         # Construct the mappreview extra. If a config file was passed and includes
         # `layers_to_preview`, only include those layers
