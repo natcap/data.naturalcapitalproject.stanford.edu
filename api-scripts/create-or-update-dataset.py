@@ -720,7 +720,7 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
                 else:
                     # Handle an edge case where we want to convert between a collection
                     # and a dataset; `type` doesn't update like other properties
-                    LOGGER.info(
+                    LOGGER.warning(
                         f"Package found but types don't match; "
                         "purging and re-creating package with name={name}")
                     catalog.action.dataset_purge(id=pkg_dict['id'])
