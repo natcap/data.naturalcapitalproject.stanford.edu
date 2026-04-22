@@ -436,7 +436,6 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
         gmm_yaml = yaml.load(yaml_file.read(), Loader=yaml.Loader)
 
     session = requests.Session()
-    session.headers.update({'Authorization': ckan_apikey})
     session.verify = verify_ssl
     session.headers['X-CKAN-API-TOKEN'] = ckan_apikey
     if auth:
