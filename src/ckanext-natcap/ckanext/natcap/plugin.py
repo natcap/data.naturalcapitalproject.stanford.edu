@@ -10,7 +10,6 @@ import ckan.plugins.toolkit as toolkit
 from ckan.common import _
 
 from .helpers import get_helpers, invest_keywords, topic_keywords
-from .update_dataset import update_dataset
 from .validators import get_validators
 
 LOGGER = logging.getLogger(__name__)
@@ -88,25 +87,3 @@ class NatcapPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
                 pass
 
         return search_params
-
-    # The CKAN API expects this to be local to the instance, but our logic
-    # doesn't use self.
-    def after_dataset_update(self, context, package):
-        NatcapPlugin._after_dataset_update(context, package)
-
-    @staticmethod
-    def _after_dataset_update(context, package):
-        if "package" in context:
-            # This is what is supposed to happen when we add/update a dataset.
-            resources = [toolkit.get_action('resource_show')(context, { 'id': r.id })
-                         for r in context['package'].resources]
-        elif "resources" not in package:
-            # In this case, the package is only the package ID
-            resources = [
-                resource for resource in toolkit.get_action(
-                    'package_show')(context, package)['resources']
-            ]
-        else:
-            # resources are defined in the package data
-            resources = package['resources']
-        toolkit.enqueue_job(update_dataset, [context['user'], package, resources])
