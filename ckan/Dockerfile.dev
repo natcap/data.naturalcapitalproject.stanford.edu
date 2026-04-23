@@ -61,7 +61,6 @@ RUN ckan config-tool $CKAN_INI --section app:main "apitoken_header_name=X-CKAN-A
 RUN ckan config-tool $CKAN_INI --section app:main debug=true
 RUN ckan config-tool $CKAN_INI --section app:main 'scheming.presets=ckanext.scheming:presets.json'
 RUN ckan config-tool $CKAN_INI --section app:main 'scheming.dataset_schemas=ckanext.natcap:schemas/natcap_dataset_schema.yml ckanext.natcap:schemas/natcap_collection_schema.yml'
->>>>>>> master
 
 # Copy custom initialization scripts
 COPY ./ckan/docker-entrypoint.d/* /docker-entrypoint.d/

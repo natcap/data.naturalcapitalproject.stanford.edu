@@ -441,13 +441,13 @@ def _to_short_format(f):
     """
     short_formats = {
         'CSV': 'csv',
-        'GeoJSON': 'geojson',
-        'GeoTIFF': 'tif',
-        'ESRI Shapefile': 'shp',
-        'Text': 'txt',
+        'GEOJSON': 'geojson',
+        'GEOTIFF': 'tif',
+        'ESRI SHAPEFILE': 'shp',
+        'TEXT': 'txt',
         'YML': 'yml',
     }
-    return short_formats.get(f, f)
+    return short_formats.get(f.upper(), f)
 
 
 def _include_format(f: str) -> bool:
