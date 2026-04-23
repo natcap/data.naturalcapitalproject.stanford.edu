@@ -199,13 +199,13 @@ def _ui(args=None):
     auth = None
     if selected_host == 'staging':
         if not args.username:
-            LOGGER.info(f"Using API key from environment variable CKAN_STAGING_USERNAME")
+            LOGGER.info(f"Using username from environment variable CKAN_STAGING_USERNAME")
             username = os.environ['CKAN_STAGING_USERNAME']
         else:
             LOGGER.info("Using CLI-defined username")
             username = args.username
         if not args.password:
-            LOGGER.info(f"Using API key from environment variable CKAN_STAGING_PASSWORD")
+            LOGGER.info(f"Using password from environment variable CKAN_STAGING_PASSWORD")
             password = os.environ['CKAN_STAGING_PASSWORD']
         else:
             LOGGER.info("Using CLI-defined password")
