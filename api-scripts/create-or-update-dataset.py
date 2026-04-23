@@ -452,14 +452,14 @@ def _to_short_format(f):
 
 def _include_format(f: str) -> bool:
     """Determine whether this format should be included and displayed."""
-    to_keep = set(
+    to_keep = set([
         'csv',
         'geojson',
         'tif',
         'shp',
         'txt',
         'yml',
-    )
+    ])
     return f in to_keep
 
 
