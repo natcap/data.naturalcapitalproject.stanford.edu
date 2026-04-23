@@ -185,7 +185,8 @@ def update_dataset(user, dataset, resources):
     extras = update_last_updated(extras)
 
     # Remove extras covered by ckanext-scheming
-    extras = [e for e in extras if e['key'] not in ('suggested_citation',)]
+    extras = [e for e in extras if e['key'] not in 
+              ('suggested_citation', 'place', 'collection')]
 
     # Call API to save
     save_dataset(user, dataset, extras)
