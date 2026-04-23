@@ -443,7 +443,7 @@ def _to_short_format(f):
         'CSV': 'csv',
         'GeoJSON': 'geojson',
         'GeoTIFF': 'tif',
-        'Shapefile': 'shp',
+        'ESRI Shapefile': 'shp',
         'Text': 'txt',
         'YML': 'yml',
     }
@@ -465,7 +465,7 @@ def _include_format(f: str) -> bool:
 
 def _get_sources_res_formats(resources, sources):
     all_res_formats = [_to_short_format(r['format']) for r in resources]
-    all_res_formats += [s.split('.')[-1] for s in sources]
+    all_res_formats += [s.split('.')[-1].lower() for s in sources]
     all_res_formats = [s for s in all_res_formats if _include_format(s)]
     sources_res_formats = sorted(list(set(all_res_formats)))
     return sources_res_formats
