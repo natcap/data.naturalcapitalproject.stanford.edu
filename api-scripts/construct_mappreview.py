@@ -310,6 +310,28 @@ def get_vector_layers_metadata(vector_resources):
     return filter(None, vector_layers)
 
 
+def add_to_vector_resources(url, vector_resources):
+    # If we're working with an mvt, we cannot request a HEAD on a
+    # directory, so we need to get the metadata.json file instead
+    name = url.split('/')[-1]
+
+    url_to_check = f"{url}/metadata.json"
+
+    if not requests.head(url_to_check).ok:
+        LOGGER.warning(
+            f"Could not find MVTs for {url}")
+        return
+
+    # Get metadata file
+    metadata_url = url.replace('.mvt', '.shp.yml')
+
+    vector_resources.append({
+        'name': name,
+        'metadata_url': metadata_url,
+        'url': url,
+    })
+
+
 def get_mappreview_metadata(resources, source_files, mappreview_sources=[]):
     """Get metadata needed to display all resources on the map
 
@@ -328,7 +350,17 @@ def get_mappreview_metadata(resources, source_files, mappreview_sources=[]):
         mapbox map for previewing data layers.
     """
     raster_resources = [r for r in resources if r['format'] == 'GeoTIFF']
-    vector_resources = [r for r in resources if r['format'] == 'Shapefile']
+    vector_resources = [] # None of these will start as .mvts
+
+    possible_vector_urls = [r['url'] for r in resources
+                            if r['format'] == 'ESRI Shapefile']
+    for url in possible_vector_urls:
+        # Identify a .mvt version of the vector for mapping onto the globe.
+        # Ideally, .geojson should also be supported, but the mapbox JS
+        # errors. So, for the moment, check for .mvt only.
+        possible_url = url.replace('.shp', '.mvt')
+        add_to_vector_resources(possible_url, vector_resources)
+
     layers = []
 
     zip_resource = next((r for r in resources if r['format'] == 'ZIP'), None)
@@ -342,8 +374,6 @@ def get_mappreview_metadata(resources, source_files, mappreview_sources=[]):
             path_dirname = os.path.dirname(path)
             path_basename = os.path.basename(path)
 
-            name = path.split('/')[-1]
-
             base = '/'.join(zip_resource['url'].split('/')[0:-1])
             base = base.replace('https://storage.cloud.google.com/',
                                 'https://storage.googleapis.com/')
@@ -351,31 +381,10 @@ def get_mappreview_metadata(resources, source_files, mappreview_sources=[]):
             # Identify a .mvt version of the vector for mapping onto the globe.
             # Ideally, .geojson should also be supported, but the mapbox JS
             # errors. So, for the moment, check for .mvt only.
-            url = None
             possible_url = (
                 f'{base}/{path_dirname}/'
                 f'{path_basename.replace(".shp", ".mvt")}')
-            # If we're working with an mvt, we cannot request a HEAD on a
-            # directory, so we need to get the metadata.json file instead
-            url_to_check = f"{possible_url}/metadata.json"
-
-            if requests.head(url_to_check).ok:
-                url = possible_url
-
-            if not url:
-                LOGGER.warning(
-                    f"Could not find MVTs for {shp_source}")
-                continue
-
-            # Get metadata file
-            metadata_path_end = path_basename.replace('.shp', '.shp.yml')
-            metadata_url = f'{base}/{path_dirname}/{metadata_path_end}'
-
-            vector_resources.append({
-                'name': name,
-                'metadata_url': metadata_url,
-                'url': url,
-            })
+            add_to_vector_resources(possible_url, vector_resources)
 
         for tif_source in [s for s in source_files if s.endswith('.tif')]:
             if mappreview_sources and tif_source not in mappreview_sources:

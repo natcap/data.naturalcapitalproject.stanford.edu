@@ -66,6 +66,11 @@ RESOURCES_BY_EXTENSION = {
     '.gcolors': 'GRASS Color Table',
 }
 
+SHAPEFILE_PART_EXTS = (
+    ".dbf", ".shx", ".prj", ".cpg", ".qix", ".sbn",
+    ".sbx", ".shp.xml"
+)
+
 # Add a few mimetypes for extensions we're likely to encounter
 for extension, mimetype in [
         ('.shp', 'application/octet-stream'),
@@ -272,9 +277,8 @@ def get_from_config(config, dot_keys):
     return ''
 
 
-def _create_tags_dicts(config):
-    tags_list = get_from_config(config, 'keywords')
-    return [{'name': name} for name in tags_list]
+def _create_tags_dicts(tag_list):
+    return [{'name': name} for name in tag_list]
 
 
 def _get_wgs84_bbox(config):
@@ -448,14 +452,14 @@ def _to_short_format(f):
 
 def _include_format(f: str) -> bool:
     """Determine whether this format should be included and displayed."""
-    to_keep = [
+    to_keep = set(
         'csv',
         'geojson',
         'tif',
         'shp',
         'txt',
         'yml',
-    ]
+    )
     return f in to_keep
 
 
@@ -465,6 +469,45 @@ def _get_sources_res_formats(resources, sources):
     all_res_formats = [s for s in all_res_formats if _include_format(s)]
     sources_res_formats = sorted(list(set(all_res_formats)))
     return sources_res_formats
+
+
+def _fetch_vocab_tags(vocab_name, ckan_url, apikey, session):
+    with RemoteCKAN(ckan_url, apikey=apikey, session=session) as catalog:
+        try:
+            vocab_tags = catalog.action.tag_list(vocabulary_id=vocab_name)
+        except ckanapi.errors.NotFound:
+            LOGGER.error(f"No Tag Vocabulary with name `{vocab_name}` was found.")
+            raise
+    return set(vocab_tags)
+
+
+def _extract_vocab_tags_from_free_tags(package_tags, vocab_name, ckan_url, apikey, session):
+    vocab_tags = _fetch_vocab_tags(vocab_name, ckan_url, apikey, session)
+    collection_tags = []
+    free_tags = []
+
+    for tag in package_tags:
+        if tag in vocab_tags:
+            collection_tags.append(tag)
+        else:
+            free_tags.append(tag)
+    return free_tags, collection_tags
+
+
+def _package_type(gmm_yml, config_yml, collection_tags):
+    if gmm_yml.get('type') in ['collection', 'archive']:
+        if config_yml.get('treat_as_collection') is False:
+            return 'dataset'
+        if not collection_tags:
+            return 'dataset'
+
+        yml_sources = 0
+        for source in gmm_yml['sources']:
+            if source.lower().endswith(('.yml', '.yaml')):
+                yml_sources += 1
+            if yml_sources > 1:
+                return 'collection'
+    return 'dataset'
 
 
 def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
@@ -590,6 +633,10 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
             if gmm_yaml[path_key].endswith(source_path):
                 continue
 
+            # Don't create resources for each shapefile part
+            if source_path.endswith(SHAPEFILE_PART_EXTS):
+                continue
+
             if os.path.basename(source_path).upper().startswith('README'):
                 label = 'Dataset Documentation'
             else:
@@ -684,6 +731,10 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
                 'value': json.dumps([avg_lat, avg_lon])
             })
 
+        tags_list = [tag.upper() for tag in get_from_config(gmm_yaml, 'keywords')]
+        free_tags, collection_tags = _extract_vocab_tags_from_free_tags(
+            tags_list, 'collection', ckan_url, ckan_apikey, session)
+
         package_parameters = {
             'name': name,
             'title': title,
@@ -691,15 +742,16 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
             'author': contact_info[author_key],
             'author_email': contact_info['email'],
             'owner_org': 'natcap',
-            'type': 'dataset',
+            'type': _package_type(gmm_yaml, config_yaml, collection_tags),
             'notes': gmm_yaml['description'],
             # 'url': gmm_yaml['url'],
             'version': gmm_yaml['edition'],
             'suggested_citation': gmm_yaml['citation'],
             'license_id': license_id,
             'groups': [] if not group else [{'id': group}],
-            'tags': _create_tags_dicts(gmm_yaml),
+            'tags': _create_tags_dicts(free_tags),
             'place': [tag.upper() for tag in gmm_yaml.get('placenames', [])],
+            'collection': collection_tags,
             'extras': extras,
         }
         try:
@@ -714,10 +766,22 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
                                 "deleted state. Setting state to active.")
                     package_parameters['state'] = 'active'
 
-                pkg_dict = catalog.action.package_update(
-                    id=pkg_dict['id'],
-                    **package_parameters
-                )
+                if pkg_dict['type'] == package_parameters['type']:
+                    pkg_dict = catalog.action.package_update(
+                        id=pkg_dict['id'],
+                        **package_parameters
+                    )
+                else:
+                    # Handle an edge case where we want to convert between a collection
+                    # and a dataset; `type` doesn't update like other properties
+                    LOGGER.warning(
+                        f"Package found but types don't match; "
+                        "purging and re-creating package with name={name}")
+                    catalog.action.dataset_purge(id=pkg_dict['id'])
+                    pkg_dict = catalog.action.package_create(
+                        **package_parameters
+                    )
+
             except ckanapi.errors.NotFound:
                 LOGGER.info(
                     f"Package not found; creating package with name={name}")
