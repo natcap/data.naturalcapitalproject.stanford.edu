@@ -1,21 +1,30 @@
-from typing import Callable, Dict, Type, Literal, List, Tuple, Optional
+from typing import Callable
+from typing import Dict
+from typing import List
+from typing import Literal
+from typing import Optional
+from typing import Tuple
+from typing import Type
 from urllib.parse import urlencode
 
+import rasterio
 from attrs import define
-from titiler.core.factory import TilerFactory as TiTilerFactory
-from titiler.core.factory import img_endpoint_params
-from titiler.core.resources.enums import ImageType
-from titiler.core.models.mapbox import TileJSON
-from titiler.core.utils import render_image
-from rio_tiler.io import BaseReader, Reader
-from fastapi import Depends, Path, Query
+from fastapi import Depends
+from fastapi import Path
+from fastapi import Query
 from pydantic import Field
+from rio_tiler.io import BaseReader
+from rio_tiler.io import Reader
 from starlette.requests import Request
 from starlette.responses import Response
-import rasterio
+from titiler.core.factory import img_endpoint_params
+from titiler.core.factory import TilerFactory as TiTilerFactory
+from titiler.core.models.mapbox import TileJSON
+from titiler.core.resources.enums import ImageType
+from titiler.core.utils import render_image
 from typing_extensions import Annotated
 
-from cache import cached
+#from cache import cached
 
 @define(kw_only=True)
 class TilerFactory(TiTilerFactory):
@@ -116,7 +125,7 @@ class TilerFactory(TiTilerFactory):
             )
 
             return Response(content, media_type=media_type)
-        
+
         @self.router.get(
             "/{tileMatrixSetId}/tilejson.json",
             response_model=TileJSON,
@@ -204,7 +213,7 @@ class TilerFactory(TiTilerFactory):
                         "maxzoom": maxzoom if maxzoom is not None else src_dst.maxzoom,
                         "tiles": [tiles_url],
                     }
-                
+
         # Register all other routes.  These are copied from the original TilerFactory class.
         self.bounds()
         self.info()  # Used by our CKAN instance

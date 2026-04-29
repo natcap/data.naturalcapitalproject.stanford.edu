@@ -7,46 +7,44 @@ This file (minus modifications) was originally licensed under the MIT license.
 """
 
 import logging
-import sys
-import re
 import os
+import re
+import sys
 
+import dependencies
+import google.cloud.logging
 import jinja2
-from fastapi import Depends, FastAPI, HTTPException, Security
+from fastapi import Depends
+from fastapi import FastAPI
+from fastapi import HTTPException
+from fastapi import Security
 from fastapi.security.api_key import APIKeyQuery
-from rio_tiler.io import Reader, STACReader
+from rio_tiler.io import Reader
+from rio_tiler.io import STACReader
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
 from starlette.templating import Jinja2Templates
 from starlette_cramjam.middleware import CompressionMiddleware
-
 from titiler.application import __version__ as titiler_version
 from titiler.application.settings import ApiSettings
-from titiler.core.errors import DEFAULT_STATUS_CODES, add_exception_handlers
-from titiler.core.factory import (
-    AlgorithmFactory,
-    ColorMapFactory,
-    MultiBaseTilerFactory,
-    TMSFactory,
-)
-from titiler.core.middleware import (
-    CacheControlMiddleware,
-    LoggerMiddleware,
-    LowerCaseQueryStringMiddleware,
-    TotalTimeMiddleware,
-)
-from titiler.extensions import (
-    cogValidateExtension,
-    cogViewerExtension,
-    stacExtension,
-    stacViewerExtension,
-)
+from titiler.core.errors import add_exception_handlers
+from titiler.core.errors import DEFAULT_STATUS_CODES
+from titiler.core.factory import AlgorithmFactory
+from titiler.core.factory import MultiBaseTilerFactory
+from titiler.core.factory import TMSFactory
+from titiler.core.middleware import CacheControlMiddleware
+from titiler.core.middleware import LoggerMiddleware
+from titiler.core.middleware import LowerCaseQueryStringMiddleware
+from titiler.core.middleware import TotalTimeMiddleware
+from titiler.extensions import cogValidateExtension
+from titiler.extensions import cogViewerExtension
+from titiler.extensions import stacExtension
+from titiler.extensions import stacViewerExtension
 from titiler.mosaic.errors import MOSAIC_STATUS_CODES
 from titiler.mosaic.factory import MosaicTilerFactory
-import google.cloud.logging
 
-from cache import setup_cache
+#from cache import setup_cache
 
 #logging.basicConfig(level=logging.INFO)
 LOGGER = logging.getLogger(__name__)
@@ -127,10 +125,11 @@ if not api_settings.disable_cog:
     if os.path.exists('/app'):
         sys.path.append('/app')
 
-    # Setup Cache
-    app.add_event_handler('startup', setup_cache)
+    ## Setup Cache
+    #app.add_event_handler('startup', setup_cache)
 
-    from dependencies import ColorMapParams, DatasetPathParams
+    from dependencies import ColorMapParams
+    from dependencies import DatasetPathParams
     from routes import TilerFactory
 
     cog = TilerFactory(
@@ -197,7 +196,7 @@ app.include_router(
 
 ###############################################################################
 # Colormaps endpoints
-cmaps = ColorMapFactory()
+cmaps = dependencies.NatCapColorMapFactory()
 app.include_router(
     cmaps.router,
     tags=["ColorMaps"],

@@ -8,6 +8,7 @@ import json
 from typing import Dict
 from typing import Literal
 from typing import Optional
+from typing import Sequence
 
 import matplotlib
 import numpy
@@ -15,7 +16,132 @@ from fastapi import HTTPException
 from fastapi import Query
 from rio_tiler.colormap import cmap as default_cmap
 from rio_tiler.colormap import parse_color
+from rio_tiler.models import ImageData
+from rio_tiler.types import ColorMapType
+from starlette.responses import Response
+from titiler.core.factory import ColorMapFactory
+from titiler.core.resources.enums import ImageType
 from typing_extensions import Annotated
+
+
+class NatCapColorMapFactory(ColorMapFactory):
+    def register_routes(self):
+        """Register colormap routes, derived from ColorMapFactory."""
+        # inherit all of the normal routes.
+        ColorMapFactory.register_routes(self)
+
+        # Add our own route.
+        @self.router.get(
+            "/colorMaps/custom",
+            response_model=ColorMapType,
+            summary="Retrieve a custom colorMap metadata or image.",
+            operation_id="getCustomColorMap",
+            responses={
+                200: {
+                    "content": {
+                        "application/json": {},
+                        "image/png": {},
+                        "image/jpeg": {},
+                        "image/jpg": {},
+                        "image/webp": {},
+                        "image/jp2": {},
+                        "image/tiff; application=geotiff": {},
+                        "application/x-binary": {},
+                    },
+                },
+            },
+        )
+        def colormap_custom(
+            colormap: Annotated[
+                str,
+                Query(description="JSON encoded custom Colormap"),
+            ],
+            colormap_type: Annotated[
+                Literal["explicit", "linear"],
+                Query(description="User input colormap type."),
+            ] = "explicit",
+            # image output options
+            format: Annotated[
+                Optional[ImageType],
+                Query(
+                    description="Return colorMap as Image.",
+                ),
+            ] = None,
+            orientation: Annotated[
+                Optional[Literal["vertical", "horizontal"]],
+                Query(
+                    description="Image Orientation.",
+                ),
+            ] = None,
+            height: Annotated[
+                Optional[int],
+                Query(
+                    description="Image Height (default to 20px for horizontal or 256px for vertical).",
+                ),
+            ] = None,
+            width: Annotated[
+                Optional[int],
+                Query(
+                    description="Image Width (default to 256px for horizontal or 20px for vertical).",
+                ),
+            ] = None,
+            ) -> Optional[Dict]:
+            """Custom user-defined colormap endpoint."""
+            cmap = ColorMapParams(colormap=colormap, colormap_type=colormap_type)
+            ###############################################################
+            # SEQUENCE CMAP
+            if isinstance(cmap, Sequence):
+                values = [minv for ((minv, _), _) in cmap]
+                arr = numpy.array([values] * 20)
+
+                if orientation == "vertical":
+                    height = height or 256 if len(values) < 256 else len(values)
+                else:
+                    width = width or 256 if len(values) < 256 else len(values)
+
+            ###############################################################
+            # DISCRETE CMAP
+            elif len(cmap) != 256 or max(cmap) >= 256 or min(cmap) < 0:
+                values = list(cmap)
+                arr = numpy.array([values] * 20)
+
+                if orientation == "vertical":
+                    height = height or 256 if len(values) < 256 else len(values)
+                else:
+                    width = width or 256 if len(values) < 256 else len(values)
+
+            ###############################################################
+            # LINEAR CMAP
+            else:
+                cmin, cmax = min(cmap), max(cmap)
+                arr = numpy.array(
+                    [
+                        numpy.round(numpy.linspace(cmin, cmax, num=256)).astype(
+                            numpy.uint8
+                        )
+                    ]
+                    * 20
+                )
+
+            if orientation == "vertical":
+                arr = arr.transpose([1, 0])
+
+            img = ImageData(arr)
+
+            width = width or img.width
+            height = height or img.height
+            if width != img.width or height != img.height:
+                img = img.resize(height, width)
+
+            return Response(
+                img.render(img_format=format.driver, colormap=cmap),
+                media_type=format.mediatype,
+            )
+
+            if isinstance(cmap, Sequence):
+                return [(k, numpy.array(v).tolist()) for (k, v) in cmap]
+            else:
+                return {k: numpy.array(v).tolist() for k, v in cmap.items()}
 
 
 def ColorMapParams(
