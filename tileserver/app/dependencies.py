@@ -32,7 +32,7 @@ class NatCapColorMapFactory(ColorMapFactory):
 
         # Add our own route.
         @self.router.get(
-            "/colorMaps/custom",
+            "/colorMapCustom",
             response_model=ColorMapType,
             summary="Retrieve a custom colorMap metadata or image.",
             operation_id="getCustomColorMap",
