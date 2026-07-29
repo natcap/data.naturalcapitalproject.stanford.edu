@@ -77,6 +77,8 @@ RUN ckan config-tool $CKAN_INI --section app:main 'scheming.dataset_schemas=ckan
 # Copy custom initialization scripts
 COPY ./ckan/docker-entrypoint.d/* /docker-entrypoint.d/
 
+COPY --from=mapboxgl-legend-builder /tmp/mapbox-gl-legend/dist/cdn/mapbox-gl-legend.js /srv/app/src/ckanext-mappreview/ckanext/mappreview/assets/js/vendor/mapbox-gl-legend.js
+
 # Apply any patches needed to CKAN core or any of the built extensions (not the
 # runtime mounted ones)
 COPY ./ckan/patches ${APP_DIR}/patches
