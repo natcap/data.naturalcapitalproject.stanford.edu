@@ -1,3 +1,9 @@
+x-logging: &default-logging
+  driver: local
+  options:
+    max-size: "20m"
+    max-file: "5"
+
 volumes:
   ckan_storage:
   pg_data:
@@ -20,6 +26,7 @@ services:
     restart: unless-stopped
     ports:
       - "0.0.0.0:${NGINX_SSLPORT_HOST}:${NGINX_SSLPORT}"
+    logging: *default-logging
 
   ckan:
     build:
@@ -58,6 +65,7 @@ services:
           target: /srv/app/src
     healthcheck:
       test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:5000"]
+    logging: *default-logging
 
   datapusher:
     networks:
@@ -67,6 +75,7 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:8800"]
+    logging: *default-logging
 
   db:
     build:
@@ -88,6 +97,7 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}"]
+    logging: *default-logging
 
   solr:
     networks:
@@ -98,6 +108,7 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:8983/solr/"]
+    logging: *default-logging
 
   redis:
     image: redis:${REDIS_VERSION}
@@ -106,6 +117,7 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "-e", "QUIT"]
+    logging: *default-logging
 
 networks:
   webnet:
