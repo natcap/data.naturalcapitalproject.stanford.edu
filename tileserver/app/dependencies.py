@@ -138,11 +138,6 @@ class NatCapColorMapFactory(ColorMapFactory):
                 media_type=format.mediatype,
             )
 
-            if isinstance(cmap, Sequence):
-                return [(k, numpy.array(v).tolist()) for (k, v) in cmap]
-            else:
-                return {k: numpy.array(v).tolist() for k, v in cmap.items()}
-
 
 def ColorMapParams(
             colormap_name: Annotated[  # type: ignore
