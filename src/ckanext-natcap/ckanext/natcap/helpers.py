@@ -34,9 +34,13 @@ with open(path.join(path.dirname(__file__), 'invest_keywords.json'), 'r') as f:
 shown_extensions = [
     'csv',
     'geojson',
-    'tif',
+    'gpkg',
+    'html',
+    'pdf',
     'shp',
+    'tif',
     'txt',
+    'xlsx',
     'yml',
 ]
 
@@ -49,9 +53,13 @@ def get_resource_type_label(resource_type):
     labels = {
         'csv': 'CSV',
         'geojson': 'GeoJSON',
-        'tif': 'GeoTIFF',
+        'gpkg': 'GeoPackage',
+        'html': 'HTML',
+        'pdf': 'PDF',
         'shp': 'Shapefile',
+        'tif': 'GeoTIFF',
         'txt': 'Text',
+        'xlsx': 'Excel',
         'yml': 'YML',
     }
     return labels.get(resource_type, resource_type)
@@ -61,9 +69,13 @@ def get_resource_type_label_short(resource):
     labels = {
         'csv': 'CSV',
         'geojson': 'GEOJSON',
-        'tif': 'TIF',
+        'gpkg': 'GPKG',
+        'html': 'HTML',
+        'pdf': 'PDF',
         'shp': 'SHP',
+        'tif': 'TIF',
         'txt': 'TXT',
+        'xlsx': 'XLSX',
         'yml': 'YML',
     }
     return labels.get(resource_type, resource_type)
