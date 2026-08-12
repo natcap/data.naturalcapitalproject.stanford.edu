@@ -5,7 +5,7 @@ FROM node:26-alpine AS mapboxgl-legend-builder
 WORKDIR /tmp/mapbox-gl-legend
 RUN apk add git && \
   git clone https://github.com/natcap/mapbox-gl-legend.git . && \
-  git checkout 5248296bdb4c1bf24e526ef22af05ba49eb65fca && \
+  git checkout 5653b36b11a474c41deecd66431a232b9b9f7feb && \
   npm install && \
   npm run build
 
