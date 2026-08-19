@@ -705,6 +705,14 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
                 'value': json.dumps(mappreview_layers_meta)
             })
 
+        # Store `pixel_size` for rasters
+        pixel_size = get_from_config(gmm_yaml, 'data_model.pixel_size')
+        if pixel_size:
+            extras.append({
+                'key': 'pixel_size',
+                'value': json.dumps(pixel_size)
+            })
+
         # We can define the bbox as a polygon using
         # ckanext-spatial's spatial extra
         try:
