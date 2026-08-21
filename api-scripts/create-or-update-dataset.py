@@ -280,8 +280,60 @@ def get_from_config(config, dot_keys):
 def _create_tags_dicts(tag_list):
     return [{'name': name} for name in tag_list]
 
+def _parse_crs_info(spatial):
+    projection_info = {
+        'wkt': '',
+        'units': ''
+    }
 
-def _get_wgs84_bbox(config):
+    crs = spatial['crs']
+
+    # Handle new geometamaker CRS structure where `crs` is a dict
+    # containing (`epsg` code or `wkt` string) and `units`
+    if isinstance(crs, dict):
+        if crs['epsg'] is not None:
+            source_srs = osr.SpatialReference()
+            source_srs.ImportFromEPSG(crs['epsg'])
+            projection_info['wkt'] = source_srs.ExportToWkt()
+        else:
+            projection_info['wkt'] = crs['wkt']
+        projection_info['units'] = crs['units']
+
+    # Handle old structure, where `crs` is a string and `crs_units`
+    # is a separate key
+    else:
+        if re.match('(EPSG)|(ESRI):[1-9][0-9]*', str(crs)):
+            source_srs = osr.SpatialReference()
+            result = source_srs.SetFromUserInput(crs)
+            if result != ogr.OGRERR_NONE:
+                warnings.warn(
+                    f'Could not parse CRS string {crs}', UserWarning)
+            projection_info['wkt'] = source_srs.ExportToWkt()
+        elif re.match('[0-9][0-9]*', str(crs)):
+            source_srs = osr.SpatialReference()
+            found_match = False
+            for prefix in ('EPSG', 'ESRI'):
+                prefixed_crs = f"{prefix}:{crs}"
+                LOGGER.debug(f"Trying {prefixed_crs}")
+                result = source_srs.SetFromUserInput(prefixed_crs)
+                if result == ogr.OGRERR_NONE:
+                    found_match = True
+                    break
+
+            if not found_match:
+                warnings.warn(
+                    f"Numeric code {crs} does not appear to be either "
+                    "an EPSG or ESRI code, which may cause problems.", UserWarning)
+
+            projection_info['wkt'] = source_srs.ExportToWkt()
+        else:
+            projection_info['wkt'] = crs
+
+        projection_info['units'] = spatial['crs_units']
+
+    return projection_info
+
+def _get_wgs84_bbox(config, parsed_projection_info):
     extent = config['spatial']
     bbox = extent['bounding_box']
     if isinstance(bbox, list):
@@ -295,32 +347,7 @@ def _get_wgs84_bbox(config):
         raise NotImplementedError(
             f"Bounding box is neither a list nor a dict: {bbox}")
 
-    if re.match('(EPSG)|(ESRI):[1-9][0-9]*', str(extent['crs'])):
-        source_srs = osr.SpatialReference()
-        result = source_srs.SetFromUserInput(extent['crs'])
-        if result != ogr.OGRERR_NONE:
-            warnings.warn(
-                f'Could not parse CRS string {extent["crs"]}', UserWarning)
-        source_srs_wkt = source_srs.ExportToWkt()
-    elif re.match('[0-9][0-9]*', str(extent['crs'])):
-        source_srs = osr.SpatialReference()
-        found_match = False
-        for prefix in ('EPSG', 'ESRI'):
-            prefixed_crs = f"{prefix}:{extent['crs']}"
-            LOGGER.debug(f"Trying {prefixed_crs}")
-            result = source_srs.SetFromUserInput(prefixed_crs)
-            if result == ogr.OGRERR_NONE:
-                found_match = True
-                break
-
-        if not found_match:
-            warnings.warn(
-                f"Numeric code {extent['crs']} does not appear to be either "
-                "an EPSG or ESRI code, which may cause problems.", UserWarning)
-
-        source_srs_wkt = source_srs.ExportToWkt()
-    else:
-        source_srs_wkt = extent['crs']
+    source_srs_wkt = parsed_projection_info['wkt']
 
     dest_srs = osr.SpatialReference()
     dest_srs.ImportFromEPSG(4326)  # Assume lat/lon for dest.
@@ -705,20 +732,42 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
                 'value': json.dumps(mappreview_layers_meta)
             })
 
-        # We can define the bbox as a polygon using
-        # ckanext-spatial's spatial extra
         try:
-            if get_from_config(gmm_yaml, 'spatial.bounding_box'):
+            projection_info = _parse_crs_info(gmm_yaml['spatial'])
+
+            # We can define the bbox as a polygon using
+            # ckanext-spatial's spatial extra
+            try:
+                if get_from_config(gmm_yaml, 'spatial.bounding_box'):
+                    extras.append({
+                        'key': 'spatial',
+                        'value': json.dumps({
+                            'type': 'Polygon',
+                            'coordinates': _get_wgs84_bbox(gmm_yaml, projection_info)
+                        }),
+                    })
+            except Exception:
+                LOGGER.exception("Something happened when loading the bbox")
+                pass
+
+            # Store projection information (wkt and units)
+            extras.append({
+                'key': 'projection_information',
+                'value': json.dumps(projection_info)
+            })
+
+            # Store `pixel_size` for rasters
+            pixel_size = get_from_config(gmm_yaml, 'data_model.pixel_size')
+            if pixel_size:
                 extras.append({
-                    'key': 'spatial',
-                    'value': json.dumps({
-                        'type': 'Polygon',
-                        'coordinates': _get_wgs84_bbox(gmm_yaml),
-                    }),
+                    'key': 'pixel_size',
+                    'value': json.dumps(pixel_size)
                 })
-        except Exception:
-            LOGGER.exception("Something happened when loading the bbox")
-            pass
+
+        except KeyError:
+            LOGGER.warning(
+                "Projection information could not be determined."
+                " If this is a spatial dataset, please double-check the YML.")
 
         # Computing average lat/lon for vectors
         vector_path = _detect_vector(gmm_yaml, path_key, resource_dict['format'])
