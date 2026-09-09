@@ -10,9 +10,10 @@ To Run From data.naturalcapitalproject.stanford.edu repo:
 Dependencies:
     $ mamba install requests
 """
+import collections
+import json
 
 import requests
-import json
 
 # Set the base URL to the Public Data Hub
 CKAN_BASE_URL = 'https://data.naturalcapitalalliance.stanford.edu'
@@ -102,12 +103,21 @@ if __name__ == '__main__':
     data = get_variables(datasets)
     final_data = json.loads(data)
 
+    resources_by_dataset = collections.defaultdict(list)
     all_resources = {}
     # deduplicate resources
     # TODO: identify which datasets have duplicate resources
     for dataset in final_data:
         for resource_hash, (resource_url, resource_size) in dataset['resource_hashes'].items():
+            resources_by_dataset[resource_url].append(dataset['title'])
             all_resources[resource_url] = (resource_hash, resource_size)
+
+    n_duplicates_found = 0
+    actual_duplicates = {}
+    for resource, datasets in resources_by_dataset.items():
+        if len(datasets) > 1:
+            n_duplicates_found += 1
+            actual_duplicates[resource] = datasets
 
     total_size = 0
     unique_resources = set()
@@ -124,3 +134,9 @@ if __name__ == '__main__':
     print(f"Total size: {total_size} ({gb} GB)")
     print(f"Total datasets retrieved: {len(datasets)}")
     print(f"Unique resources retrieved: {len(unique_resources)}")
+    print(f"N duplicates found: {n_duplicates_found}")
+
+    for resource, datasets in actual_duplicates.items():
+        print(f"Resource {resource} shared by {len(datasets)} datasets:")
+        for dataset in datasets:
+            print(f"  * {dataset}")
