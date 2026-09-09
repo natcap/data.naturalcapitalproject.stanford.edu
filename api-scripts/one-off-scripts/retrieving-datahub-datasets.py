@@ -82,11 +82,14 @@ def get_variables(datasets):
         place = dataset['place']
         date = dataset['metadata_created']
         size = 0
+        resource_hashes = {}
         for resource in dataset['resources']:
             resource_size = resource.get('size')
             size += resource_size
+            resource_hashes[resource['hash']] = (resource['url'], resource['size'])
         items = {'title': title, 'created_date': date,
-                 'placename': place, 'size': size}
+                 'placename': place, 'size': size,
+                 'resource_hashes': resource_hashes}
         data.append(items)
     sorted_data = sorted(data, key=lambda x: x['created_date'])
     data_json = json.dumps(sorted_data, indent=2)
@@ -98,11 +101,26 @@ if __name__ == '__main__':
     datasets = get_all_datasets(CKAN_BASE_URL)
     data = get_variables(datasets)
     final_data = json.loads(data)
+
+    all_resources = {}
+    # deduplicate resources
+    # TODO: identify which datasets have duplicate resources
+    for dataset in final_data:
+        for resource_hash, (resource_url, resource_size) in dataset['resource_hashes'].items():
+            all_resources[resource_url] = (resource_hash, resource_size)
+
     total_size = 0
-    for d in final_data:
-        size = d['size']
+    unique_resources = set()
+    for resource_url, (hash, size) in all_resources.items():
         total_size += size
+        unique_resources.add(resource_url)
+
+    #total_size = 0
+    #for d in final_data:
+    #    size = d['size']
+    #    total_size += size
     gb = total_size/(1000000000)
     print(data)
     print(f"Total size: {total_size} ({gb} GB)")
     print(f"Total datasets retrieved: {len(datasets)}")
+    print(f"Unique resources retrieved: {len(unique_resources)}")
