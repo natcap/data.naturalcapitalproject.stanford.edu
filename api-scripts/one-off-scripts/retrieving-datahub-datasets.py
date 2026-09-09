@@ -15,7 +15,7 @@ import requests
 import json
 
 # Set the base URL to the Public Data Hub
-CKAN_BASE_URL = 'https://data.naturalcapitalproject.stanford.edu'
+CKAN_BASE_URL = 'https://data.naturalcapitalalliance.stanford.edu'
 
 
 def get_all_datasets(CKAN_BASE_URL):

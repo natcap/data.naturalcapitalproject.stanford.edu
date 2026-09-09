@@ -26,7 +26,7 @@ from ckanapi import RemoteCKAN  # mamba install ckanapi
 logging.basicConfig(level=logging.DEBUG)
 LOGGER = logging.getLogger(os.path.basename(__file__))
 CKAN_HOSTS = {
-    'prod': 'https://data.naturalcapitalproject.stanford.edu',
+    'prod': 'https://data.naturalcapitalalliance.stanford.edu',
     'staging': 'https://data-staging.naturalcapitalproject.org',
     'dev': 'https://localhost:8443'
 }
