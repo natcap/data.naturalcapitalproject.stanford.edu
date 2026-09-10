@@ -286,18 +286,18 @@ def _parse_crs_info(spatial):
         'units': ''
     }
 
-    crs = spatial['crs']
+    crs = spatial.get('crs', '')
 
     # Handle new geometamaker CRS structure where `crs` is a dict
     # containing (`epsg` code or `wkt` string) and `units`
     if isinstance(crs, dict):
-        if crs['epsg'] is not None:
+        if crs.get('epsg') is not None:
             source_srs = osr.SpatialReference()
             source_srs.ImportFromEPSG(crs['epsg'])
             projection_info['wkt'] = source_srs.ExportToWkt()
         else:
-            projection_info['wkt'] = crs['wkt']
-        projection_info['units'] = crs['units']
+            projection_info['wkt'] = crs.get('wkt')
+        projection_info['units'] = crs.get('units')
 
     # Handle old structure, where `crs` is a string and `crs_units`
     # is a separate key
@@ -329,7 +329,7 @@ def _parse_crs_info(spatial):
         else:
             projection_info['wkt'] = crs
 
-        projection_info['units'] = spatial['crs_units']
+        projection_info['units'] = spatial.get('crs_units')
 
     return projection_info
 
