@@ -764,7 +764,7 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
                     'value': json.dumps(pixel_size)
                 })
 
-        except KeyError:
+        except (KeyError, TypeError):
             LOGGER.warning(
                 "Projection information could not be determined."
                 " If this is a spatial dataset, please double-check the YML.")
