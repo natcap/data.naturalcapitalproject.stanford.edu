@@ -112,11 +112,11 @@ if __name__ == '__main__':
             resources_by_dataset[resource_url].append(dataset['title'])
             all_resources[resource_url] = (resource_hash, resource_size)
 
-    n_duplicates_found = 0
+    n_duplicate_resources_found = 0
     actual_duplicates = {}
     for resource, datasets in resources_by_dataset.items():
         if len(datasets) > 1:
-            n_duplicates_found += 1
+            n_duplicate_resources_found += 1
             actual_duplicates[resource] = datasets
 
     total_size = 0
@@ -134,7 +134,7 @@ if __name__ == '__main__':
     print(f"Total size: {total_size} ({gb} GB)")
     print(f"Total datasets retrieved: {len(source_datasets)}")
     print(f"Unique resources retrieved: {len(unique_resources)}")
-    print(f"N duplicates found: {n_duplicates_found}")
+    print(f"N duplicate resources found: {n_duplicate_resources_found}")
 
     for resource, datasets in actual_duplicates.items():
         print(f"Resource {resource} shared by {len(datasets)} datasets:")
