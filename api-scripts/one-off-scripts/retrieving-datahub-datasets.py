@@ -99,8 +99,8 @@ def get_variables(datasets):
 
 
 if __name__ == '__main__':
-    datasets = get_all_datasets(CKAN_BASE_URL)
-    data = get_variables(datasets)
+    source_datasets = get_all_datasets(CKAN_BASE_URL)
+    data = get_variables(source_datasets)
     final_data = json.loads(data)
 
     resources_by_dataset = collections.defaultdict(list)
@@ -132,7 +132,7 @@ if __name__ == '__main__':
     gb = total_size/(1000000000)
     print(data)
     print(f"Total size: {total_size} ({gb} GB)")
-    print(f"Total datasets retrieved: {len(datasets)}")
+    print(f"Total datasets retrieved: {len(source_datasets)}")
     print(f"Unique resources retrieved: {len(unique_resources)}")
     print(f"N duplicates found: {n_duplicates_found}")
 
