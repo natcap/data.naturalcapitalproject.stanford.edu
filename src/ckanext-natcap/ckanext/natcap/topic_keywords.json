@@ -6,6 +6,7 @@
         "WAVEWATCH",
         "BATHYMETRY",
         "COASTAL",
+        "COASTAL VULNERABILITY",
         "OCEAN",
         "MARINE",
         "CONTINENTAL SHELF CONTOUR"
@@ -18,22 +19,23 @@
         "LAND USE LAND COVER",
         "DEM",
         "DIGITAL ELEVATION MODEL",
-        "BIOPHYSICAL TABLE/BIOPHYSICAL",
         "LANDMASSES",
         "HABITATS/HABITAT",
         "GEOMORPHOLOGY",
         "SEA LEVEL",
         "LAND COVER",
         "FARMS",
+        "ERODIBILITY",
         "EROSIVITY",
         "SOIL",
-        "NATURE"
+        "NATURE ACCESS"
       ]
     },
     {
       "topic": "Cities",
       "keywords": [
         "POPULATION",
+        "POPULATION DENSITY",
         "HUMAN POPULATION",
         "BULDINGS",
         "ADMINISTRATIVE BOUNDARIES",
@@ -47,7 +49,6 @@
         "EVAPOTRANSPIRATION",
         "WATERSHEDS",
         "SUBWATERSHEDS",
-        "AWC",
         "AVAILABLE WATER CONTENT",
         "NUTRIENT RUNOFF",
         "DRAINAGE",
@@ -56,8 +57,9 @@
         "WATER",
         "STREAMS",
         "FLOOD",
-        "NDR",
-        "SDR"
+        "NUTRIENT DELIVERY RATIO",
+        "SEDIMENT DELIVERY RATIO",
+        "SEASONAL WATER YIELD"
       ]
     },
     {
