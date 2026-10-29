@@ -196,7 +196,7 @@ def get_raster_statistics(url: str, nodata=None, pixel_range=None) -> dict:
         stats['min'] = min
         stats['max'] = max
 
-        with tempfile.TemporaryDirectory(prefix='tmp-percentiles-', dir=os.getcwd()) as tempdir:
+        with tempfile.TemporaryDirectory(prefix='tmp-percentiles', dir=os.getcwd()) as tempdir:
             percentile_values = pygeoprocessing.raster_band_percentile(
                 (url, 1), tempdir, percentiles)
         for percentile, value in zip(percentiles, percentile_values):
