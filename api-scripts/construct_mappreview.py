@@ -193,10 +193,6 @@ def get_raster_statistics(url: str, nodata=None, pixel_range=None) -> dict:
             band = ds.GetRasterBand(1)
             min, max, _, _ = band.GetStatistics(False, True)
 
-        # If we've gotten to this point and band statistics are still nan, then
-        # there's got to be a data issue.
-        assert not math.isnan(float(min)), "Min value is nan"
-        assert not math.isnan(float(max)), "Max value is nan"
         stats['min'] = min
         stats['max'] = max
 
@@ -206,6 +202,10 @@ def get_raster_statistics(url: str, nodata=None, pixel_range=None) -> dict:
         for percentile, value in zip(percentiles, percentile_values):
             stats[f'percentile_{percentile}'] = value
 
+    # If we've gotten to this point and band statistics are still nan, then
+    # there's got to be a data issue.
+    assert not math.isnan(stats['min']), "Min value is nan; this will break the map if not fixed"
+    assert not math.isnan(stats['max']), "Max value is nan; this will break the map if not fixed"
     return {
         'pixel_min_value': stats['min'],
         'pixel_max_value': stats['max'],
