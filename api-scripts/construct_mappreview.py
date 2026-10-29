@@ -202,15 +202,18 @@ def get_raster_statistics(url: str, nodata=None, pixel_range=None) -> dict:
         for percentile, value in zip(percentiles, percentile_values):
             stats[f'percentile_{percentile}'] = value
 
-    # If we've gotten to this point and band statistics are still nan, then
-    # there's got to be a data issue.
-    assert not math.isnan(stats['min']), "Min value is nan; this will break the map if not fixed"
-    assert not math.isnan(stats['max']), "Max value is nan; this will break the map if not fixed"
-    return {
+    return_value = {
         'pixel_min_value': stats['min'],
         'pixel_max_value': stats['max'],
         **{ f'pixel_percentile_{p}': stats[f'percentile_{p}'] for p in percentiles },
     }
+
+    # If we've gotten to this point and band statistics are still nan, then
+    # there's got to be a data issue.  Dead programs tell no lies.
+    for key, value in return_value.items():
+        assert not math.isnan(value), f"Key {key} is nan; this will break the map if not fixed"
+
+    return return_value
 
 
 def get_raster_layer_metadata(raster_resource: dict) -> dict:
