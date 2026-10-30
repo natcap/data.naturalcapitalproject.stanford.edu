@@ -11,21 +11,25 @@ Intended to be called from ``create-or-update-dataset.py``.
 import json
 import logging
 import os
+import requests
+import tempfile
 import urllib.error
 import urllib.request
-import requests
 import warnings
-import yaml
+import math
 
 import pygeoprocessing  # mamba install pygeoprocessing
+from osgeo import gdal
 from osgeo import ogr
 from osgeo import osr
 from rio_tiler.io import Reader # mamba install rio-tiler
+import yaml
 
 logging.basicConfig(level=logging.DEBUG)
 LOGGER = logging.getLogger(os.path.basename(__file__))
 rt_logger = logging.getLogger('rasterio')
 rt_logger.setLevel(level=logging.ERROR)
+
 
 def get_map_settings(layers: list[dict]) -> dict:
     """Get map default minzoom, maxzoom, and bounds based on layers to display"""
@@ -174,11 +178,42 @@ def get_raster_statistics(url: str, nodata=None, pixel_range=None) -> dict:
 
     stats = all_stats['b1'].dict()
 
-    return {
+    # Sometimes the overviews are entirely nodata, which can lead to nan
+    # values in statistics. If this is the case, fall back to using
+    # pygeoprocessing to calculate the actual percentiles.
+    # This is probably slower, especially for big rasters, but should
+    # be more accurate.
+    if stats['valid_percent'] == 0.0:
+        LOGGER.warning(
+            "rio_tiler did not find any valid pixels in overviews, "
+            "generating percentiles from source layer with pygeoprocessing.")
+        if not url.startswith('/vsicurl/'):
+            url = f'/vsicurl/{url}'
+        with gdal.Open(url) as ds:
+            band = ds.GetRasterBand(1)
+            min, max, _, _ = band.GetStatistics(False, True)
+
+        stats['min'] = min
+        stats['max'] = max
+
+        with tempfile.TemporaryDirectory(prefix='tmp-percentiles', dir=os.getcwd()) as tempdir:
+            percentile_values = pygeoprocessing.raster_band_percentile(
+                (url, 1), tempdir, percentiles)
+        for percentile, value in zip(percentiles, percentile_values):
+            stats[f'percentile_{percentile}'] = value
+
+    return_value = {
         'pixel_min_value': stats['min'],
         'pixel_max_value': stats['max'],
         **{ f'pixel_percentile_{p}': stats[f'percentile_{p}'] for p in percentiles },
     }
+
+    # If we've gotten to this point and band statistics are still nan, then
+    # there's got to be a data issue.  Dead programs tell no lies.
+    for key, value in return_value.items():
+        assert not math.isnan(value), f"Key {key} is nan; this will break the map if not fixed"
+
+    return return_value
 
 
 def get_raster_layer_metadata(raster_resource: dict) -> dict:
