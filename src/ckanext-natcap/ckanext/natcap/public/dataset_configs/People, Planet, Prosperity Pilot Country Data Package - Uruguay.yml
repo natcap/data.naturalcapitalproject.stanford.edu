@@ -1,0 +1,67 @@
+# Default policy if no rule matches
+defaults:
+  allow: true
+  # Note: folders are _not_ downloadable by default (assumes no zipfile created)
+
+# Rule list evaluated top-to-bottom; first match wins
+rules:
+  # block everything under folder 'Rio_Santa_Lucia_Basin/sl_et0' but allow the folder itself to be downloaded
+  - match:
+      path_glob: "sl_et0"
+    allow: true
+    reason: "Allow et0 zip to be downloaded" # assumption is filepath to zip is same as folder
+
+layers_to_preview:
+- Uruguay_3Ps_data_pkg/OUTPUTS/CSS/10_UY_IPCC_WR/c_storage_bas.tif
+- Uruguay_3Ps_data_pkg/OUTPUTS/CV/Coastal_Exposure_Final_Results/coastal_exposure_final_results/coastal_exposure_final_results.shp
+- Uruguay_3Ps_data_pkg/OUTPUTS/CV/Scenario_1/coastal_exposure_esc1.gpkg
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P20/B_sum_sl_p20.tif
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P20/L_avail_sl_p20.tif
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P20/L_sl_p20.tif
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P20/P_sl_p20.tif
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P20/QF_sl_p20.tif
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P20/Vri_sl_p20.tif
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P20/stream_sl_p20.tif
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P20/aggregated_results_swy_sl_p20/aggregated_results_swy_sl_p20.shp
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P50/B_sum_sl_p50.tif
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P50/L_avail_sl_p50.tif
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P50/P_sl_p50.tif
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P50/QF_sl_p50.tif
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P50/Vri_sl_p50.tif
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P50/stream_sl_p50.tif
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P50/aggregated_results_swy_sl_p50/aggregated_results_swy_sl_p50.shp
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P80/B_sum_sl_p80.tif
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P80/L_avail_sl_p80.tif
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P80/P_sl_p80.tif
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P80/QF_sl_p80.tif
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P80/Vri_sl_p80.tif
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P80/stream_sl_p80.tif
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P80/aggregated_results_swy_sl_p80/aggregated_results_swy_sl_p80.shp
+
+collection_members:
+- Uruguay_3Ps_data_pkg/OUTPUTS/CV/Scenario_1/coastal_exposure_esc1.gpkg.yml
+- Uruguay_3Ps_data_pkg/OUTPUTS/CV/Coastal_Exposure_Final_Results/coastal_exposure_final_results/coastal_exposure_final_results.shp.yml
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P20/B_sum_sl_p20.tif.yml
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P20/L_avail_sl_p20.tif.yml
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P20/L_sl_p20.tif.yml
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P20/P_sl_p20.tif.yml
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P20/QF_sl_p20.tif.yml
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P20/Vri_sl_p20.tif.yml
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P20/stream_sl_p20.tif.yml
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P20/aggregated_results_swy_sl_p20/aggregated_results_swy_sl_p20.shp.yml
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P50/B_sum_sl_p50.tif.yml
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P50/L_avail_sl_p50.tif.yml
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P50/P_sl_p50.tif.yml
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P50/QF_sl_p50.tif.yml
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P50/Vri_sl_p50.tif.yml
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P50/stream_sl_p50.tif.yml
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P50/aggregated_results_swy_sl_p50/aggregated_results_swy_sl_p50.shp.yml
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P80/B_sum_sl_p80.tif.yml
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P80/L_avail_sl_p80.tif.yml
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P80/P_sl_p80.tif.yml
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P80/QF_sl_p80.tif.yml
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P80/Vri_sl_p80.tif.yml
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P80/stream_sl_p80.tif.yml
+- Uruguay_3Ps_data_pkg/OUTPUTS/SWY/Rio_Santa_Lucia_Basin/SWY_SL_P80/aggregated_results_swy_sl_p80/aggregated_results_swy_sl_p80.shp.yml
+
+
