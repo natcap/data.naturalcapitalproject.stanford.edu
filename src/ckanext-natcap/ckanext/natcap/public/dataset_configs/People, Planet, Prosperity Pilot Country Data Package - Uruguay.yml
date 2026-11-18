@@ -11,6 +11,11 @@ rules:
     allow: true
     reason: "Allow et0 zip to be downloaded" # assumption is filepath to zip is same as folder
 
+  - match:
+      path_glob: "*/sl_et0/*"
+    allow: false
+    reason: "Don't allow files in et0 zip to be downloaded individually"
+    
 layers_to_preview:
 - Uruguay_3Ps_data_pkg/OUTPUTS/CSS/10_UY_IPCC_WR/c_storage_bas.tif
 - Uruguay_3Ps_data_pkg/OUTPUTS/CV/Coastal_Exposure_Final_Results/coastal_exposure_final_results/coastal_exposure_final_results.shp
