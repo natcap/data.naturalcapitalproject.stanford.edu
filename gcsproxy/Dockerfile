@@ -12,7 +12,7 @@ RUN git clone https://github.com/phargogh/gcsproxy /tmp/gcsproxy \
         && make build \
         && /tmp/gcsproxy/bin/gcsproxy --help
 
-# build on debian, then install just the gcsproxy binary
+# build on debian, then install just the gcsproxy binary into an nginx mainline container.
 # Debian 13 is codenamed "trixie"
 FROM nginx:mainline-trixie
 COPY --from=build /tmp/gcsproxy/bin/gcsproxy /usr/sbin
