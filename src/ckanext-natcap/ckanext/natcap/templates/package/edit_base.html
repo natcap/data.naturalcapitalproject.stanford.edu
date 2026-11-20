@@ -1,6 +1,13 @@
 {% ckan_extends %}
 
 {% block content_action %}
-    {% snippet "package/snippets/view_api_data.html", pkg=pkg %}
-    {{ super() }}
+  {% snippet "package/snippets/view_api_data.html", pkg=pkg %}
+  {{ super() }}
+{% endblock %}
+
+{% block main_content %}
+  <div class="alert alert-danger" role="alert">
+    <b>WARNING: You should not use this page to add or edit datasets! All edits should be performed via `create_or_update_dataset.py`</b>
+  </div>
+  {{ super() }}
 {% endblock %}

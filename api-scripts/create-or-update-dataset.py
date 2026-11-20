@@ -54,6 +54,9 @@ CKAN_APIKEY_ENVVARS = {
 assert set(CKAN_HOSTS.keys()) == set(CKAN_APIKEY_ENVVARS.keys()), (
     'Mismatch between keys in CKAN host and apikey dicts')
 
+# STAGING requires a username and password; these can be passed via the CLI
+# or by setting the env vars CKAN_STAGING_USERNAME and CKAN_STAGING_PASSWORD
+
 RESOURCES_BY_EXTENSION = {
     '.csv': 'CSV Table',
     '.tif.aux.xml': 'GDAL Auxiliary XML',
@@ -62,6 +65,11 @@ RESOURCES_BY_EXTENSION = {
     '.tfw': 'ESRI World File',
     '.gcolors': 'GRASS Color Table',
 }
+
+SHAPEFILE_PART_EXTS = (
+    ".dbf", ".shx", ".prj", ".cpg", ".qix", ".sbn",
+    ".sbx", ".shp.xml"
+)
 
 # Add a few mimetypes for extensions we're likely to encounter
 for extension, mimetype in [
@@ -269,12 +277,63 @@ def get_from_config(config, dot_keys):
     return ''
 
 
-def _create_tags_dicts(config):
-    tags_list = get_from_config(config, 'keywords')
-    return [{'name': name} for name in tags_list]
+def _create_tags_dicts(tag_list):
+    return [{'name': name} for name in tag_list]
 
+def _parse_crs_info(spatial):
+    projection_info = {
+        'wkt': '',
+        'units': ''
+    }
 
-def _get_wgs84_bbox(config):
+    crs = spatial.get('crs', '')
+
+    # Handle new geometamaker CRS structure where `crs` is a dict
+    # containing (`epsg` code or `wkt` string) and `units`
+    if isinstance(crs, dict):
+        if crs.get('epsg') is not None:
+            source_srs = osr.SpatialReference()
+            source_srs.ImportFromEPSG(crs['epsg'])
+            projection_info['wkt'] = source_srs.ExportToWkt()
+        else:
+            projection_info['wkt'] = crs.get('wkt')
+        projection_info['units'] = crs.get('units')
+
+    # Handle old structure, where `crs` is a string and `crs_units`
+    # is a separate key
+    else:
+        if re.match('(EPSG)|(ESRI):[1-9][0-9]*', str(crs)):
+            source_srs = osr.SpatialReference()
+            result = source_srs.SetFromUserInput(crs)
+            if result != ogr.OGRERR_NONE:
+                warnings.warn(
+                    f'Could not parse CRS string {crs}', UserWarning)
+            projection_info['wkt'] = source_srs.ExportToWkt()
+        elif re.match('[0-9][0-9]*', str(crs)):
+            source_srs = osr.SpatialReference()
+            found_match = False
+            for prefix in ('EPSG', 'ESRI'):
+                prefixed_crs = f"{prefix}:{crs}"
+                LOGGER.debug(f"Trying {prefixed_crs}")
+                result = source_srs.SetFromUserInput(prefixed_crs)
+                if result == ogr.OGRERR_NONE:
+                    found_match = True
+                    break
+
+            if not found_match:
+                warnings.warn(
+                    f"Numeric code {crs} does not appear to be either "
+                    "an EPSG or ESRI code, which may cause problems.", UserWarning)
+
+            projection_info['wkt'] = source_srs.ExportToWkt()
+        else:
+            projection_info['wkt'] = crs
+
+        projection_info['units'] = spatial.get('crs_units')
+
+    return projection_info
+
+def _get_wgs84_bbox(config, parsed_projection_info):
     extent = config['spatial']
     bbox = extent['bounding_box']
     if isinstance(bbox, list):
@@ -288,32 +347,7 @@ def _get_wgs84_bbox(config):
         raise NotImplementedError(
             f"Bounding box is neither a list nor a dict: {bbox}")
 
-    if re.match('(EPSG)|(ESRI):[1-9][0-9]*', str(extent['crs'])):
-        source_srs = osr.SpatialReference()
-        result = source_srs.SetFromUserInput(extent['crs'])
-        if result != ogr.OGRERR_NONE:
-            warnings.warn(
-                f'Could not parse CRS string {extent["crs"]}', UserWarning)
-        source_srs_wkt = source_srs.ExportToWkt()
-    elif re.match('[0-9][0-9]*', str(extent['crs'])):
-        source_srs = osr.SpatialReference()
-        found_match = False
-        for prefix in ('EPSG', 'ESRI'):
-            prefixed_crs = f"{prefix}:{extent['crs']}"
-            LOGGER.debug(f"Trying {prefixed_crs}")
-            result = source_srs.SetFromUserInput(prefixed_crs)
-            if result == ogr.OGRERR_NONE:
-                found_match = True
-                break
-
-        if not found_match:
-            warnings.warn(
-                f"Numeric code {extent['crs']} does not appear to be either "
-                "an EPSG or ESRI code, which may cause problems.", UserWarning)
-
-        source_srs_wkt = source_srs.ExportToWkt()
-    else:
-        source_srs_wkt = extent['crs']
+    source_srs_wkt = parsed_projection_info['wkt']
 
     dest_srs = osr.SpatialReference()
     dest_srs.ImportFromEPSG(4326)  # Assume lat/lon for dest.
@@ -340,6 +374,9 @@ def _detect_vector(gmm_yaml, path_key, data_format):
     if dataset is a zip, check each item in the zip and return path if item
         is a vector
     """
+    if gmm_yaml.get('type') in ['raster', 'table']:
+        return False
+
     dataset_path = gmm_yaml[path_key]
     if dataset_path.startswith("http"):  # read file from remote
         # gdal can't handle the storage.cloud.google.com URL
@@ -423,15 +460,94 @@ def _get_median_latlon_bounds(vector_path):
     return (numpy.median(ys), numpy.median(xs))  # lat, lon, bounds
 
 
+def _to_short_format(f):
+    """
+    Get the short format name for this format.
+
+    This is helpful partially because Solr will tokenize longer names.
+    """
+    short_formats = {
+        'CSV': 'csv',
+        'GEOJSON': 'geojson',
+        'GEOTIFF': 'tif',
+        'ESRI SHAPEFILE': 'shp',
+        'TEXT': 'txt',
+        'YML': 'yml',
+    }
+    return short_formats.get(f.upper(), f)
+
+
+def _include_format(f: str) -> bool:
+    """Determine whether this format should be included and displayed."""
+    to_keep = set([
+        'csv',
+        'geojson',
+        'tif',
+        'shp',
+        'txt',
+        'yml',
+    ])
+    return f in to_keep
+
+
+def _get_sources_res_formats(resources, sources):
+    all_res_formats = [_to_short_format(r['format']) for r in resources]
+    all_res_formats += [s.split('.')[-1].lower() for s in sources]
+    all_res_formats = [s for s in all_res_formats if _include_format(s)]
+    sources_res_formats = sorted(list(set(all_res_formats)))
+    return sources_res_formats
+
+
+def _fetch_vocab_tags(vocab_name, ckan_url, apikey, session):
+    with RemoteCKAN(ckan_url, apikey=apikey, session=session) as catalog:
+        try:
+            vocab_tags = catalog.action.tag_list(vocabulary_id=vocab_name)
+        except ckanapi.errors.NotFound:
+            LOGGER.error(f"No Tag Vocabulary with name `{vocab_name}` was found.")
+            raise
+    return set(vocab_tags)
+
+
+def _extract_vocab_tags_from_free_tags(package_tags, vocab_name, ckan_url, apikey, session):
+    vocab_tags = _fetch_vocab_tags(vocab_name, ckan_url, apikey, session)
+    collection_tags = []
+    free_tags = []
+
+    for tag in package_tags:
+        if tag in vocab_tags:
+            collection_tags.append(tag)
+        else:
+            free_tags.append(tag)
+    return free_tags, collection_tags
+
+
+def _package_type(gmm_yml, config_yml, collection_tags):
+    if gmm_yml.get('type') in ['collection', 'archive']:
+        if config_yml.get('treat_as_collection') is False:
+            return 'dataset'
+        if not collection_tags:
+            return 'dataset'
+
+        yml_sources = 0
+        for source in gmm_yml['sources']:
+            if source.lower().endswith(('.yml', '.yaml')):
+                yml_sources += 1
+            if yml_sources > 1:
+                return 'collection'
+    return 'dataset'
+
+
 def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
-         verify_ssl=True):
+         auth=None, verify_ssl=True):
     with open(gmm_yaml_path) as yaml_file:
         LOGGER.info(f"Loading geometamaker yaml from {gmm_yaml_path}")
         gmm_yaml = yaml.load(yaml_file.read(), Loader=yaml.Loader)
 
     session = requests.Session()
-    session.headers.update({'Authorization': ckan_apikey})
     session.verify = verify_ssl
+    session.headers['X-CKAN-API-TOKEN'] = ckan_apikey
+    if auth:
+        session.auth = auth
 
     config_yaml = {}
     possible_config_path = f"{ckan_url}/dataset_configs/{gmm_yaml['title']}.yml"
@@ -544,6 +660,10 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
             if gmm_yaml[path_key].endswith(source_path):
                 continue
 
+            # Don't create resources for each shapefile part
+            if source_path.endswith(SHAPEFILE_PART_EXTS):
+                continue
+
             if os.path.basename(source_path).upper().startswith('README'):
                 label = 'Dataset Documentation'
             else:
@@ -591,6 +711,17 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
 
         extras = []
 
+        # Construct `sources` and `sources_res_formats` extras
+        extras.append({
+            'key': 'sources',
+            'value': json.dumps(gmm_yaml['sources'])
+        })
+        sources_res_formats = _get_sources_res_formats(resources, gmm_yaml['sources'])
+        extras.append({
+            'key': 'sources_res_formats',
+            'value': json.dumps(sources_res_formats)
+        })
+
         # Construct the mappreview extra. If a config file was passed and includes
         # `layers_to_preview`, only include those layers
         mappreview_layers_meta = get_mappreview_metadata(
@@ -601,20 +732,42 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
                 'value': json.dumps(mappreview_layers_meta)
             })
 
-        # We can define the bbox as a polygon using
-        # ckanext-spatial's spatial extra
         try:
-            if get_from_config(gmm_yaml, 'spatial.bounding_box'):
+            projection_info = _parse_crs_info(gmm_yaml['spatial'])
+
+            # We can define the bbox as a polygon using
+            # ckanext-spatial's spatial extra
+            try:
+                if get_from_config(gmm_yaml, 'spatial.bounding_box'):
+                    extras.append({
+                        'key': 'spatial',
+                        'value': json.dumps({
+                            'type': 'Polygon',
+                            'coordinates': _get_wgs84_bbox(gmm_yaml, projection_info)
+                        }),
+                    })
+            except Exception:
+                LOGGER.exception("Something happened when loading the bbox")
+                pass
+
+            # Store projection information (wkt and units)
+            extras.append({
+                'key': 'projection_information',
+                'value': json.dumps(projection_info)
+            })
+
+            # Store `pixel_size` for rasters
+            pixel_size = get_from_config(gmm_yaml, 'data_model.pixel_size')
+            if pixel_size:
                 extras.append({
-                    'key': 'spatial',
-                    'value': json.dumps({
-                        'type': 'Polygon',
-                        'coordinates': _get_wgs84_bbox(gmm_yaml),
-                    }),
+                    'key': 'pixel_size',
+                    'value': json.dumps(pixel_size)
                 })
-        except Exception:
-            LOGGER.exception("Something happened when loading the bbox")
-            pass
+
+        except (AttributeError, KeyError, TypeError):
+            LOGGER.warning(
+                "Projection information could not be determined."
+                " If this is a spatial dataset, please double-check the YML.")
 
         # Computing average lat/lon for vectors
         vector_path = _detect_vector(gmm_yaml, path_key, resource_dict['format'])
@@ -627,6 +780,10 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
                 'value': json.dumps([avg_lat, avg_lon])
             })
 
+        tags_list = [tag.upper() for tag in get_from_config(gmm_yaml, 'keywords')]
+        free_tags, collection_tags = _extract_vocab_tags_from_free_tags(
+            tags_list, 'collection', ckan_url, ckan_apikey, session)
+
         package_parameters = {
             'name': name,
             'title': title,
@@ -634,15 +791,16 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
             'author': contact_info[author_key],
             'author_email': contact_info['email'],
             'owner_org': 'natcap',
-            'type': 'dataset',
+            'type': _package_type(gmm_yaml, config_yaml, collection_tags),
             'notes': gmm_yaml['description'],
             # 'url': gmm_yaml['url'],
             'version': gmm_yaml['edition'],
             'suggested_citation': gmm_yaml['citation'],
             'license_id': license_id,
             'groups': [] if not group else [{'id': group}],
-            'tags': _create_tags_dicts(gmm_yaml),
+            'tags': _create_tags_dicts(free_tags),
             'place': [tag.upper() for tag in gmm_yaml.get('placenames', [])],
+            'collection': collection_tags,
             'extras': extras,
         }
         try:
@@ -657,10 +815,22 @@ def main(ckan_url, ckan_apikey, gmm_yaml_path, private=False, group=None,
                                 "deleted state. Setting state to active.")
                     package_parameters['state'] = 'active'
 
-                pkg_dict = catalog.action.package_update(
-                    id=pkg_dict['id'],
-                    **package_parameters
-                )
+                if pkg_dict['type'] == package_parameters['type']:
+                    pkg_dict = catalog.action.package_update(
+                        id=pkg_dict['id'],
+                        **package_parameters
+                    )
+                else:
+                    # Handle an edge case where we want to convert between a collection
+                    # and a dataset; `type` doesn't update like other properties
+                    LOGGER.warning(
+                        f"Package found but types don't match; "
+                        "purging and re-creating package with name={name}")
+                    catalog.action.dataset_purge(id=pkg_dict['id'])
+                    pkg_dict = catalog.action.package_create(
+                        **package_parameters
+                    )
+
             except ckanapi.errors.NotFound:
                 LOGGER.info(
                     f"Package not found; creating package with name={name}")
@@ -725,6 +895,10 @@ def _ui(args=None):
             'Create/update the dataset on localhost:8443'))
     parser.add_argument('--apikey', default=None, help=(
         "The API key to use for the target host."))
+    parser.add_argument('--username', default=None, help=(
+        "The username for authenticating with the target host."))
+    parser.add_argument('--password', default=None, help=(
+        "The password for authenticating with the target host."))
 
     args = parser.parse_args(args)
 
@@ -746,13 +920,29 @@ def _ui(args=None):
         LOGGER.info("Using CLI-defined API key")
         apikey = args.apikey
 
+    auth = None
+    if selected_host == 'staging':
+        if not args.username:
+            LOGGER.info(f"Using username from environment variable CKAN_STAGING_USERNAME")
+            username = os.environ['CKAN_STAGING_USERNAME']
+        else:
+            LOGGER.info("Using CLI-defined username")
+            username = args.username
+        if not args.password:
+            LOGGER.info(f"Using password from environment variable CKAN_STAGING_PASSWORD")
+            password = os.environ['CKAN_STAGING_PASSWORD']
+        else:
+            LOGGER.info("Using CLI-defined password")
+            password = args.password
+        auth = (username, password)
+
     return (
-        host_url, apikey, args.geometamaker_yml
+        host_url, apikey, args.geometamaker_yml, auth
     )
 
 
 if __name__ == '__main__':
-    host, apikey, gmm_path = _ui()
+    host, apikey, gmm_path, auth = _ui()
 
     is_localhost = host.split('https://')[1].startswith('localhost')
-    main(host, apikey, gmm_path, verify_ssl=(not is_localhost))
+    main(host, apikey, gmm_path, auth=auth, verify_ssl=(not is_localhost))

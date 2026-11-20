@@ -11,21 +11,25 @@ Intended to be called from ``create-or-update-dataset.py``.
 import json
 import logging
 import os
+import requests
+import tempfile
 import urllib.error
 import urllib.request
-import requests
 import warnings
-import yaml
+import math
 
 import pygeoprocessing  # mamba install pygeoprocessing
+from osgeo import gdal
 from osgeo import ogr
 from osgeo import osr
 from rio_tiler.io import Reader # mamba install rio-tiler
+import yaml
 
 logging.basicConfig(level=logging.DEBUG)
 LOGGER = logging.getLogger(os.path.basename(__file__))
 rt_logger = logging.getLogger('rasterio')
 rt_logger.setLevel(level=logging.ERROR)
+
 
 def get_map_settings(layers: list[dict]) -> dict:
     """Get map default minzoom, maxzoom, and bounds based on layers to display"""
@@ -174,11 +178,42 @@ def get_raster_statistics(url: str, nodata=None, pixel_range=None) -> dict:
 
     stats = all_stats['b1'].dict()
 
-    return {
+    # Sometimes the overviews are entirely nodata, which can lead to nan
+    # values in statistics. If this is the case, fall back to using
+    # pygeoprocessing to calculate the actual percentiles.
+    # This is probably slower, especially for big rasters, but should
+    # be more accurate.
+    if stats['valid_percent'] == 0.0:
+        LOGGER.warning(
+            "rio_tiler did not find any valid pixels in overviews, "
+            "generating percentiles from source layer with pygeoprocessing.")
+        if not url.startswith('/vsicurl/'):
+            url = f'/vsicurl/{url}'
+        with gdal.Open(url) as ds:
+            band = ds.GetRasterBand(1)
+            min, max, _, _ = band.GetStatistics(False, True)
+
+        stats['min'] = min
+        stats['max'] = max
+
+        with tempfile.TemporaryDirectory(prefix='tmp-percentiles', dir=os.getcwd()) as tempdir:
+            percentile_values = pygeoprocessing.raster_band_percentile(
+                (url, 1), tempdir, percentiles)
+        for percentile, value in zip(percentiles, percentile_values):
+            stats[f'percentile_{percentile}'] = value
+
+    return_value = {
         'pixel_min_value': stats['min'],
         'pixel_max_value': stats['max'],
         **{ f'pixel_percentile_{p}': stats[f'percentile_{p}'] for p in percentiles },
     }
+
+    # If we've gotten to this point and band statistics are still nan, then
+    # there's got to be a data issue.  Dead programs tell no lies.
+    for key, value in return_value.items():
+        assert not math.isnan(value), f"Key {key} is nan; this will break the map if not fixed"
+
+    return return_value
 
 
 def get_raster_layer_metadata(raster_resource: dict) -> dict:
@@ -310,6 +345,28 @@ def get_vector_layers_metadata(vector_resources):
     return filter(None, vector_layers)
 
 
+def add_to_vector_resources(url, vector_resources):
+    # If we're working with an mvt, we cannot request a HEAD on a
+    # directory, so we need to get the metadata.json file instead
+    name = url.split('/')[-1]
+
+    url_to_check = f"{url}/metadata.json"
+
+    if not requests.head(url_to_check).ok:
+        LOGGER.warning(
+            f"Could not find MVTs for {url}")
+        return
+
+    # Get metadata file
+    metadata_url = url.replace('.mvt', '.shp.yml')
+
+    vector_resources.append({
+        'name': name,
+        'metadata_url': metadata_url,
+        'url': url,
+    })
+
+
 def get_mappreview_metadata(resources, source_files, mappreview_sources=[]):
     """Get metadata needed to display all resources on the map
 
@@ -328,7 +385,17 @@ def get_mappreview_metadata(resources, source_files, mappreview_sources=[]):
         mapbox map for previewing data layers.
     """
     raster_resources = [r for r in resources if r['format'] == 'GeoTIFF']
-    vector_resources = [r for r in resources if r['format'] == 'Shapefile']
+    vector_resources = [] # None of these will start as .mvts
+
+    possible_vector_urls = [r['url'] for r in resources
+                            if r['format'] == 'ESRI Shapefile']
+    for url in possible_vector_urls:
+        # Identify a .mvt version of the vector for mapping onto the globe.
+        # Ideally, .geojson should also be supported, but the mapbox JS
+        # errors. So, for the moment, check for .mvt only.
+        possible_url = url.replace('.shp', '.mvt')
+        add_to_vector_resources(possible_url, vector_resources)
+
     layers = []
 
     zip_resource = next((r for r in resources if r['format'] == 'ZIP'), None)
@@ -342,8 +409,6 @@ def get_mappreview_metadata(resources, source_files, mappreview_sources=[]):
             path_dirname = os.path.dirname(path)
             path_basename = os.path.basename(path)
 
-            name = path.split('/')[-1]
-
             base = '/'.join(zip_resource['url'].split('/')[0:-1])
             base = base.replace('https://storage.cloud.google.com/',
                                 'https://storage.googleapis.com/')
@@ -351,31 +416,10 @@ def get_mappreview_metadata(resources, source_files, mappreview_sources=[]):
             # Identify a .mvt version of the vector for mapping onto the globe.
             # Ideally, .geojson should also be supported, but the mapbox JS
             # errors. So, for the moment, check for .mvt only.
-            url = None
             possible_url = (
                 f'{base}/{path_dirname}/'
                 f'{path_basename.replace(".shp", ".mvt")}')
-            # If we're working with an mvt, we cannot request a HEAD on a
-            # directory, so we need to get the metadata.json file instead
-            url_to_check = f"{possible_url}/metadata.json"
-
-            if requests.head(url_to_check).ok:
-                url = possible_url
-
-            if not url:
-                LOGGER.warning(
-                    f"Could not find MVTs for {shp_source}")
-                continue
-
-            # Get metadata file
-            metadata_path_end = path_basename.replace('.shp', '.shp.yml')
-            metadata_url = f'{base}/{path_dirname}/{metadata_path_end}'
-
-            vector_resources.append({
-                'name': name,
-                'metadata_url': metadata_url,
-                'url': url,
-            })
+            add_to_vector_resources(possible_url, vector_resources)
 
         for tif_source in [s for s in source_files if s.endswith('.tif')]:
             if mappreview_sources and tif_source not in mappreview_sources:

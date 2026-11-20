@@ -102,6 +102,7 @@
             {% block header_site_navigation_tabs %}
               {{ h.build_nav_main(
                 (dataset_type ~ '.search', h.humanize_entity_type('package', dataset_type, 'main nav') or _('Datasets'), ["dataset", "resource"]),
+                ('collection.search', _('Collections'), ["collection"]),
                 ('home.index', _('Home')) ) }}
             {% endblock %}
 

@@ -1,0 +1,6 @@
+collection_members:
+- Philippines_3Ps_data_pkg/1_model_inputs/EEZ_PHI_32651/EEZ_PHI_32651.shp.yml
+- Philippines_3Ps_data_pkg/1_model_inputs/PHI_11_RFI_sites_1km_buffer/PHI_11_RFI_sites_1km_buffer.shp.yml
+- Philippines_3Ps_data_pkg/2_model_outputs/pud_results_PHI_11_RFI_sites_1km_buffer_1kmHEX_2005_2017/pud_results_PHI_11_RFI_sites_1km_buffer_1kmHEX_2005_2017.shp.yml
+- Philippines_3Ps_data_pkg/2_model_outputs/pud_results_country_wide_05022023/pud_results_country_wide_05022023.shp.yml
+- Philippines_3Ps_data_pkg/ADB_RFI_sites_PHI/ADB_RFI_sites_PHI.shp.yml
